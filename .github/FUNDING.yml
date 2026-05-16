@@ -1,0 +1,22 @@
+# GitHub will surface a "Sponsor" button on the repo page using whichever
+# of the entries below are uncommented. Multiple entries are allowed; the
+# first one wins for the primary CTA.
+#
+# Reference: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+github: Ranzlappen
+ko_fi: ranzlappen
+
+# --- additional platforms left commented; uncomment to enable ---
+# patreon: <handle>
+# open_collective: <slug>
+# tidelift: <package>
+# community_bridge: <project>
+# liberapay: <handle>
+# issuehunt: <handle>
+# lfx_crowdfunding: <project>
+# polar: <handle>
+# buy_me_a_coffee: <handle>
+# thanks_dev: <handle>
+# custom:
+#   - "https://example.com/donate"
