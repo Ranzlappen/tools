@@ -1,0 +1,32 @@
+name: Question
+description: Ask a question. Most questions belong in Discussions, but this is here for cases where Discussions aren't enabled or the question is repo-specific.
+title: "question: "
+labels: ["question", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For open-ended discussion, prefer
+        [Discussions](https://github.com/Ranzlappen/tools/discussions).
+        Use this form for narrow, repo-specific questions.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: What have you tried so far?
+      description: Links to docs you've read, things you've tested. Saves a round trip.
+
+  - type: checkboxes
+    id: code-of-conduct
+    attributes:
+      label: Code of Conduct
+      options:
+        - label: I have read the [Code of Conduct](../blob/main/.github/CODE_OF_CONDUCT.md) and agree to follow it.
+          required: true

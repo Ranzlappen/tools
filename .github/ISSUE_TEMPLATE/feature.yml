@@ -1,0 +1,52 @@
+name: Feature request
+description: Suggest a new tool or an improvement to an existing one.
+title: "feat: "
+labels: ["feature", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion. A clear problem statement is more useful
+        than a fully designed solution — describe the *what* first.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: What were you trying to do when you realised this was missing?
+      placeholder: I wanted to decode a JWT but also see the signature algorithm prominently...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Optional. If you have a specific design in mind, share it.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other tools, workarounds, or designs you've thought about.
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      description: Best guess; maintainers will re-label during triage.
+      options:
+        - New tool
+        - Enhancement to existing tool
+        - Dashboard / chrome
+        - Standards / CI / docs
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: code-of-conduct
+    attributes:
+      label: Code of Conduct
+      options:
+        - label: I have read the [Code of Conduct](../blob/main/.github/CODE_OF_CONDUCT.md) and agree to follow it.
+          required: true

@@ -1,0 +1,71 @@
+name: Bug report
+description: Something on the dashboard or in a tool isn't working as expected.
+title: "bug: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please fill in as much as
+        you can — small reproductions go a long way.
+
+  - type: input
+    id: tool
+    attributes:
+      label: Which tool / page?
+      description: e.g. dashboard, JSON Formatter, Color Picker, JWT Decoder.
+      placeholder: JSON Formatter
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug.
+      placeholder: Clicking "Format" with valid input produces an empty output panel.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps. Include sample input if it's specific.
+      placeholder: |
+        1. Visit https://tools.ranzlappen.com/tools/json-formatter/
+        2. Paste `{"a":1}`
+        3. Click Format
+        4. Observe empty output
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: Browser / OS
+      description: e.g. Chrome 128 on macOS 15, Firefox 130 on Windows 11, Safari iOS 17.
+    validations:
+      required: true
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors
+      description: Open DevTools → Console. Paste any red errors here.
+      render: shell
+
+  - type: checkboxes
+    id: code-of-conduct
+    attributes:
+      label: Code of Conduct
+      options:
+        - label: I have read the [Code of Conduct](../blob/main/.github/CODE_OF_CONDUCT.md) and agree to follow it.
+          required: true

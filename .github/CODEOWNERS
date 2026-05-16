@@ -1,0 +1,27 @@
+# CODEOWNERS for tools
+#
+# Reference: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Patterns are matched in order; the LAST matching pattern wins.
+# Owners can be GitHub usernames (@user), team handles (@org/team-name),
+# or email addresses.
+#
+# Tips:
+#   - Put broad fallback rules first, narrow overrides last.
+#   - GitHub auto-requests review from the matching owner on every PR
+#     touching the matched paths. Combine with branch protection's
+#     "Require review from Code Owners" for enforcement.
+
+# --- Default owner for everything not matched below ---
+*                       @Ranzlappen
+
+# Single-maintainer repo for now; all paths fall through to the default.
+# Uncomment and assign as the maintainer set grows:
+#
+# /README.md             @Ranzlappen
+# /CLAUDE.md             @Ranzlappen
+# /.github/              @Ranzlappen
+# /.github/workflows/    @Ranzlappen
+# /.github/SECURITY.md   @Ranzlappen
+# /api/                  @Ranzlappen
+# /tools/                @Ranzlappen
