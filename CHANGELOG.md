@@ -7,7 +7,7 @@ All notable changes to **tools** are recorded here. Format follows
 ## [Unreleased]
 
 ### Added
-- **Eighth tool: QR &amp; Barcode Generator.** New subpage at
+- **QR &amp; Barcode Generator.** New subpage at
   `/tools/qr-barcode/` covers every common 1D and 2D symbology
   (~55 entries: QR, Data Matrix, Aztec, PDF417, MaxiCode, Han Xin,
   Code 128/39/93/11, EAN-13/8/5/2, UPC-A/E, ISBN/ISMN/ISSN,
@@ -33,8 +33,27 @@ All notable changes to **tools** are recorded here. Format follows
   to clipboard via `ClipboardItem`, share via Web Share API.
 - CDN libraries pinned with SHA-384 SRI: `bwip-js@4.5.1`,
   `qr-code-styling@1.6.0-rc.1`, `jspdf@2.5.2`.
-- Dashboard card added; README + CLAUDE.md updated to eight tools.
-
+- Dashboard card added; README + CLAUDE.md updated.
+- **Video Studio** (`/tools/video/`) — client-only tool. Pins
+  `@ffmpeg/ffmpeg@0.12.10`, `@ffmpeg/util@0.12.1`, and
+  `@ffmpeg/core@0.12.6` (with `core-mt` fallback when the page is
+  `crossOriginIsolated` and `SharedArrayBuffer` is available). Lazy-loads
+  the wasm core only on first run, so the dashboard's first-paint budget
+  is untouched. Modes: boomerang (forward + reverse), reverse-only,
+  palindrome (held endpoints). Trim by start/end timestamps + dual range
+  sliders. Audio: drop, keep forward (silence-padded for boomerang /
+  palindrome), or reverse with video. Speed 0.25× – 4× via `setpts` +
+  chained `atempo` for the extremes. Quality preset (low / medium / high
+  → CRF 30 / 23 / 18). Output format: mp4 (h264 + aac, faststart) or
+  webm (vp9 + opus, row-mt). Loop count 1× / 2× / 3× via filter-graph
+  split + concat. Drag-and-drop with metadata preview (filename, size,
+  duration, resolution, MIME). Per-stage progress, elapsed timer, ffmpeg
+  log mirror, cancel button. All `URL.createObjectURL` results revoked
+  on reset or new selection. Filter graph centralized in `buildArgs()`
+  so future modes only add a state field + one switch arm. Output codec
+  selection isolated to a single block, ready for av1/hevc when the core
+  bundle ships them. Refactor of the user's original
+  `mp4reverse.html` upload.
 
 ### Fixed
 - **Panels overflowing the viewport on mobile.** Root cause: the site
