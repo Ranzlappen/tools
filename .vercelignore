@@ -1,0 +1,19 @@
+# Vercel only ships /api/ — everything else lives on GitHub Pages at
+# tools.ranzlappen.com. Keeping this list explicit prevents accidentally
+# duplicating static assets on two hosts.
+
+assets/
+tools/
+*.html
+.github/
+.gitignore
+.nojekyll
+.standards-version
+CNAME
+LICENSE
+README.md
+CLAUDE.md
+CHANGELOG.md
+node_modules/
+.vscode/
+.idea/

@@ -3,6 +3,16 @@ name: pages-deploy
 on:
   push:
     branches: [main]
+    # Skip rebuilds when only Vercel-only paths change. Vercel handles
+    # those out-of-band.
+    paths-ignore:
+      - 'api/**'
+      - 'vercel.json'
+      - '.vercelignore'
+      - '.github/**'
+      - '**/*.md'
+      - 'CHANGELOG.md'
+      - 'LICENSE'
   workflow_dispatch:
 
 permissions:
