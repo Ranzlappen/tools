@@ -1,8 +1,9 @@
-/* main.js — backdrop selection, persistence, cursor tracking, card spotlight */
+/* main.js — backdrop selection, theme toggle, cursor tracking, card spotlight */
 (() => {
   "use strict";
 
   const STORAGE_KEY = "tools:backdrop";
+  const THEME_KEY = "tools:theme";
   const VALID = ["aurora", "shader", "particles", "grid"];
   const DEFAULT = "aurora";
 
@@ -10,6 +11,45 @@
   const reduceMotion = window.matchMedia(
     "(prefers-reduced-motion: reduce)"
   ).matches;
+
+  /* ---------- theme toggle ---------- */
+  // (Initial theme is set synchronously by the pre-paint script in <head>
+  // to avoid FOUC. This block only handles user toggling thereafter.)
+
+  function setTheme(theme) {
+    if (theme === "light") {
+      html.setAttribute("data-theme", "light");
+    } else {
+      html.removeAttribute("data-theme");
+    }
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {}
+
+    document.querySelectorAll(".theme-toggle").forEach((btn) => {
+      btn.setAttribute(
+        "aria-label",
+        theme === "light" ? "Switch to dark theme" : "Switch to light theme"
+      );
+      btn.setAttribute("aria-pressed", theme === "light" ? "true" : "false");
+    });
+
+    // Re-tint the WebGL shader if it's currently active.
+    import("./backdrop-shader.js")
+      .then((m) => m.setTheme && m.setTheme(theme))
+      .catch(() => {});
+  }
+
+  document.querySelectorAll(".theme-toggle").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const next = html.getAttribute("data-theme") === "light" ? "dark" : "light";
+      setTheme(next);
+    });
+    btn.setAttribute(
+      "aria-pressed",
+      html.getAttribute("data-theme") === "light" ? "true" : "false"
+    );
+  });
 
   /* ---------- backdrop selection ---------- */
 

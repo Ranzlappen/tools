@@ -8,6 +8,7 @@ let rafId = 0;
 let startTime = 0;
 let resizeHandler = null;
 let visHandler = null;
+let lightTheme = 0.0;
 
 const VS = `
 attribute vec2 a_pos;
@@ -15,11 +16,13 @@ void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
 `;
 
 /* Fragment shader: layered fbm-ish noise tinted with accent green.
-   Cheap enough for integrated GPUs; clamps to half-resolution on mobile. */
+   Cheap enough for integrated GPUs; clamps to half-resolution on mobile.
+   u_light = 0.0 for dark theme, 1.0 for light theme; tints accordingly. */
 const FS = `
 precision mediump float;
 uniform vec2  u_res;
 uniform float u_time;
+uniform float u_light;
 
 float hash(vec2 p){
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -51,9 +54,19 @@ void main(){
                 fbm(p + 1.7*q + vec2(8.3, 2.8) + 0.13*t));
   float f = fbm(p + r);
 
-  vec3 base   = vec3(0.043, 0.071, 0.063);    // #0b1210
-  vec3 accent = vec3(0.290, 0.870, 0.502);    // #4ade80
-  vec3 deep   = vec3(0.133, 0.770, 0.369);    // #22c55e
+  // Dark palette
+  vec3 base_d   = vec3(0.043, 0.071, 0.063);    // #0b1210
+  vec3 deep_d   = vec3(0.133, 0.770, 0.369);    // #22c55e
+  vec3 accent_d = vec3(0.290, 0.870, 0.502);    // #4ade80
+
+  // Light palette (soft pastels around #16a34a / #f5f9f7)
+  vec3 base_l   = vec3(0.961, 0.976, 0.969);    // #f5f9f7
+  vec3 deep_l   = vec3(0.082, 0.639, 0.290);    // #15a34a-ish
+  vec3 accent_l = vec3(0.706, 0.918, 0.792);    // soft green
+
+  vec3 base   = mix(base_d,   base_l,   u_light);
+  vec3 deep   = mix(deep_d,   deep_l,   u_light);
+  vec3 accent = mix(accent_d, accent_l, u_light);
 
   vec3 col = mix(base, deep,   smoothstep(0.3, 0.7, f));
   col      = mix(col,  accent, smoothstep(0.55, 0.95, f) * 0.55);
@@ -61,7 +74,8 @@ void main(){
   // soft vignette at edges
   vec2 c = uv - 0.5;
   float vig = smoothstep(0.85, 0.2, length(c));
-  col *= mix(0.6, 1.0, vig);
+  // Light theme: lift the corners instead of darkening them.
+  col *= mix(mix(0.6, 1.0, vig), mix(1.05, 1.0, vig), u_light);
 
   gl_FragColor = vec4(col, 1.0);
 }
@@ -143,13 +157,27 @@ function frame(t) {
   const elapsed = (t - startTime) / 1000;
   gl.uniform2f(gl.getUniformLocation(program, "u_res"), canvas.width, canvas.height);
   gl.uniform1f(gl.getUniformLocation(program, "u_time"), elapsed);
+  gl.uniform1f(gl.getUniformLocation(program, "u_light"), lightTheme);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   rafId = requestAnimationFrame(frame);
+}
+
+export function setTheme(theme) {
+  lightTheme = theme === "light" ? 1.0 : 0.0;
+  // If the shader is idle but visible, redraw a single frame so the tint
+  // updates immediately (e.g. user toggles theme while paused).
+  if (!rafId && gl && program && !document.hidden) {
+    frame(performance.now());
+    cancelAnimationFrame(rafId);
+    rafId = 0;
+  }
 }
 
 export function start() {
   if (rafId) return;
   if (!gl && !init()) return;
+  lightTheme =
+    document.documentElement.getAttribute("data-theme") === "light" ? 1.0 : 0.0;
   resize();
   if (!resizeHandler) {
     resizeHandler = () => resize();

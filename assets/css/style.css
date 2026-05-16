@@ -551,3 +551,108 @@ h1, h2, h3 {
     transform: none;
   }
 }
+
+/* ============================================================
+   Light theme — tokens copied verbatim from Ranzlappen/website.
+   Trigger: <html data-theme="light">
+   ============================================================ */
+
+[data-theme="light"] {
+  --c-bg:           #f5f9f7;
+  --c-bg-alt:       #edf3f0;
+  --c-surface:      #ffffff;
+  --c-surface-alt:  #f0f5f2;
+  --c-border:       #d0ddd6;
+  --c-border-light: #dde8e2;
+  --c-text:         #1a2a22;
+  --c-text-muted:   #5a7068;
+  --c-text-faint:   #8a9e95;
+  --c-accent:       #16a34a;
+  --c-accent-dim:   #15803d;
+  --c-accent-bg:    rgba(22, 163, 74, 0.06);
+  --c-accent-border: rgba(22, 163, 74, 0.20);
+  --c-card-shadow:  rgba(0, 0, 0, 0.08);
+  --c-bg-rgb:       245, 249, 247;
+  color-scheme: light;
+}
+
+[data-theme="light"] body {
+  background: var(--c-bg);
+}
+
+[data-theme="light"] .card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(255, 255, 255, 0.7) 100%
+    ),
+    rgba(var(--c-bg-rgb), 0.6);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 12px 32px -16px var(--c-card-shadow);
+}
+
+[data-theme="light"] .card:hover,
+[data-theme="light"] .card:focus-visible {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 18px 40px -18px rgba(22, 163, 74, 0.30),
+    0 8px 24px -12px var(--c-card-shadow);
+}
+
+[data-theme="light"] .backdrop-pill {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* ---------- theme toggle button ---------- */
+
+.theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--c-border);
+  background: rgba(var(--c-bg-rgb), 0.5);
+  color: var(--c-text-muted);
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.theme-toggle:hover {
+  color: var(--c-accent);
+  border-color: var(--c-accent-border);
+  background: var(--c-accent-bg);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+
+.theme-toggle svg {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--transition-base);
+}
+
+.theme-toggle:hover svg {
+  transform: rotate(15deg);
+}
+
+.theme-toggle .icon-sun  { display: none; }
+.theme-toggle .icon-moon { display: block; }
+
+[data-theme="light"] .theme-toggle .icon-sun  { display: block; }
+[data-theme="light"] .theme-toggle .icon-moon { display: none; }
+
+.site-header__inner > .header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}

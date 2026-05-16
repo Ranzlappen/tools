@@ -225,6 +225,65 @@ html[data-backdrop="grid"]      .backdrop-layer.is-grid {
 }
 
 /* ============================================================
+   Light-mode adjustments to the backdrops.
+   The aurora blobs use `mix-blend-mode: screen` which assumes a
+   dark surface; under light theme we switch to `multiply` and
+   dial the opacities down. The grid scanlines invert.
+   ============================================================ */
+
+html[data-theme="light"] #backdrop::after {
+  background: radial-gradient(
+    1200px 800px at 50% -10%,
+    transparent 0%,
+    rgba(var(--c-bg-rgb), 0.5) 70%,
+    rgba(var(--c-bg-rgb), 0.85) 100%
+  );
+}
+
+html[data-theme="light"] .aurora__blob {
+  mix-blend-mode: multiply;
+  opacity: 0.35;
+}
+
+html[data-theme="light"] .aurora__grain {
+  opacity: 0.04;
+}
+
+html[data-theme="light"] .grid-bg__sky {
+  background:
+    radial-gradient(
+      ellipse 60% 40% at 50% 30%,
+      rgba(22, 163, 74, 0.08),
+      transparent 70%
+    ),
+    linear-gradient(180deg, #f5f9f7 0%, #edf3f0 60%, #f5f9f7 100%);
+}
+
+html[data-theme="light"] .grid-bg__plane {
+  background-image:
+    linear-gradient(rgba(22, 163, 74, 0.20) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(22, 163, 74, 0.20) 1px, transparent 1px);
+}
+
+html[data-theme="light"] .grid-bg__scan {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.018) 0px,
+    rgba(0, 0, 0, 0.018) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+html[data-theme="light"] .grid-bg__spot {
+  background: radial-gradient(
+    400px circle at var(--mouse-x) var(--mouse-y),
+    rgba(22, 163, 74, 0.10),
+    transparent 60%
+  );
+}
+
+/* ============================================================
    Reduced motion: freeze the backdrop animations.
    ============================================================ */
 
