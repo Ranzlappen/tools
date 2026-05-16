@@ -4,10 +4,11 @@ Architectural notes for AI assistants working on this repo.
 
 ## What this is
 
-`tools.ranzlappen.com` — a static landing dashboard plus seven working
+`tools.ranzlappen.com` — a static landing dashboard plus eight working
 client-only utilities (JSON formatter, color picker, regex tester,
-markdown preview, multi-encoder, JWT decoder, UUID/hash generator). All
-seven run entirely in the browser; nothing is transmitted to a server.
+markdown preview, multi-encoder, JWT decoder, UUID/hash generator,
+QR/barcode generator). All eight run entirely in the browser; nothing
+is transmitted to a server.
 
 ## Hosting
 

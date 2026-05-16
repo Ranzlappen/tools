@@ -6,6 +6,36 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+### Added
+- **Eighth tool: QR &amp; Barcode Generator.** New subpage at
+  `/tools/qr-barcode/` covers every common 1D and 2D symbology
+  (~55 entries: QR, Data Matrix, Aztec, PDF417, MaxiCode, Han Xin,
+  Code 128/39/93/11, EAN-13/8/5/2, UPC-A/E, ISBN/ISMN/ISSN,
+  Codabar, ITF/ITF-14, MSI, Plessey, Telepen, GS1-128 &amp; DataBar
+  variants, USPS Intelligent Mail/POSTNET/PLANET, Royal Mail, KIX,
+  Australia Post, Japan Post, Deutsche Post Ident/Leitcode, pharma
+  codes incl. PZN/HIBC, DotCode, Ultracode, raw bit patterns).
+  Filter input narrows the picker; ECC controls per symbology
+  (QR L/M/Q/H chips, PDF417 0-8 slider, Aztec 5-95% slider);
+  module + quiet-zone sliders; human-readable text toggle for 1D.
+- **Content presets** auto-format payload per spec: plain text,
+  URL (auto `https://`), WiFi (`WIFI:T:…;S:…;P:…;;`), vCard 3.0,
+  SMS (`SMSTO:…`), email (`mailto:…?subject=…&body=…`),
+  geo (`geo:lat,lon?q=…`), calendar event (`BEGIN:VEVENT…`).
+- **Design panel for QR** via `qr-code-styling`: foreground +
+  background colours with synced hex inputs, six module shapes
+  (square, dots, rounded, extra-rounded, classy, classy-rounded),
+  three corner outer and two corner inner shapes, optional linear
+  gradient with a second stop, logo overlay (file upload) that
+  auto-bumps ECC to Q.
+- **Exports**: SVG (vector), PNG at 1×/2×/4×, JPG (flattened on
+  background), PDF (A4 portrait via jsPDF with caption), copy PNG
+  to clipboard via `ClipboardItem`, share via Web Share API.
+- CDN libraries pinned with SHA-384 SRI: `bwip-js@4.5.1`,
+  `qr-code-styling@1.6.0-rc.1`, `jspdf@2.5.2`.
+- Dashboard card added; README + CLAUDE.md updated to eight tools.
+
+
 ### Fixed
 - **Panels overflowing the viewport on mobile.** Root cause: the site
   header's mono `TOOLS.RANZLAPPEN.COM` meta plus the brand + theme
