@@ -47,20 +47,19 @@ html[data-backdrop="grid"]      .backdrop-layer.is-grid {
 
 /* ============================================================
    1. AURORA — drifting blurred gradient blobs (pure CSS)
+   The blob radial gradients are inherently soft, so we don't
+   apply an outer `filter: blur(...)` to the layer (that compounds
+   compositor cost severely). The blobs themselves are the look.
    ============================================================ */
-
-.backdrop-layer.is-aurora {
-  filter: blur(80px) saturate(120%);
-}
 
 .aurora__blob {
   position: absolute;
-  width: 55vmax;
-  height: 55vmax;
+  width: 45vmax;
+  height: 45vmax;
   border-radius: 50%;
   will-change: transform;
   mix-blend-mode: screen;
-  opacity: 0.55;
+  opacity: 0.42;
 }
 
 .aurora__blob--1 {
@@ -122,17 +121,6 @@ html[data-backdrop="grid"]      .backdrop-layer.is-grid {
 @keyframes drift-4 {
   0%   { transform: translate3d(0,    0,    0) scale(1.1); }
   100% { transform: translate3d(-9vw, -6vh, 0) scale(1);   }
-}
-
-/* film grain overlay — extremely cheap, lifts everything */
-.aurora__grain {
-  position: absolute;
-  inset: -50%;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 0.86  0 0 0 0 0.91  0 0 0 0 0.88  0 0 0 0.45 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>");
-  opacity: 0.08;
-  mix-blend-mode: overlay;
-  pointer-events: none;
-  filter: contrast(140%);
 }
 
 /* ============================================================
@@ -221,7 +209,6 @@ html[data-backdrop="grid"]      .backdrop-layer.is-grid {
     transparent 60%
   );
   pointer-events: none;
-  transition: background 0.1s linear;
 }
 
 /* ============================================================
@@ -242,11 +229,7 @@ html[data-theme="light"] #backdrop::after {
 
 html[data-theme="light"] .aurora__blob {
   mix-blend-mode: multiply;
-  opacity: 0.35;
-}
-
-html[data-theme="light"] .aurora__grain {
-  opacity: 0.04;
+  opacity: 0.30;
 }
 
 html[data-theme="light"] .grid-bg__sky {
@@ -291,5 +274,25 @@ html[data-theme="light"] .grid-bg__spot {
   .aurora__blob,
   .grid-bg__plane {
     animation: none !important;
+  }
+}
+
+/* ============================================================
+   Reduced transparency: OS-signaled opt-out of fancy compositor
+   effects. Freeze every animated backdrop, drop opacities so
+   the page is mostly the flat background colour.
+   ============================================================ */
+
+@media (prefers-reduced-transparency: reduce) {
+  .aurora__blob {
+    animation: none !important;
+    opacity: 0.15;
+  }
+  .grid-bg__plane {
+    animation: none !important;
+  }
+  .grid-bg__scan,
+  .grid-bg__spot {
+    display: none;
   }
 }

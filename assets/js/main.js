@@ -126,27 +126,39 @@
   setBackdrop(initial);
 
   /* ---------- cursor-tracked CSS vars (grid spotlight) ----------
-     One pointermove listener, rAF-throttled. Updates --mouse-x/y. */
+     Only attached when the grid backdrop is active. Other backdrops
+     don't use --mouse-x/y, and updating them on every pointermove
+     was a wasted style recalc. The listener is added when grid is
+     selected and removed when leaving it. */
 
-  if (!reduceMotion) {
-    let rafId = 0;
-    let pendingX = 0;
-    let pendingY = 0;
-    window.addEventListener(
-      "pointermove",
-      (e) => {
-        pendingX = e.clientX;
-        pendingY = e.clientY;
-        if (rafId) return;
-        rafId = requestAnimationFrame(() => {
-          rafId = 0;
-          html.style.setProperty("--mouse-x", pendingX + "px");
-          html.style.setProperty("--mouse-y", pendingY + "px");
-        });
-      },
-      { passive: true }
-    );
+  let mouseRaf = 0;
+  let pendingX = 0;
+  let pendingY = 0;
+  const onPointerMoveForGrid = (e) => {
+    pendingX = e.clientX;
+    pendingY = e.clientY;
+    if (mouseRaf) return;
+    mouseRaf = requestAnimationFrame(() => {
+      mouseRaf = 0;
+      html.style.setProperty("--mouse-x", pendingX + "px");
+      html.style.setProperty("--mouse-y", pendingY + "px");
+    });
+  };
+
+  function syncMouseTracking() {
+    const isGrid = html.dataset.backdrop === "grid";
+    window.removeEventListener("pointermove", onPointerMoveForGrid);
+    if (isGrid && !reduceMotion) {
+      window.addEventListener("pointermove", onPointerMoveForGrid, {
+        passive: true,
+      });
+    }
   }
+  // Run on initial load + every time the backdrop changes.
+  syncMouseTracking();
+  document.querySelectorAll(".backdrop-pill__btn").forEach((btn) =>
+    btn.addEventListener("click", () => queueMicrotask(syncMouseTracking))
+  );
 
   /* ---------- card hover spotlight ----------
      Single delegated pointermove on the grid; writes --card-x/y on the

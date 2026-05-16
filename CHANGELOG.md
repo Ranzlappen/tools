@@ -6,6 +6,34 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+### Changed
+- **Performance pass.** Stripped the worst compositor offenders so the
+  site is usable on real hardware:
+  - Dropped the outer `filter: blur(80px) saturate(120%)` on the aurora
+    layer (was triple-blurring the already-soft blob gradients).
+  - Removed the `.aurora__grain` SVG-turbulence overlay (an
+    `inset: -50%`, `filter: contrast(140%)`, `mix-blend-mode: overlay`
+    element for a barely-visible film grain — not worth the paint cost).
+    Stripped the matching `<div class="aurora__grain">` from the
+    dashboard and all 7 tool subpages.
+  - Reduced aurora blob size (`55vmax` → `45vmax`) and opacity
+    (`0.55` → `0.42` dark, `0.35` → `0.30` light).
+  - Card `backdrop-filter` reduced from `blur(14px) saturate(140%)` to
+    `blur(8px)`. Same change on `.panel` (tool subpages) and
+    `.backdrop-pill`. Card background opacity nudged up to compensate.
+  - Dropped `transition: background 0.1s linear` on `.grid-bg__spot` —
+    forced a 100ms paint on every cursor move.
+- Cursor-tracked `--mouse-x` / `--mouse-y` CSS vars now update only
+  when the grid backdrop is active (was a style recalc per pointermove
+  on every backdrop).
+
+### Added
+- `@media (prefers-reduced-transparency: reduce)` blocks in
+  `backdrops.css`, `style.css`, and `tool.css`. Honors the OS opt-out
+  signal: freezes backdrop animations, drops blob opacity to 0.15,
+  removes all `backdrop-filter` blurs, swaps cards/panels/pill for
+  solid opaque surfaces.
+
 ### Removed
 - OpenSSF Scorecard job from `security-scan.yml` and the
   `branch_protection_rule:` trigger that only existed to re-evaluate
