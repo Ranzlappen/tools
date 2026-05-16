@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-backdrop="aurora">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -27,11 +27,8 @@
   <script>
     (function () {
       try {
-        var t = localStorage.getItem("tools:theme");
-        if (t === "light") document.documentElement.setAttribute("data-theme", "light");
-        var b = localStorage.getItem("tools:backdrop");
-        if (b && ["aurora","shader","particles","grid"].indexOf(b) !== -1) {
-          document.documentElement.setAttribute("data-backdrop", b);
+        if (localStorage.getItem("tools:theme") === "light") {
+          document.documentElement.setAttribute("data-theme", "light");
         }
       } catch (e) {}
     })();
@@ -47,20 +44,10 @@
 <body>
 
   <div id="backdrop" aria-hidden="true">
-    <div class="backdrop-layer is-aurora">
-      <div class="aurora__blob aurora__blob--1"></div>
-      <div class="aurora__blob aurora__blob--2"></div>
-      <div class="aurora__blob aurora__blob--3"></div>
-      <div class="aurora__blob aurora__blob--4"></div>
-    </div>
-    <div class="backdrop-layer is-shader"></div>
-    <div class="backdrop-layer is-particles"></div>
-    <div class="backdrop-layer is-grid">
-      <div class="grid-bg__sky"></div>
-      <div class="grid-bg__plane"></div>
-      <div class="grid-bg__scan"></div>
-      <div class="grid-bg__spot"></div>
-    </div>
+    <div class="grid-bg__sky"></div>
+    <div class="grid-bg__plane"></div>
+    <div class="grid-bg__scan"></div>
+    <div class="grid-bg__spot"></div>
   </div>
 
   <div class="page">
@@ -189,22 +176,6 @@
 
   </div>
 
-  <aside class="backdrop-pill" role="radiogroup" aria-label="Backdrop">
-    <span class="backdrop-pill__label">aurora</span>
-    <span class="backdrop-pill__sep" aria-hidden="true"></span>
-    <button type="button" class="backdrop-pill__btn" role="radio" aria-checked="true"  aria-label="Aurora backdrop"        data-backdrop="aurora">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17c3-6 6-6 9 0s6 6 9 0"/><path d="M3 12c3-6 6-6 9 0s6 6 9 0"/></svg>
-    </button>
-    <button type="button" class="backdrop-pill__btn" role="radio" aria-checked="false" aria-label="WebGL shader backdrop"  data-backdrop="shader" tabindex="-1">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="9"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
-    </button>
-    <button type="button" class="backdrop-pill__btn" role="radio" aria-checked="false" aria-label="Constellation backdrop" data-backdrop="particles" tabindex="-1">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="6" r="1.4"/><circle cx="19" cy="7" r="1.4"/><circle cx="12" cy="13" r="1.4"/><circle cx="6" cy="18" r="1.4"/><circle cx="18" cy="17" r="1.4"/><path d="M5 6L12 13M19 7L12 13M12 13L6 18M12 13L18 17"/></svg>
-    </button>
-    <button type="button" class="backdrop-pill__btn" role="radio" aria-checked="false" aria-label="Cyberpunk grid backdrop" data-backdrop="grid" tabindex="-1">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
-    </button>
-  </aside>
 
   <script type="module" src="../../assets/js/main.js"></script>
   <script type="module" src="./tool.js"></script>
