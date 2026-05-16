@@ -6,6 +6,39 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+## [0.3.0]
+
+### Added
+- Hero-style Open Graph image (`assets/og.png`, 1200×630, 92KB) with
+  aurora-blob backdrop and accent-gradient title; SVG source committed
+  alongside for re-renders. Wired into `<head>` of the dashboard and
+  all 7 tool subpages (og:title/description/url per-page,
+  twitter:card=summary_large_image).
+- `.github/FUNDING.yml` — GitHub Sponsors (`Ranzlappen`) + Ko-fi
+  (`ranzlappen`). Surfaces the Sponsor button on the repo page.
+- Vercel deploy automation:
+  - **Native GitHub integration** documented step-by-step in
+    `api/README.md` (project import + DNS CNAME + smoke tests).
+  - **Actions fallback** at `.github/workflows/vercel-deploy.yml` —
+    Vercel CLI flow, skips cleanly when `VERCEL_TOKEN` / `VERCEL_ORG_ID`
+    / `VERCEL_PROJECT_ID` secrets are absent.
+- Two new API endpoints:
+  - `/api/ping` (edge) — latency probe returning `{ ok, ts, region,
+    runtimeMs }`.
+  - `/api/og` (edge) — dynamic Open Graph generator via `@vercel/og`
+    0.6.5. Query params: `title`, `subtitle`, `theme=dark|light`.
+    1h edge cache. Hand-built element tree (no JSX).
+- `package.json` at repo root listing `@vercel/og` as the only dep so
+  the Vercel build installs it; the static Pages site stays
+  dependency-free.
+
+### Changed
+- `vercel.json`: scoped the `nodejs20.x` runtime pin to
+  `api/health.js` only so edge-runtime declarations in `og.js` /
+  `ping.js` take effect.
+- `CLAUDE.md`: refreshed standards-compliance summary to include
+  FUNDING.yml; OG-image size note relaxed for the hero asset.
+
 ## [0.2.0]
 
 ### Added
@@ -62,6 +95,7 @@ Sections to use (omit any that don't apply for a given release):
   Added | Changed | Deprecated | Removed | Fixed | Security
 -->
 
-[Unreleased]: https://github.com/Ranzlappen/tools/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Ranzlappen/tools/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Ranzlappen/tools/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Ranzlappen/tools/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Ranzlappen/tools/releases/tag/v0.1.0

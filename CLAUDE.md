@@ -67,16 +67,15 @@ Files present:
 
 - Root: `README.md`, `LICENSE`, `CLAUDE.md`, `CHANGELOG.md`,
   `.standards-version`, `.gitignore`, `.nojekyll`, `CNAME`, `vercel.json`,
-  `.vercelignore`.
+  `.vercelignore`, `package.json`.
 - `.github/`: `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`,
-  `GOVERNANCE.md`, `CODEOWNERS`, `pull_request_template.md`, issue
-  forms (`bug.yml`, `feature.yml`, `question.yml`, `config.yml`),
-  `dependabot.yml`.
+  `GOVERNANCE.md`, `CODEOWNERS`, `FUNDING.yml`,
+  `pull_request_template.md`, issue forms (`bug.yml`, `feature.yml`,
+  `question.yml`, `config.yml`), `dependabot.yml`.
 - Workflows: `pages-deploy.yml`, `security-scan.yml`,
-  `dependency-review.yml`, `repo-sanitation.yml`.
-
-Deferred (per the v0.2 plan): `FUNDING.yml` and the OG image. If you
-add either, update this section and bump the CHANGELOG.
+  `dependency-review.yml`, `repo-sanitation.yml`, `vercel-deploy.yml`.
+- Assets: `assets/og.png` (1200×630 hero card) + `assets/og.svg`
+  (source).
 
 ## Performance budget
 
@@ -92,7 +91,9 @@ add either, update this section and bump the CHANGELOG.
   trivial the moment you do.
 - Don't add per-card event listeners — delegate from the grid.
 - Don't animate properties that trigger layout/paint.
-- Don't commit the OG image as a binary larger than 50 KB.
+- Don't commit binaries beyond what the page actually needs. The OG
+  hero card is allowed up to ~100 KB (gradients don't compress well in
+  PNG); other binaries should stay under 50 KB.
 
 ## Post-task self-check
 
