@@ -7,6 +7,34 @@ All notable changes to **tools** are recorded here. Format follows
 ## [Unreleased]
 
 ### Changed
+- **Brand mark + favicon adopted from Ranzlappen.com.** Replaced the
+  inline SVG "A" placeholder and the data-URI favicon with
+  `assets/icon.png` (6.2KB transparent PNG of the canonical R-shield
+  from `Ranzlappen/website/main/assets/images/icon_alpha.png`).
+  Brand-mark chrome dropped — image renders without the accent-tinted
+  box. Proper `<link rel="icon">` + `<link rel="apple-touch-icon">`
+  tags in every page.
+- **Mobile container overflow fix.** `.textarea` was `white-space: pre`
+  which made any long input line require horizontal scroll inside the
+  textarea (and read as overflow on narrow viewports). Now uses
+  `white-space: pre-wrap; word-break: break-word; overflow-wrap:
+  anywhere` so long markdown lines, URLs, and JSON values wrap.
+- **Performance, round two.** After the v0.4 pass and the single-backdrop
+  reduction, the page was still laggy on mobile. Three more cuts:
+  - **Dropped `backdrop-filter` entirely from `.card` and `.panel`.**
+    Even at `blur(8px)`, each glass surface forced a new compositor
+    layer that repainted as the user scrolled cards/panels past the
+    fixed backdrop. Replaced with a more-opaque solid background
+    (`rgba(var(--c-bg-rgb), 0.88)`); visually similar, paint-cost
+    near-zero.
+  - **Dropped the `.grid-bg__plane` pan animation** (`grid-pan 14s
+    linear infinite`). Animating `background-position` on a
+    perspective-transformed, masked element repainted the plane every
+    frame. Grid is static now; perspective look preserved.
+  - **Spotlight + cursor tracking off on touch.** `.grid-bg__spot`
+    hidden under `@media (hover: none), (pointer: coarse)`; main.js
+    skips the `pointermove` listener entirely on coarse-pointer
+    devices.
 - **Single backdrop.** Removed aurora, WebGL shader, and constellation
   particles; kept only the cyberpunk perspective grid. The backdrop pill
   toggle is gone — backdrop is no longer user-switchable. `localStorage`

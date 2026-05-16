@@ -143,19 +143,20 @@ h1, h2, h3 {
 }
 
 .brand__mark {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--border-radius-sm);
-  background: var(--c-accent-bg);
-  border: 1px solid var(--c-accent-border);
-  color: var(--c-accent);
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
+.brand__mark img,
 .brand__mark svg {
-  width: 16px;
-  height: 16px;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .brand__name {
@@ -251,10 +252,8 @@ h1, h2, h3 {
       rgba(255, 255, 255, 0.025) 0%,
       rgba(255, 255, 255, 0.005) 100%
     ),
-    rgba(var(--c-bg-rgb), 0.55);
+    rgba(var(--c-bg-rgb), 0.88);
   border: 1px solid var(--c-border);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.03) inset,
     0 12px 32px -16px var(--c-card-shadow);
@@ -577,16 +576,8 @@ h1, h2, h3 {
   gap: var(--space-sm);
 }
 
-/* ============================================================
-   Reduced transparency: drop the backdrop-filter blur on
-   cards / panels / pill and use a more opaque solid surface
-   instead. Honors the OS / browser opt-out signal.
-   ============================================================ */
-
 @media (prefers-reduced-transparency: reduce) {
   .card {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
     background: var(--c-surface);
   }
 }

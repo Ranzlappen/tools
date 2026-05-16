@@ -90,10 +90,8 @@
       rgba(255, 255, 255, 0.025) 0%,
       rgba(255, 255, 255, 0.005) 100%
     ),
-    rgba(var(--c-bg-rgb), 0.55);
+    rgba(var(--c-bg-rgb), 0.88);
   border: 1px solid var(--c-border);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.03) inset,
     0 12px 32px -16px var(--c-card-shadow);
@@ -103,10 +101,10 @@
   background:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.9) 0%,
-      rgba(255, 255, 255, 0.7) 100%
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(255, 255, 255, 0.85) 100%
     ),
-    rgba(var(--c-bg-rgb), 0.6);
+    rgba(var(--c-bg-rgb), 0.95);
 }
 
 .panel__head {
@@ -169,7 +167,9 @@
 .textarea {
   min-height: 220px;
   resize: vertical;
-  white-space: pre;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
   overflow: auto;
 }
 
@@ -626,8 +626,6 @@
 
 @media (prefers-reduced-transparency: reduce) {
   .panel {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
     background: var(--c-surface);
   }
 }
