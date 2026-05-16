@@ -6,6 +6,17 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-16
+
+### Added
+- **OG Image Studio** (`tools/og-studio/`) — first API-backed tool.
+  Calls `/api/og` on `api.tools.ranzlappen.com` for live 1200×630
+  previews; debounced input (300 ms) with cache-bust on edits,
+  canonical URL display, clipboard copy, and `fetch` → blob PNG
+  download. Image theme (dark/light) is independent of page theme.
+  State round-trips through `location.hash` so previews are shareable
+  as deep-links.
+
 ### Fixed
 - **Panels overflowing the viewport on mobile.** Root cause: the site
   header's mono `TOOLS.RANZLAPPEN.COM` meta plus the brand + theme
@@ -204,7 +215,8 @@ Sections to use (omit any that don't apply for a given release):
   Added | Changed | Deprecated | Removed | Fixed | Security
 -->
 
-[Unreleased]: https://github.com/Ranzlappen/tools/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Ranzlappen/tools/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Ranzlappen/tools/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Ranzlappen/tools/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Ranzlappen/tools/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Ranzlappen/tools/releases/tag/v0.1.0
