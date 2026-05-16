@@ -4,15 +4,18 @@ Architectural notes for AI assistants working on this repo.
 
 ## What this is
 
-`tools.ranzlappen.com` — a static landing dashboard plus a growing set of
-small client-side utilities. v1 is **landing page only**; the 7 advertised
-tools are placeholder tiles linking to subpages that do not yet exist.
+`tools.ranzlappen.com` — a static landing dashboard plus seven working
+client-only utilities (JSON formatter, color picker, regex tester,
+markdown preview, multi-encoder, JWT decoder, UUID/hash generator). All
+seven run entirely in the browser; nothing is transmitted to a server.
 
 ## Hosting
 
-- **GitHub Pages** serves everything in v1 (custom domain via `CNAME`).
-- **Vercel** will host tools that need a build step or server (planned, not
-  yet wired up). Subdomain stays the same — routing TBD.
+- **GitHub Pages** — `tools.ranzlappen.com`, static (dashboard + every
+  current tool subpage). Custom domain via `CNAME`.
+- **Vercel** — `api.tools.ranzlappen.com`, serverless functions for tools
+  that need a backend. Scaffold exists (`api/`, `vercel.json`,
+  `.vercelignore`); no tool depends on it yet.
 
 ## Stack constraints
 
@@ -59,15 +62,21 @@ reduce` everywhere.
 
 ## Standards
 
-This repo follows `Ranzlappen/repo-standards` v3 at **essentials-only**
-compliance. Files present today: README, LICENSE, CLAUDE.md,
-`.standards-version`, `.gitignore`, `.nojekyll`, CNAME, pages-deploy
-workflow, dependabot. Files **deferred** to follow-up: CHANGELOG,
-CONTRIBUTING, SECURITY, PR template, issue forms, GOVERNANCE, CODEOWNERS,
-security-scan / dependency-review / repo-sanitation workflows.
+This repo follows `Ranzlappen/repo-standards` v3 at **full** compliance.
+Files present:
 
-When you upgrade compliance, do it as a discrete PR labeled
-`chore(standards)` and update this file's compliance summary above.
+- Root: `README.md`, `LICENSE`, `CLAUDE.md`, `CHANGELOG.md`,
+  `.standards-version`, `.gitignore`, `.nojekyll`, `CNAME`, `vercel.json`,
+  `.vercelignore`.
+- `.github/`: `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`,
+  `GOVERNANCE.md`, `CODEOWNERS`, `pull_request_template.md`, issue
+  forms (`bug.yml`, `feature.yml`, `question.yml`, `config.yml`),
+  `dependabot.yml`.
+- Workflows: `pages-deploy.yml`, `security-scan.yml`,
+  `dependency-review.yml`, `repo-sanitation.yml`.
+
+Deferred (per the v0.2 plan): `FUNDING.yml` and the OG image. If you
+add either, update this section and bump the CHANGELOG.
 
 ## Performance budget
 
