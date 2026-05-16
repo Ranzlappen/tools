@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <!-- Aurora blobs as radial gradients -->
+    <radialGradient id="blob1" cx="20%" cy="25%" r="60%">
+      <stop offset="0%"  stop-color="#4ade80" stop-opacity="0.65"/>
+      <stop offset="60%" stop-color="#4ade80" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="blob2" cx="85%" cy="30%" r="55%">
+      <stop offset="0%"  stop-color="#22c55e" stop-opacity="0.45"/>
+      <stop offset="65%" stop-color="#22c55e" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="blob3" cx="35%" cy="100%" r="65%">
+      <stop offset="0%"  stop-color="#a7f3d0" stop-opacity="0.30"/>
+      <stop offset="60%" stop-color="#a7f3d0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="blob4" cx="92%" cy="98%" r="50%">
+      <stop offset="0%"  stop-color="#4ade80" stop-opacity="0.40"/>
+      <stop offset="60%" stop-color="#4ade80" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="title-grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#4ade80"/>
+      <stop offset="100%" stop-color="#a7f3d0"/>
+    </linearGradient>
+
+    <linearGradient id="rule-grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#4ade80" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#4ade80" stop-opacity="0"/>
+    </linearGradient>
+
+    <linearGradient id="vignette" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%"   stop-color="#0b1210" stop-opacity="0"/>
+      <stop offset="70%"  stop-color="#0b1210" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#0b1210" stop-opacity="0.85"/>
+    </linearGradient>
+
+    <filter id="blur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="55"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0b1210"/>
+
+  <!-- Aurora blobs (blurred) -->
+  <g filter="url(#blur)">
+    <rect width="1200" height="630" fill="url(#blob1)"/>
+    <rect width="1200" height="630" fill="url(#blob2)"/>
+    <rect width="1200" height="630" fill="url(#blob3)"/>
+    <rect width="1200" height="630" fill="url(#blob4)"/>
+  </g>
+
+  <!-- Subtle vignette overlay so text reads cleanly -->
+  <rect width="1200" height="630" fill="url(#vignette)"/>
+
+  <!-- Brand chip top-left -->
+  <g transform="translate(72, 72)">
+    <rect x="0" y="0" width="44" height="44" rx="8" fill="rgba(74,222,128,0.10)" stroke="rgba(74,222,128,0.30)" stroke-width="1.5"/>
+    <path d="M11 32 L22 10 L33 32 M16 25 H28"
+          stroke="#4ade80" stroke-width="2.6" fill="none"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="60" y="29" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+          font-size="22" font-weight="600" fill="#dce8e2">
+      ranzlappen<tspan fill="#7e948a"> / tools</tspan>
+    </text>
+  </g>
+
+  <!-- Eyebrow pill -->
+  <g transform="translate(72, 220)">
+    <rect x="0" y="0" width="180" height="36" rx="18"
+          fill="rgba(74,222,128,0.10)" stroke="rgba(74,222,128,0.30)" stroke-width="1"/>
+    <circle cx="20" cy="18" r="4" fill="#4ade80"/>
+    <text x="34" y="24" font-family="ui-monospace, 'SF Mono', SFMono-Regular, monospace"
+          font-size="13" font-weight="500" fill="#4ade80" letter-spacing="2">
+      LIVE · TOOLS · v0.3
+    </text>
+  </g>
+
+  <!-- Headline -->
+  <text x="72" y="370" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        font-size="96" font-weight="700" letter-spacing="-3" fill="#dce8e2">
+    Small <tspan fill="url(#title-grad)">tools</tspan>,
+  </text>
+  <text x="72" y="478" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        font-size="96" font-weight="700" letter-spacing="-3" fill="#dce8e2">
+    sharp edges.
+  </text>
+
+  <!-- Rule -->
+  <rect x="72" y="510" width="160" height="2" fill="url(#rule-grad)"/>
+
+  <!-- Subtitle -->
+  <text x="72" y="555" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        font-size="22" font-weight="400" fill="#7e948a">
+    Seven focused web utilities. Built in the browser. Free to use.
+  </text>
+
+  <!-- URL chip bottom-right -->
+  <g transform="translate(900, 555)">
+    <rect x="0" y="-22" width="228" height="34" rx="17"
+          fill="rgba(11,18,16,0.55)" stroke="rgba(74,222,128,0.30)" stroke-width="1"/>
+    <text x="20" y="0" font-family="ui-monospace, 'SF Mono', SFMono-Regular, monospace"
+          font-size="14" font-weight="500" fill="#dce8e2">
+      tools.ranzlappen.com
+    </text>
+  </g>
+
+  <!-- Tool tile preview row (very subtle glass squares above the headline) -->
+  <g opacity="0.55" transform="translate(740, 140)">
+    <g>
+      <rect x="0"   y="0" width="64" height="64" rx="12" fill="rgba(255,255,255,0.04)" stroke="rgba(74,222,128,0.20)" stroke-width="1"/>
+      <rect x="80"  y="0" width="64" height="64" rx="12" fill="rgba(255,255,255,0.04)" stroke="rgba(74,222,128,0.20)" stroke-width="1"/>
+      <rect x="160" y="0" width="64" height="64" rx="12" fill="rgba(255,255,255,0.04)" stroke="rgba(74,222,128,0.20)" stroke-width="1"/>
+      <rect x="240" y="0" width="64" height="64" rx="12" fill="rgba(255,255,255,0.04)" stroke="rgba(74,222,128,0.20)" stroke-width="1"/>
+      <rect x="320" y="0" width="64" height="64" rx="12" fill="rgba(255,255,255,0.04)" stroke="rgba(74,222,128,0.20)" stroke-width="1"/>
+      <rect x="0"   y="80" width="64" height="64" rx="12" fill="rgba(255,255,255,0.04)" stroke="rgba(74,222,128,0.20)" stroke-width="1"/>
+      <rect x="80"  y="80" width="64" height="64" rx="12" fill="rgba(74,222,128,0.08)" stroke="rgba(74,222,128,0.45)" stroke-width="1.5"/>
+      <rect x="160" y="80" width="64" height="64" rx="12" fill="rgba(255,255,255,0.04)" stroke="rgba(74,222,128,0.20)" stroke-width="1"/>
+    </g>
+    <!-- Tiny accents inside a couple of tiles -->
+    <g stroke="#4ade80" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.7">
+      <path d="M16 16 L28 16 M16 24 L40 24 M16 32 L34 32 M16 40 L40 40 M16 48 L26 48"/>
+    </g>
+    <g transform="translate(80,0)" stroke="#4ade80" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.7">
+      <circle cx="32" cy="32" r="14"/>
+    </g>
+    <g transform="translate(160,0)" stroke="#4ade80" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.7">
+      <path d="M20 24 L18 36 L34 36 L36 24 M22 30 L34 30"/>
+    </g>
+    <g transform="translate(240,0)" stroke="#4ade80" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.7">
+      <rect x="16" y="20" width="32" height="24" rx="3"/>
+      <path d="M22 32 L22 26 L26 30 L30 26 L30 32"/>
+    </g>
+    <g transform="translate(320,0)" stroke="#4ade80" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.7">
+      <path d="M20 24 L14 32 L20 40 M44 24 L50 32 L44 40 M30 18 L24 46"/>
+    </g>
+  </g>
+</svg>
