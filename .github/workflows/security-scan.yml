@@ -82,6 +82,16 @@ jobs:
     if: ${{ github.event_name == 'schedule' || github.event_name == 'branch_protection_rule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Scorecard's first run on a brand-new repo can fail before the
+    # OIDC trust with the sigstore signing server is bootstrapped, and
+    # `publish_results: true` requires the repo to be public (true here)
+    # AND that the repo's Actions settings allow Scorecard to publish.
+    # `continue-on-error` keeps the workflow green while you sort out
+    # Settings → Actions → General → Workflow permissions (must be set
+    # to "Read and write" the first time so Scorecard can publish).
+    # Remove this once the job has reported clean for two consecutive
+    # runs.
+    continue-on-error: true
     permissions:
       security-events: write
       id-token: write
