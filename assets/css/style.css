@@ -452,88 +452,12 @@ h1, h2, h3 {
   color: var(--c-accent);
 }
 
-/* ---------- backdrop pill toggle ---------- */
-
-.backdrop-pill {
-  position: fixed;
-  bottom: var(--space-lg);
-  right: var(--space-lg);
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 4px;
-  border-radius: 999px;
-  background: rgba(var(--c-bg-rgb), 0.75);
-  border: 1px solid var(--c-border);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 10px 32px -12px var(--c-card-shadow);
-}
-
-.backdrop-pill__btn {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background: transparent;
-  border: none;
-  color: var(--c-text-faint);
-  cursor: pointer;
-  transition:
-    background var(--transition-fast),
-    color var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.backdrop-pill__btn:hover {
-  color: var(--c-text);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.backdrop-pill__btn[aria-checked="true"] {
-  color: var(--c-accent);
-  background: var(--c-accent-bg);
-  box-shadow: inset 0 0 0 1px var(--c-accent-border);
-}
-
-.backdrop-pill__btn:focus-visible {
-  outline: 2px solid var(--c-accent);
-  outline-offset: 2px;
-}
-
-.backdrop-pill__btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-.backdrop-pill__sep {
-  width: 1px;
-  height: 18px;
-  background: var(--c-border-light);
-  margin: 0 2px;
-}
-
-.backdrop-pill__label {
-  font-family: var(--f-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--c-text-faint);
-  padding-left: var(--space-sm);
-  padding-right: var(--space-xs);
-  white-space: nowrap;
-}
-
 /* ---------- responsive ---------- */
 
 @media (max-width: 640px) {
   .site-header { padding: var(--space-lg) 0 var(--space-sm); }
   .hero { padding: var(--space-xl) 0 var(--space-lg); }
   .grid { gap: var(--space-md); }
-  .backdrop-pill__label { display: none; }
-  .backdrop-pill { bottom: var(--space-md); right: var(--space-md); }
 }
 
 /* ---------- reduced motion ---------- */
@@ -601,10 +525,6 @@ h1, h2, h3 {
     0 8px 24px -12px var(--c-card-shadow);
 }
 
-[data-theme="light"] .backdrop-pill {
-  background: rgba(255, 255, 255, 0.7);
-}
-
 /* ---------- theme toggle button ---------- */
 
 .theme-toggle {
@@ -664,15 +584,9 @@ h1, h2, h3 {
    ============================================================ */
 
 @media (prefers-reduced-transparency: reduce) {
-  .card,
-  .backdrop-pill {
+  .card {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-  }
-  .card {
     background: var(--c-surface);
-  }
-  .backdrop-pill {
-    background: var(--c-bg-alt);
   }
 }

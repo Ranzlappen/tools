@@ -38,11 +38,11 @@ think twice — drift from the parent is the cost.
 
 ## Backdrop system
 
-`<html data-backdrop="aurora|shader|particles|grid">` switches between four
-visual backdrops. Aurora and grid are pure CSS. Shader and particles are
-canvas-based and **must** pause when `document.hidden`. Selection persists
-in `localStorage['tools:backdrop']`. Respect `prefers-reduced-motion:
-reduce` everywhere.
+Single backdrop: a CSS-only cyberpunk perspective grid (sky + plane +
+scanlines + cursor-tracked spotlight). No runtime switching, no toggle UI.
+The plane uses `lvh` (large-viewport height) so it doesn't reshape when
+mobile URL bars collapse. Respect `prefers-reduced-motion` and
+`prefers-reduced-transparency` everywhere.
 
 ## Adding a new tool
 

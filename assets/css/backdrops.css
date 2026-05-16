@@ -1,8 +1,12 @@
 /* ============================================================
-   backdrops.css — 4 runtime-switchable backdrops
-   Scoped by [data-backdrop="..."] on <html>.
-   Aurora + Grid are pure CSS. Shader + Particles render to
-   their own <canvas> via JS; CSS just toggles visibility.
+   backdrops.css — single backdrop: cyberpunk perspective grid
+   with scanlines and a cursor-tracked spotlight.
+
+   Mobile URL-bar fix: viewport-height units use `lvh` (large
+   viewport, never changes) rather than `vh`. Otherwise the
+   plane height recomputes every time iOS Safari / Android
+   Chrome collapse or expand their URL bar, producing a visible
+   "jump" in the backdrop projection on scroll.
    ============================================================ */
 
 #backdrop {
@@ -12,10 +16,12 @@
   pointer-events: none;
   overflow: hidden;
   background: var(--c-bg);
+  perspective: 800px;
+  perspective-origin: 50% 50%;
 }
 
 #backdrop::after {
-  /* unified vignette over every backdrop */
+  /* vignette over the grid */
   content: "";
   position: absolute;
   inset: 0;
@@ -29,152 +35,6 @@
   z-index: 5;
 }
 
-/* hide every layer by default; reveal only the active one */
-.backdrop-layer {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-  pointer-events: none;
-}
-
-html[data-backdrop="aurora"]    .backdrop-layer.is-aurora,
-html[data-backdrop="shader"]    .backdrop-layer.is-shader,
-html[data-backdrop="particles"] .backdrop-layer.is-particles,
-html[data-backdrop="grid"]      .backdrop-layer.is-grid {
-  opacity: 1;
-}
-
-/* ============================================================
-   1. AURORA — drifting blurred gradient blobs (pure CSS)
-   The blob radial gradients are inherently soft, so we don't
-   apply an outer `filter: blur(...)` to the layer (that compounds
-   compositor cost severely). The blobs themselves are the look.
-   ============================================================ */
-
-.aurora__blob {
-  position: absolute;
-  width: 45vmax;
-  height: 45vmax;
-  border-radius: 50%;
-  will-change: transform;
-  mix-blend-mode: screen;
-  opacity: 0.42;
-}
-
-.aurora__blob--1 {
-  top: -20%;
-  left: -15%;
-  background: radial-gradient(
-    circle at 30% 30%,
-    rgba(74, 222, 128, 0.55),
-    transparent 60%
-  );
-  animation: drift-1 28s ease-in-out infinite alternate;
-}
-
-.aurora__blob--2 {
-  top: 10%;
-  right: -20%;
-  background: radial-gradient(
-    circle at 60% 40%,
-    rgba(34, 197, 94, 0.40),
-    transparent 65%
-  );
-  animation: drift-2 36s ease-in-out infinite alternate;
-}
-
-.aurora__blob--3 {
-  bottom: -25%;
-  left: 10%;
-  background: radial-gradient(
-    circle at 50% 50%,
-    rgba(167, 243, 208, 0.25),
-    transparent 60%
-  );
-  animation: drift-3 44s ease-in-out infinite alternate;
-}
-
-.aurora__blob--4 {
-  bottom: -10%;
-  right: 5%;
-  background: radial-gradient(
-    circle at 50% 50%,
-    rgba(74, 222, 128, 0.30),
-    transparent 60%
-  );
-  animation: drift-4 32s ease-in-out infinite alternate;
-}
-
-@keyframes drift-1 {
-  0%   { transform: translate3d(0,   0,   0) scale(1);    }
-  100% { transform: translate3d(8vw, 5vh, 0) scale(1.15); }
-}
-@keyframes drift-2 {
-  0%   { transform: translate3d(0,    0,   0) scale(1.05); }
-  100% { transform: translate3d(-6vw, 8vh, 0) scale(1);    }
-}
-@keyframes drift-3 {
-  0%   { transform: translate3d(0,    0,    0) scale(1);    }
-  100% { transform: translate3d(10vw, -8vh, 0) scale(1.1);  }
-}
-@keyframes drift-4 {
-  0%   { transform: translate3d(0,    0,    0) scale(1.1); }
-  100% { transform: translate3d(-9vw, -6vh, 0) scale(1);   }
-}
-
-/* ============================================================
-   2. WEBGL SHADER — canvas only, no CSS needed beyond layout
-   ============================================================ */
-
-.backdrop-layer.is-shader canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* ============================================================
-   3. CONSTELLATION PARTICLES — canvas
-   ============================================================ */
-
-.backdrop-layer.is-particles canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* ============================================================
-   4. CYBERPUNK GRID — perspective grid + scanlines + spotlight
-   ============================================================ */
-
-.backdrop-layer.is-grid {
-  perspective: 800px;
-  perspective-origin: 50% 50%;
-}
-
-.grid-bg__plane {
-  position: absolute;
-  left: -25%;
-  right: -25%;
-  bottom: -10%;
-  height: 140vh;
-  transform-origin: 50% 100%;
-  transform: rotateX(62deg);
-  background-image:
-    linear-gradient(rgba(74, 222, 128, 0.22) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(74, 222, 128, 0.22) 1px, transparent 1px);
-  background-size: 60px 60px;
-  background-position: 0 0;
-  animation: grid-pan 14s linear infinite;
-  mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%);
-}
-
-@keyframes grid-pan {
-  from { background-position: 0 0;     }
-  to   { background-position: 0 60px;  }
-}
-
 .grid-bg__sky {
   position: absolute;
   inset: 0;
@@ -185,6 +45,30 @@ html[data-backdrop="grid"]      .backdrop-layer.is-grid {
       transparent 70%
     ),
     linear-gradient(180deg, #0b1210 0%, #0d1814 60%, #0b1210 100%);
+}
+
+.grid-bg__plane {
+  position: absolute;
+  left: -25%;
+  right: -25%;
+  bottom: -10%;
+  height: 140lvh;
+  transform-origin: 50% 100%;
+  transform: rotateX(62deg);
+  background-image:
+    linear-gradient(rgba(74, 222, 128, 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 222, 128, 0.22) 1px, transparent 1px);
+  background-size: 60px 60px;
+  background-position: 0 0;
+  animation: grid-pan 14s linear infinite;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%);
+  will-change: background-position;
+}
+
+@keyframes grid-pan {
+  from { background-position: 0 0;     }
+  to   { background-position: 0 60px;  }
 }
 
 .grid-bg__scan {
@@ -212,10 +96,7 @@ html[data-backdrop="grid"]      .backdrop-layer.is-grid {
 }
 
 /* ============================================================
-   Light-mode adjustments to the backdrops.
-   The aurora blobs use `mix-blend-mode: screen` which assumes a
-   dark surface; under light theme we switch to `multiply` and
-   dial the opacities down. The grid scanlines invert.
+   Light-mode adjustments.
    ============================================================ */
 
 html[data-theme="light"] #backdrop::after {
@@ -225,11 +106,6 @@ html[data-theme="light"] #backdrop::after {
     rgba(var(--c-bg-rgb), 0.5) 70%,
     rgba(var(--c-bg-rgb), 0.85) 100%
   );
-}
-
-html[data-theme="light"] .aurora__blob {
-  mix-blend-mode: multiply;
-  opacity: 0.30;
 }
 
 html[data-theme="light"] .grid-bg__sky {
@@ -267,27 +143,16 @@ html[data-theme="light"] .grid-bg__spot {
 }
 
 /* ============================================================
-   Reduced motion: freeze the backdrop animations.
+   Reduced motion / reduced transparency.
    ============================================================ */
 
 @media (prefers-reduced-motion: reduce) {
-  .aurora__blob,
   .grid-bg__plane {
     animation: none !important;
   }
 }
 
-/* ============================================================
-   Reduced transparency: OS-signaled opt-out of fancy compositor
-   effects. Freeze every animated backdrop, drop opacities so
-   the page is mostly the flat background colour.
-   ============================================================ */
-
 @media (prefers-reduced-transparency: reduce) {
-  .aurora__blob {
-    animation: none !important;
-    opacity: 0.15;
-  }
   .grid-bg__plane {
     animation: none !important;
   }

@@ -7,6 +7,27 @@ All notable changes to **tools** are recorded here. Format follows
 ## [Unreleased]
 
 ### Changed
+- **Single backdrop.** Removed aurora, WebGL shader, and constellation
+  particles; kept only the cyberpunk perspective grid. The backdrop pill
+  toggle is gone — backdrop is no longer user-switchable. `localStorage`
+  key `tools:backdrop` is no longer read or written.
+- **Mobile URL-bar jump fixed.** `.grid-bg__plane`'s `height: 140vh`
+  changed to `140lvh` (large-viewport height — stable across iOS Safari
+  and Android Chrome dynamic URL-bar collapse). The plane projection
+  no longer recomputes as the URL bar slides in/out.
+- Simplified pre-paint script in every `<head>` to theme-only.
+- Simplified `main.js`: dropped `setBackdrop`, lazy-import logic, and
+  arrow-key navigation for the pill.
+- `<html>` no longer carries `data-backdrop="aurora"`.
+
+### Removed
+- `assets/js/backdrop-shader.js` — WebGL plasma. Deleted.
+- `assets/js/backdrop-particles.js` — canvas constellation. Deleted.
+- `<aside class="backdrop-pill">` from all 8 HTML files.
+- All `.backdrop-pill*`, `.aurora__*`, `.is-aurora`, `.is-shader`,
+  `.is-particles`, and `.backdrop-layer` CSS rules.
+
+### Changed
 - **Performance pass.** Stripped the worst compositor offenders so the
   site is usable on real hardware:
   - Dropped the outer `filter: blur(80px) saturate(120%)` on the aurora
