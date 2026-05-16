@@ -59,9 +59,8 @@ Configure under **Settings → Branches → Branch protection rules → Add rule
 
 ## Supply-chain governance
 
-The repo's supply-chain primitives — SHA-pinning, Scorecard, dependency review — are policy-bound, not best-effort.
+The repo's supply-chain primitives — SHA-pinning, CodeQL, gitleaks, and dependency review — are policy-bound, not best-effort.
 
-- **OpenSSF Scorecard floor: 7.0.** A score below 7.0 is treated as a regression. Open a `security` PR to remediate within 30 days. If 30 days pass without a fix, record an explicit waiver in [`SECURITY.md`](./SECURITY.md) with the reason and the next review date.
 - **`dependency-review.yml` is required on every PR to `main`.** A PR that introduces a `high`-or-above CVE blocks merge until the CVE is resolved upstream (preferred), pinned to a patched range (acceptable), or explicitly waived in the PR description with a CVE-ID and justification (last resort).
 - **CodeQL is required on every language present in the repo.** Matrix in `security-scan.yml` tracks the languages actually checked in. Adding a new language is a `security` PR that updates the matrix in the same commit as the first source file.
 - **CDN libraries pinned + SRI.** Every `<script src="...cdn...">` carries a version pin and an `integrity="sha384-..."` attribute. Adding or upgrading a CDN library is a `security`-tagged review item.

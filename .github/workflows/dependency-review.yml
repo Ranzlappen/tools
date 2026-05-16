@@ -4,8 +4,8 @@
 # `fail-on-severity` or violates the license policy. Comments a structured
 # diff summary on the PR for visibility.
 #
-# Pair with `security-scan.yml` (CodeQL + gitleaks + Scorecard): this
-# workflow is the per-PR gate; security-scan.yml is the deeper sweep.
+# Pair with `security-scan.yml` (CodeQL + gitleaks): this workflow is
+# the per-PR gate; security-scan.yml is the deeper sweep.
 
 name: Dependency review
 

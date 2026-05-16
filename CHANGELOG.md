@@ -6,6 +6,13 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+### Removed
+- OpenSSF Scorecard job from `security-scan.yml` and the
+  `branch_protection_rule:` trigger that only existed to re-evaluate
+  it. Workflow now runs CodeQL + gitleaks only.
+- Scorecard references in `README.md`, `.github/GOVERNANCE.md`, and
+  `.github/workflows/dependency-review.yml` comment.
+
 ## [0.3.0]
 
 ### Added

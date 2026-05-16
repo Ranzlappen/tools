@@ -104,7 +104,7 @@ Follows
 [`Ranzlappen/repo-standards`](https://github.com/Ranzlappen/repo-standards)
 v3 at full compliance: CHANGELOG, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT,
 GOVERNANCE, CODEOWNERS, issue forms, PR template, dependabot, security-scan
-(CodeQL + gitleaks + Scorecard), dependency-review, repo-sanitation.
+(CodeQL + gitleaks), dependency-review, repo-sanitation.
 
 ## License
 

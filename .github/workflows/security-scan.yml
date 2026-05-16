@@ -1,13 +1,12 @@
 # Security scan for Ranzlappen/tools.
 #
-# CodeQL static analysis (GitHub Actions workflows) + gitleaks secret scan +
-# OpenSSF Scorecard publishing.
+# CodeQL static analysis (GitHub Actions workflows + JS/TS) + gitleaks
+# secret scan.
 #
 # Runs on:
 #   - Every PR (catch issues before merge).
 #   - Every push to main (catch issues that bypassed PR review).
-#   - Weekly schedule (catch newly-disclosed CVEs).
-#   - branch_protection_rule events (Scorecard re-evaluates branch protection).
+#   - Weekly schedule (catch newly-disclosed CVEs in dependencies).
 #   - Manual dispatch.
 
 name: Security scan
@@ -20,14 +19,9 @@ on:
   schedule:
     - cron: '0 6 * * 1'
   workflow_dispatch:
-  branch_protection_rule:
 
 permissions:
   contents: read
-  # Job-level blocks below grant write scopes (security-events, id-token)
-  # where needed. Workflow-scope MUST stay `contents: read` only — the
-  # OpenSSF Scorecard signing server rejects results signed by a workflow
-  # that holds any `*: write` permission at workflow scope.
 
 concurrency:
   group: security-scan-${{ github.workflow }}-${{ github.ref }}
@@ -76,42 +70,3 @@ jobs:
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  scorecard:
-    name: OpenSSF Scorecard
-    if: ${{ github.event_name == 'schedule' || github.event_name == 'branch_protection_rule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    # Scorecard's first run on a brand-new repo can fail before the
-    # OIDC trust with the sigstore signing server is bootstrapped, and
-    # `publish_results: true` requires the repo to be public (true here)
-    # AND that the repo's Actions settings allow Scorecard to publish.
-    # `continue-on-error` keeps the workflow green while you sort out
-    # Settings → Actions → General → Workflow permissions (must be set
-    # to "Read and write" the first time so Scorecard can publish).
-    # Remove this once the job has reported clean for two consecutive
-    # runs.
-    continue-on-error: true
-    permissions:
-      security-events: write
-      id-token: write
-      contents: read
-      actions: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
-        with:
-          persist-credentials: false
-
-      - name: Run analysis
-        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a  # v2
-        with:
-          results_file: results.sarif
-          results_format: sarif
-          publish_results: true
-
-      - name: Upload SARIF results
-        uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e  # v4.35.4
-        with:
-          sarif_file: results.sarif
-          category: ossf-scorecard
