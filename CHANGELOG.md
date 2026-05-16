@@ -6,6 +6,31 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+- **Panels overflowing the viewport on mobile.** Root cause: the site
+  header's mono `TOOLS.RANZLAPPEN.COM` meta plus the brand + theme
+  toggle pushed `.site-header__inner` wider than a 412 px viewport.
+  Since `.page` is a flex column, the cross-axis stretched to the
+  widest child — so `.shell` (and every `.panel` / `.card` inside it)
+  rendered against an over-wide track. `body { overflow-x: hidden }`
+  hid the visual overflow but the geometry was still off, producing
+  panels that looked ~75 % of viewport with grid backdrop bleeding
+  through the gap on the right.
+  - Hide the redundant URL meta under `@media (max-width: 640px)`
+    (URL bar already shows it).
+  - Pin `.page` and `.shell` with `width: 100%; max-width: 100%;
+    min-width: 0`. The flex-column cross-axis can no longer expand
+    past viewport regardless of an overflowing child.
+  - Promote `body` (and add `html`) to `overflow-x: clip; max-width:
+    100%` so an overflowing descendant is genuinely contained.
+  - Add `min-width: 0` to grid items inside `.split` and `.kv-row`
+    (long monospace hashes / matches were preventing shrink to fit).
+  - Tighten shell + card + panel padding on `≤640 px` (and shell
+    again on `≤380 px`); shrink tool title + icon; collapse `.kv-row`
+    columns on `≤420 px`.
+  - `.match-list li` gets `word-break: break-word; overflow-wrap:
+    anywhere` so long regex matches wrap inside their pill.
+
 ### Changed
 - **Brand mark + favicon adopted from Ranzlappen.com.** Replaced the
   inline SVG "A" placeholder and the data-URI favicon with
