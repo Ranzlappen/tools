@@ -6,6 +6,28 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+### Added
+- **Video Studio** (`/tools/video/`) — eighth client-only tool. Pins
+  `@ffmpeg/ffmpeg@0.12.10`, `@ffmpeg/util@0.12.1`, and
+  `@ffmpeg/core@0.12.6` (with `core-mt` fallback when the page is
+  `crossOriginIsolated` and `SharedArrayBuffer` is available). Lazy-loads
+  the wasm core only on first run, so the dashboard's first-paint budget
+  is untouched. Modes: boomerang (forward + reverse), reverse-only,
+  palindrome (held endpoints). Trim by start/end timestamps + dual range
+  sliders. Audio: drop, keep forward (silence-padded for boomerang /
+  palindrome), or reverse with video. Speed 0.25× – 4× via `setpts` +
+  chained `atempo` for the extremes. Quality preset (low / medium / high
+  → CRF 30 / 23 / 18). Output format: mp4 (h264 + aac, faststart) or
+  webm (vp9 + opus, row-mt). Loop count 1× / 2× / 3× via filter-graph
+  split + concat. Drag-and-drop with metadata preview (filename, size,
+  duration, resolution, MIME). Per-stage progress, elapsed timer, ffmpeg
+  log mirror, cancel button. All `URL.createObjectURL` results revoked
+  on reset or new selection. Filter graph centralized in `buildArgs()`
+  so future modes only add a state field + one switch arm. Output codec
+  selection isolated to a single block, ready for av1/hevc when the core
+  bundle ships them. Refactor of the user's original
+  `mp4reverse.html` upload.
+
 ### Fixed
 - **Panels overflowing the viewport on mobile.** Root cause: the site
   header's mono `TOOLS.RANZLAPPEN.COM` meta plus the brand + theme

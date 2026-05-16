@@ -4,10 +4,12 @@ Architectural notes for AI assistants working on this repo.
 
 ## What this is
 
-`tools.ranzlappen.com` — a static landing dashboard plus seven working
+`tools.ranzlappen.com` — a static landing dashboard plus eight working
 client-only utilities (JSON formatter, color picker, regex tester,
-markdown preview, multi-encoder, JWT decoder, UUID/hash generator). All
-seven run entirely in the browser; nothing is transmitted to a server.
+markdown preview, multi-encoder, JWT decoder, UUID/hash generator, video
+studio). All eight run entirely in the browser; nothing is transmitted
+to a server. Video Studio lazy-loads ffmpeg.wasm from a pinned CDN on
+first run, so the first-paint budget is unaffected.
 
 ## Hosting
 
