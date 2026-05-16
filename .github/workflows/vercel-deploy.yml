@@ -1,0 +1,126 @@
+# Vercel deploy fallback workflow.
+#
+# Primary deploy path is Vercel's native GitHub integration (it watches
+# `main` on its own; no workflow needed). This workflow is the fallback —
+# useful when the integration is paused, when you want a deploy on a
+# branch other than main, or when you need to bisect a deploy via
+# `workflow_dispatch`.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   VERCEL_TOKEN       — personal token from vercel.com/account/tokens
+#   VERCEL_ORG_ID      — from `.vercel/project.json` after `vercel link`
+#   VERCEL_PROJECT_ID  — same source
+#
+# If any secret is missing the job skips cleanly (no failure noise).
+
+name: Vercel deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'vercel.json'
+      - '.vercelignore'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/vercel-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment"
+        type: choice
+        default: production
+        options:
+          - production
+          - preview
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vercel-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: vercel-${{ inputs.environment || 'production' }}
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Check required secrets
+        id: gate
+        env:
+          VERCEL_TOKEN:      ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_TOKEN}" ] || [ -z "${VERCEL_ORG_ID}" ] || [ -z "${VERCEL_PROJECT_ID}" ]; then
+            echo "::warning::One or more VERCEL_* secrets are missing — skipping deploy."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up Node
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: '20'
+
+      - name: Install Vercel CLI
+        if: steps.gate.outputs.ready == 'true'
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel project info
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel pull --yes --environment=${{ inputs.environment || 'production' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel build ${{ (inputs.environment || 'production') == 'production' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy
+        id: deploy
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          url=$(vercel deploy --prebuilt \
+            ${{ (inputs.environment || 'production') == 'production' && '--prod' || '' }} \
+            --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Deployed to ${url}"
+
+      - name: Smoke-test /api/health
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          # Hit the public alias once the deploy propagates. The custom
+          # domain may take a few seconds to resolve to the new build.
+          url="https://api.tools.ranzlappen.com/api/health"
+          for i in 1 2 3 4 5; do
+            if curl -sf -o /tmp/health.json -w "%{http_code}" "$url" | grep -q '^200$'; then
+              echo "Health OK: $(cat /tmp/health.json)"
+              exit 0
+            fi
+            echo "Attempt $i: not 200, retrying in 5s…"
+            sleep 5
+          done
+          echo "::warning::Health endpoint did not return 200 after 5 attempts; DNS may not be wired yet."

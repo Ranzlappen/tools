@@ -1,0 +1,14 @@
+{
+  "name": "ranzlappen-tools-api",
+  "private": true,
+  "version": "0.3.0",
+  "description": "Serverless functions for tools.ranzlappen.com — deployed to api.tools.ranzlappen.com via Vercel. The static dashboard runs entirely without this package.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@vercel/og": "0.6.5"
+  }
+}
