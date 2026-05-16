@@ -415,15 +415,34 @@ function renderOutput(blob) {
 
   const wrap = document.createElement("section");
   wrap.className = "panel stack-md";
-  wrap.innerHTML = `
-    <div class="panel__head">
-      <span class="panel__title">Output</span>
-      <div class="btn-row">
-        <a class="btn btn--primary" id="dl" download="${name}" href="${state.outURL}">↓ download ${name}</a>
-        <button type="button" class="btn btn--ghost" data-action="another">Process another</button>
-      </div>
-    </div>
-  `;
+
+  const head = document.createElement("div");
+  head.className = "panel__head";
+  const title = document.createElement("span");
+  title.className = "panel__title";
+  title.textContent = "Output";
+  const btnRow = document.createElement("div");
+  btnRow.className = "btn-row";
+
+  const dl = document.createElement("a");
+  dl.className = "btn btn--primary";
+  dl.id = "dl";
+  dl.download = name;
+  dl.href = state.outURL;
+  dl.textContent = `↓ download ${name}`;
+
+  const another = document.createElement("button");
+  another.type = "button";
+  another.className = "btn btn--ghost";
+  another.dataset.action = "another";
+  another.textContent = "Process another";
+
+  btnRow.appendChild(dl);
+  btnRow.appendChild(another);
+  head.appendChild(title);
+  head.appendChild(btnRow);
+  wrap.appendChild(head);
+
   const v = document.createElement("video");
   v.src = state.outURL;
   v.controls = true;

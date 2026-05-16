@@ -525,6 +525,33 @@ function applyPresetToPayload() {
 
 // ---------- ECC + size controls ----------
 
+function buildRangeControl({ id, label, min, max, step, value, display }) {
+  const wrap = document.createElement("div");
+  wrap.className = "full";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.htmlFor = id;
+  lbl.textContent = label;
+  const row = document.createElement("div");
+  row.className = "range-row";
+  const input = document.createElement("input");
+  input.id = id;
+  input.type = "range";
+  input.min = String(min);
+  input.max = String(max);
+  input.step = String(step);
+  input.value = String(value);
+  const span = document.createElement("span");
+  span.className = "val";
+  span.id = `${id}-val`;
+  span.textContent = display;
+  row.appendChild(input);
+  row.appendChild(span);
+  wrap.appendChild(lbl);
+  wrap.appendChild(row);
+  return wrap;
+}
+
 function buildEccControls(sym) {
   eccControls.innerHTML = "";
 
@@ -542,25 +569,21 @@ function buildEccControls(sym) {
       </div>`;
     eccControls.appendChild(wrap);
   } else if (sym.id === "pdf417" || sym.id === "pdf417compact" || sym.id === "micropdf417") {
-    const wrap = document.createElement("div");
-    wrap.className = "full";
-    wrap.innerHTML = `
-      <label for="pdf-ecc" class="field-label">PDF417 ECC level (0–8)</label>
-      <div class="range-row">
-        <input id="pdf-ecc" type="range" min="0" max="8" step="1" value="${state.pdf417Ecc}" />
-        <span class="val" id="pdf-ecc-val">${state.pdf417Ecc}</span>
-      </div>`;
-    eccControls.appendChild(wrap);
+    eccControls.appendChild(buildRangeControl({
+      id: "pdf-ecc",
+      label: "PDF417 ECC level (0–8)",
+      min: 0, max: 8, step: 1,
+      value: state.pdf417Ecc,
+      display: String(state.pdf417Ecc),
+    }));
   } else if (sym.id === "azteccode" || sym.id === "azteccodecompact") {
-    const wrap = document.createElement("div");
-    wrap.className = "full";
-    wrap.innerHTML = `
-      <label for="aztec-ecc" class="field-label">Aztec ECC (% redundancy)</label>
-      <div class="range-row">
-        <input id="aztec-ecc" type="range" min="5" max="95" step="5" value="${state.aztecEcc}" />
-        <span class="val" id="aztec-ecc-val">${state.aztecEcc}%</span>
-      </div>`;
-    eccControls.appendChild(wrap);
+    eccControls.appendChild(buildRangeControl({
+      id: "aztec-ecc",
+      label: "Aztec ECC (% redundancy)",
+      min: 5, max: 95, step: 5,
+      value: state.aztecEcc,
+      display: `${state.aztecEcc}%`,
+    }));
   } else {
     const wrap = document.createElement("div");
     wrap.className = "full muted tiny";
