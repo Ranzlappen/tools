@@ -7,6 +7,9 @@
   const reduceMotion = window.matchMedia(
     "(prefers-reduced-motion: reduce)"
   ).matches;
+  const coarsePointer = window.matchMedia(
+    "(hover: none), (pointer: coarse)"
+  ).matches;
 
   /* ---------- theme toggle ----------
      Initial theme is set synchronously by the pre-paint script in <head>
@@ -46,7 +49,7 @@
      One rAF-throttled pointermove listener updates --mouse-x/y on
      <html>; the grid backdrop's spot uses those vars. */
 
-  if (!reduceMotion) {
+  if (!reduceMotion && !coarsePointer) {
     let rafId = 0;
     let pendingX = 0;
     let pendingY = 0;
@@ -71,7 +74,7 @@
      hovered card only. */
 
   const grid = document.querySelector(".grid");
-  if (grid && !reduceMotion) {
+  if (grid && !reduceMotion && !coarsePointer) {
     grid.addEventListener(
       "pointermove",
       (e) => {

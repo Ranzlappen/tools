@@ -59,16 +59,8 @@
     linear-gradient(rgba(74, 222, 128, 0.22) 1px, transparent 1px),
     linear-gradient(90deg, rgba(74, 222, 128, 0.22) 1px, transparent 1px);
   background-size: 60px 60px;
-  background-position: 0 0;
-  animation: grid-pan 14s linear infinite;
   mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%);
-  will-change: background-position;
-}
-
-@keyframes grid-pan {
-  from { background-position: 0 0;     }
-  to   { background-position: 0 60px;  }
 }
 
 .grid-bg__scan {
@@ -93,6 +85,13 @@
     transparent 60%
   );
   pointer-events: none;
+}
+
+/* No cursor on touch devices — hide the spotlight entirely.
+   Also keeps Android Chrome from re-compositing the radial-gradient
+   layer on every tap. */
+@media (hover: none), (pointer: coarse) {
+  .grid-bg__spot { display: none; }
 }
 
 /* ============================================================
@@ -146,16 +145,7 @@ html[data-theme="light"] .grid-bg__spot {
    Reduced motion / reduced transparency.
    ============================================================ */
 
-@media (prefers-reduced-motion: reduce) {
-  .grid-bg__plane {
-    animation: none !important;
-  }
-}
-
 @media (prefers-reduced-transparency: reduce) {
-  .grid-bg__plane {
-    animation: none !important;
-  }
   .grid-bg__scan,
   .grid-bg__spot {
     display: none;
