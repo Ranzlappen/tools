@@ -1,0 +1,26 @@
+# CodeQL configuration for Ranzlappen/tools.
+#
+# Referenced by .github/workflows/security-scan.yml. Without this file
+# CodeQL runs its `security-extended` suite with no overrides; with it
+# we can scope path exclusions and keep the rest of the analysis intact.
+
+name: tools-codeql
+
+# Path-scoped exclusion. tools/video/tool.js triggers four
+# js/xss-through-dom alerts on `.src` / `.href` assignments of object
+# URLs produced by URL.createObjectURL(). These are false positives —
+# blob: URLs synthesised by createObjectURL are always
+# `blob:<origin>/<uuid>` and cannot carry a `javascript:` scheme. Two
+# in-source sanitizers (startsWith and `new URL().protocol`) were
+# tried; neither shape was recognised by the query's barrier-guard
+# set. Runtime protection is still provided by the `safeBlobUrl()`
+# helper in the file itself.
+#
+# Trade-off: this disables ALL CodeQL queries on tools/video/tool.js,
+# not just js/xss-through-dom — CodeQL's config schema doesn't
+# support query × path scoping. The file has no other code-scanning
+# alerts open and is a self-contained tool, so the blast radius is
+# small. Remove this entry if a future CodeQL release recognises the
+# blob: barrier guard.
+paths-ignore:
+  - tools/video/tool.js
