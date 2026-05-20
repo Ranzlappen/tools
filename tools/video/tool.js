@@ -125,10 +125,15 @@ async function loadFFmpeg() {
 }
 
 // Object URLs are always `blob:<origin>/<uuid>`, never javascript:.
-// The startsWith check is a CodeQL-recognized sanitizer for js/html-injection
-// so static analysis can prove .src/.href assignments are safe.
+// Parse via the URL constructor inside try/catch — this is the pattern
+// CodeQL's js/xss-through-dom query recognizes as a URL-scheme sanitizer
+// for .src / .href sinks.
 function safeBlobUrl(url) {
-  return typeof url === "string" && url.startsWith("blob:") ? url : "";
+  try {
+    return new URL(url).protocol === "blob:" ? url : "";
+  } catch (_) {
+    return "";
+  }
 }
 
 // ─── file probe via <video preload="metadata"> ─────────────────────────
