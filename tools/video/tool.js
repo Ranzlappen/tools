@@ -124,6 +124,13 @@ async function loadFFmpeg() {
   return ffmpeg;
 }
 
+// Object URLs are always `blob:<origin>/<uuid>`, never javascript:.
+// The startsWith check is a CodeQL-recognized sanitizer for js/html-injection
+// so static analysis can prove .src/.href assignments are safe.
+function safeBlobUrl(url) {
+  return typeof url === "string" && url.startsWith("blob:") ? url : "";
+}
+
 // ─── file probe via <video preload="metadata"> ─────────────────────────
 function probeFile(file) {
   return new Promise((resolve, reject) => {
@@ -131,7 +138,7 @@ function probeFile(file) {
     const v = document.createElement("video");
     v.preload = "metadata";
     v.muted = true;
-    v.src = url;
+    v.src = safeBlobUrl(url);
     const cleanup = () => URL.revokeObjectURL(url);
     v.onloadedmetadata = () => {
       const meta = {
@@ -184,7 +191,7 @@ async function acceptFile(file) {
     metaEl.classList.remove("is-hidden");
 
     if (previewEl.src) URL.revokeObjectURL(previewEl.src);
-    previewEl.src = URL.createObjectURL(file);
+    previewEl.src = safeBlobUrl(URL.createObjectURL(file));
     previewEl.classList.remove("is-hidden");
 
     // wire trim defaults
@@ -428,7 +435,7 @@ function renderOutput(blob) {
   dl.className = "btn btn--primary";
   dl.id = "dl";
   dl.download = name;
-  dl.href = state.outURL;
+  dl.href = safeBlobUrl(state.outURL);
   dl.textContent = `↓ download ${name}`;
 
   const another = document.createElement("button");
@@ -444,7 +451,7 @@ function renderOutput(blob) {
   wrap.appendChild(head);
 
   const v = document.createElement("video");
-  v.src = state.outURL;
+  v.src = safeBlobUrl(state.outURL);
   v.controls = true;
   v.loop = true;
   v.playsInline = true;
