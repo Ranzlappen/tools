@@ -6,10 +6,17 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+### Added
+- **`scripts/test-og.mjs`** — local exerciser for `api/og.js`. Imports
+  the handler, runs it against five permutations (defaults, short/long
+  titles, dark/light themes, title+subtitle) and writes the PNGs to
+  `scripts/_og-out/` (gitignored). Catches Satori errors before
+  deploying instead of relying on the merge-deploy-error loop.
+
 ### Fixed
-- **`/api/og` returning empty PNGs.** Two Satori strictness regressions
-  surfaced under `@vercel/og` after platform drift; both produced silent
-  zero-byte responses with `HTTP 200 image/png`:
+- **`/api/og` returning empty PNGs.** Three Satori strictness
+  regressions surfaced under `@vercel/og` after platform drift; all
+  three produced silent zero-byte responses with `HTTP 200 image/png`:
   1. `width: "fit-content"` on the "LIVE · TOOLS" chip →
      `Error: Invalid value fit-content for setWidth`. Replaced with
      `alignSelf: "flex-start"`.
@@ -19,6 +26,10 @@ All notable changes to **tools** are recorded here. Format follows
      `background` as `background-image` and rejects solid-colour values
      in the gradient list. Split into separate `backgroundColor` and
      `backgroundImage` declarations.
+  3. The `el()` helper returned `children: []` for divs passed no
+     children — Satori sees an empty array as "multiple children" and
+     throws `Expected <div> to have explicit "display: flex"…`.
+     Helper now omits `children` entirely when none are passed.
 - **Vercel build failure** — `Error: Function Runtimes must have a valid
   version`. Vercel tightened `functions[*].runtime` validation; the
   `"nodejs20.x"` shorthand pinned for `api/health.js` is no longer

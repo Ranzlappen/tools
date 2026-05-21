@@ -30,3 +30,6 @@ coverage/
 
 # --- Vercel (heavier tools) ---
 .vercel
+
+# --- Test artifacts ---
+scripts/_og-out/
