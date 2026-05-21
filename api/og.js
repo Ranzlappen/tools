@@ -69,11 +69,11 @@ export default function handler(req) {
         flexDirection: "column",
         justifyContent: "space-between",
         padding: "72px",
-        background:
+        backgroundColor: p.bg,
+        backgroundImage:
           `radial-gradient(circle at 20% 25%, ${p.accent}55, transparent 55%),` +
           `radial-gradient(circle at 85% 30%, ${p.accent2}33, transparent 60%),` +
-          `radial-gradient(circle at 35% 100%, ${p.accent2}22, transparent 60%),` +
-          `${p.bg}`,
+          `radial-gradient(circle at 35% 100%, ${p.accent2}22, transparent 60%)`,
         color: p.text,
         fontFamily: "sans-serif",
       },
