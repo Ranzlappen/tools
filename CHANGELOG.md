@@ -6,6 +6,67 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-16
+
+### Added
+- **QR &amp; Barcode Generator.** New subpage at
+  `/tools/qr-barcode/` covers every common 1D and 2D symbology
+  (~55 entries: QR, Data Matrix, Aztec, PDF417, MaxiCode, Han Xin,
+  Code 128/39/93/11, EAN-13/8/5/2, UPC-A/E, ISBN/ISMN/ISSN,
+  Codabar, ITF/ITF-14, MSI, Plessey, Telepen, GS1-128 &amp; DataBar
+  variants, USPS Intelligent Mail/POSTNET/PLANET, Royal Mail, KIX,
+  Australia Post, Japan Post, Deutsche Post Ident/Leitcode, pharma
+  codes incl. PZN/HIBC, DotCode, Ultracode, raw bit patterns).
+  Filter input narrows the picker; ECC controls per symbology
+  (QR L/M/Q/H chips, PDF417 0-8 slider, Aztec 5-95% slider);
+  module + quiet-zone sliders; human-readable text toggle for 1D.
+- **Content presets** auto-format payload per spec: plain text,
+  URL (auto `https://`), WiFi (`WIFI:T:…;S:…;P:…;;`), vCard 3.0,
+  SMS (`SMSTO:…`), email (`mailto:…?subject=…&body=…`),
+  geo (`geo:lat,lon?q=…`), calendar event (`BEGIN:VEVENT…`).
+- **Design panel for QR** via `qr-code-styling`: foreground +
+  background colours with synced hex inputs, six module shapes
+  (square, dots, rounded, extra-rounded, classy, classy-rounded),
+  three corner outer and two corner inner shapes, optional linear
+  gradient with a second stop, logo overlay (file upload) that
+  auto-bumps ECC to Q.
+- **Exports**: SVG (vector), PNG at 1×/2×/4×, JPG (flattened on
+  background), PDF (A4 portrait via jsPDF with caption), copy PNG
+  to clipboard via `ClipboardItem`, share via Web Share API.
+- CDN libraries pinned with SHA-384 SRI: `bwip-js@4.5.1`,
+  `qr-code-styling@1.6.0-rc.1`, `jspdf@2.5.2`.
+- Dashboard card added; README + CLAUDE.md updated.
+- **Video Studio** (`/tools/video/`) — client-only tool. Pins
+  `@ffmpeg/ffmpeg@0.12.10`, `@ffmpeg/util@0.12.1`, and
+  `@ffmpeg/core@0.12.6` (with `core-mt` fallback when the page is
+  `crossOriginIsolated` and `SharedArrayBuffer` is available). Lazy-loads
+  the wasm core only on first run, so the dashboard's first-paint budget
+  is untouched. Modes: boomerang (forward + reverse), reverse-only,
+  palindrome (held endpoints). Trim by start/end timestamps + dual range
+  sliders. Audio: drop, keep forward (silence-padded for boomerang /
+  palindrome), or reverse with video. Speed 0.25× – 4× via `setpts` +
+  chained `atempo` for the extremes. Quality preset (low / medium / high
+  → CRF 30 / 23 / 18). Output format: mp4 (h264 + aac, faststart) or
+  webm (vp9 + opus, row-mt). Loop count 1× / 2× / 3× via filter-graph
+  split + concat. Drag-and-drop with metadata preview (filename, size,
+  duration, resolution, MIME). Per-stage progress, elapsed timer, ffmpeg
+  log mirror, cancel button. All `URL.createObjectURL` results revoked
+  on reset or new selection. Filter graph centralized in `buildArgs()`
+  so future modes only add a state field + one switch arm. Output codec
+  selection isolated to a single block, ready for av1/hevc when the core
+  bundle ships them. Refactor of the user's original
+  `mp4reverse.html` upload.
+- **OG Image Studio** (`tools/og-studio/`) — first API-backed tool.
+  Calls `/api/og` on `api.tools.ranzlappen.com` for live 1200×630
+  previews; debounced input (300 ms) with cache-bust on edits,
+  canonical URL display, clipboard copy, and `fetch` → blob PNG
+  download. Image theme (dark/light) is independent of page theme.
+  State round-trips through `location.hash` so previews are shareable
+  as deep-links.
+- **Per-tool README + in-app info modal.** Each tool now ships a
+  `README.md` rendered by `assets/js/info-modal.js` (marked + DOMPurify,
+  lazy-loaded with SHA-384 SRI). Info button next to every tool title.
+
 ### Fixed
 - **Panels overflowing the viewport on mobile.** Root cause: the site
   header's mono `TOOLS.RANZLAPPEN.COM` meta plus the brand + theme
@@ -204,7 +265,8 @@ Sections to use (omit any that don't apply for a given release):
   Added | Changed | Deprecated | Removed | Fixed | Security
 -->
 
-[Unreleased]: https://github.com/Ranzlappen/tools/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Ranzlappen/tools/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Ranzlappen/tools/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Ranzlappen/tools/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Ranzlappen/tools/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Ranzlappen/tools/releases/tag/v0.1.0

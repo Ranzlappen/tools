@@ -4,10 +4,14 @@ Architectural notes for AI assistants working on this repo.
 
 ## What this is
 
-`tools.ranzlappen.com` — a static landing dashboard plus seven working
-client-only utilities (JSON formatter, color picker, regex tester,
-markdown preview, multi-encoder, JWT decoder, UUID/hash generator). All
-seven run entirely in the browser; nothing is transmitted to a server.
+`tools.ranzlappen.com` — a static landing dashboard plus ten working
+utilities (JSON formatter, color picker, regex tester, markdown
+preview, multi-encoder, JWT decoder, UUID/hash generator, QR/barcode
+generator, video studio, OG image studio). Nine run entirely in the
+browser; OG Image Studio is the first to call an API (`/api/og` on
+`api.tools.ranzlappen.com`, served by Vercel). Video Studio lazy-loads
+ffmpeg.wasm from a pinned CDN on first run, so the first-paint budget
+is unaffected.
 
 ## Hosting
 
@@ -53,6 +57,22 @@ mobile URL bars collapse. Respect `prefers-reduced-motion` and
    genuinely belongs in `assets/js/`.
 4. Client-only? Stays on Pages. Needs a server / build step? Plan for
    Vercel and document the routing.
+5. Write `tools/<slug>/README.md` using the template in
+   `tools/json-formatter/README.md` (User guide + Developer guide).
+   This is **mandatory** — the in-app info modal expects it.
+6. Wire the info modal into the tool's `<header>` — add a
+   `<button class="info-btn" data-info-button>` next to `.tool-title__text`
+   and include `<script type="module" src="../../assets/js/info-modal.js">`.
+   The modal fetches `./README.md` by default.
+
+## Tool documentation
+
+Every tool ships with a `tools/<slug>/README.md` rendered by
+`assets/js/info-modal.js` (marked + DOMPurify, lazy-loaded with SRI).
+Keep the markdown plain GFM — no raw HTML, no remote images, no inline
+scripts. Sections expected: *What it does* · *User guide* (features, how
+to use, examples, privacy) · *Developer guide* (file layout, DOM hooks,
+dependencies, extending, limitations).
 
 ## Branching
 
@@ -106,3 +126,6 @@ Before declaring a task done, confirm:
 - [ ] No new top-level dependencies / build tools introduced silently.
 - [ ] CLAUDE.md still under 200 lines (this file).
 - [ ] If you added a tool: its card links to a working subpage.
+- [ ] If you added or changed a tool: its `README.md` is present and the
+      info button opens it in the modal.
+- [ ] Tool READMEs use only GFM (no raw HTML / no remote images).

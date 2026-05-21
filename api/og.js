@@ -207,6 +207,9 @@ export default function handler(req) {
       // Cache for 1h at the edge; long enough to feel fast, short
       // enough that copy fixes propagate quickly.
       "Cache-Control": "public, max-age=3600, s-maxage=3600",
+      // Public, embeddable image — allow any origin so the OG Studio
+      // tool on tools.ranzlappen.com can fetch the blob for download.
+      "Access-Control-Allow-Origin": "*",
     },
   });
 }
