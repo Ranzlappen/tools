@@ -5,12 +5,6 @@
   "framework": null,
   "trailingSlash": false,
   "cleanUrls": true,
-  "functions": {
-    "api/health.js": {
-      "runtime": "nodejs20.x",
-      "maxDuration": 10
-    }
-  },
   "headers": [
     {
       "source": "/api/(.*)",
