@@ -38,16 +38,15 @@ const PALETTES = {
   },
 };
 
-// el(tag, style, ...children) — tiny createElement-like helper that
-// produces objects @vercel/og / satori accept directly.
+// el(tag, props, ...children) — tiny createElement-like helper that
+// produces objects @vercel/og / satori accept directly. Omit `children`
+// entirely when none are passed: Satori treats an empty array as
+// "multiple children" and demands `display: flex` on the parent div.
 function el(type, props, ...children) {
-  return {
-    type,
-    props: {
-      ...(props || {}),
-      children: children.length === 1 ? children[0] : children,
-    },
-  };
+  const out = { type, props: { ...(props || {}) } };
+  if (children.length === 1) out.props.children = children[0];
+  else if (children.length > 1) out.props.children = children;
+  return out;
 }
 
 function clamp(s, n) { return s.length > n ? s.slice(0, n - 1) + "…" : s; }
@@ -69,11 +68,11 @@ export default function handler(req) {
         flexDirection: "column",
         justifyContent: "space-between",
         padding: "72px",
-        background:
+        backgroundColor: p.bg,
+        backgroundImage:
           `radial-gradient(circle at 20% 25%, ${p.accent}55, transparent 55%),` +
           `radial-gradient(circle at 85% 30%, ${p.accent2}33, transparent 60%),` +
-          `radial-gradient(circle at 35% 100%, ${p.accent2}22, transparent 60%),` +
-          `${p.bg}`,
+          `radial-gradient(circle at 35% 100%, ${p.accent2}22, transparent 60%)`,
         color: p.text,
         fontFamily: "sans-serif",
       },
