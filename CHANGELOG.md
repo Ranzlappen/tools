@@ -6,6 +6,16 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+- **Vercel build failure** — `Error: Function Runtimes must have a valid
+  version`. Vercel tightened `functions[*].runtime` validation; the
+  `"nodejs20.x"` shorthand pinned for `api/health.js` is no longer
+  accepted (now expects `@vercel/node@x.y.z`). Removed the `functions`
+  block from `vercel.json` entirely — Node functions inherit
+  `engines.node` from `package.json` (`>=20`); the Edge declarations in
+  `api/og.js` and `api/ping.js` already work via in-file
+  `export const config = { runtime: "edge" }`.
+
 ## [0.4.0] — 2026-05-16
 
 ### Added
