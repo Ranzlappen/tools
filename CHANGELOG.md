@@ -7,6 +7,14 @@ All notable changes to **tools** are recorded here. Format follows
 ## [Unreleased]
 
 ### Fixed
+- **`/api/og` returning empty PNGs.** Satori (under `@vercel/og`) rejected
+  the `width: "fit-content"` declaration on the "LIVE · TOOLS" chip with
+  `Error: Invalid value fit-content for setWidth`. The function still
+  emitted `HTTP 200` with `Content-Type: image/png` and a zero-byte body
+  — so the OG Studio preview showed a broken image with no obvious
+  cause. Replaced with `alignSelf: "flex-start"`, which shrinks the
+  chip to its content in the parent column flex without using the
+  unsupported value.
 - **Vercel build failure** — `Error: Function Runtimes must have a valid
   version`. Vercel tightened `functions[*].runtime` validation; the
   `"nodejs20.x"` shorthand pinned for `api/health.js` is no longer

@@ -122,7 +122,7 @@ export default function handler(req) {
           fontFamily: "monospace",
           fontSize: "14px",
           letterSpacing: "2px",
-          width: "fit-content",
+          alignSelf: "flex-start",
         },
       }, "LIVE · TOOLS"),
       el(
