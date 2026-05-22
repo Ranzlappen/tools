@@ -6,6 +6,19 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+### Security
+- **OG Studio prototype-pollution hardening.** CodeQL flagged
+  `applyPartial()` in `tools/og-studio/tool.js` as "Remote property
+  injection (high)" because it iterated `Object.keys(partial)` and
+  wrote `state[k] = …` where `partial` could flow from
+  `location.hash` (a `#c=<base64>` blob → arbitrary JSON keys
+  including `__proto__` / `constructor`). Replaced the open
+  iteration with an explicit allow-list of known top-level keys plus
+  per-nested-object sub-key allow-lists; uses
+  `Object.prototype.hasOwnProperty.call` so prototype-chain hits are
+  ignored. Crafted hash payloads can no longer pollute
+  `Object.prototype` or smuggle in unexpected fields.
+
 ### Added
 - **Metadata Studio** (`tools/metadata-studio/`) — universal client-side
   metadata viewer / editor / stripper. Magic-byte format detection plus
@@ -22,8 +35,62 @@ All notable changes to **tools** are recorded here. Format follows
 - **`scripts/test-og.mjs`** — local exerciser for `api/og.js`. Imports
   the handler, runs it against five permutations (defaults, short/long
   titles, dark/light themes, title+subtitle) and writes the PNGs to
+- **`/api/og` is now a small layout engine.** Refactored from a single
+  hard-coded composition into layered tables: 6 named palettes
+  (`green`, `slate`, `amber`, `violet`, `rose`, `mono`) each with
+  dark/light variants; 4 named sizes (`og` 1200×630, `twitter`
+  1200×675, `linkedin` 1200×627, `square` 1080×1080) plus custom
+  `WxH`; 5 backgrounds (`blobs`, `linear`, `solid`, `dots`, `noise`);
+  5 layouts (`classic`, `centered`, `hero`, `minimal`, `split`); per-
+  slot show/hide for brand chip, eyebrow, divider, URL pill; HEX
+  colour overrides; sans/serif/mono headline font; word-index accent
+  highlighting on the headline. Driven by a hybrid query surface:
+  flat `title` / `subtitle` / `theme` for the legacy / link-friendly
+  knobs (these still take precedence so existing OG meta-tag URLs
+  render unchanged), plus one `cfg=<base64url(JSON)>` for everything
+  else. Five bundled presets (`tools-default`, `hero`, `minimal`,
+  `twitter-banner`, `square-post`) cover the visual range and act as
+  golden test fixtures. Malformed `cfg` returns HTTP 400 with a
+  plain-text body instead of an empty PNG.
+- **`scripts/test-og.mjs`** — local exerciser for `api/og.js`,
+  expanded to 35 generated cases: 5 legacy regressions; the 5 × 2
+  layout × theme matrix; one case per background style; one case per
+  named size; one case per preset; edge cases for max-length title,
+  empty title, partial HEX accent override, custom dimensions,
+  all-slots-hidden, and malformed `cfg` (asserts HTTP 400 + friendly
+  body). Adds a `--filter <substr>` flag for iterating on one layout
+  without re-rendering the whole matrix. PNGs written to
   `scripts/_og-out/` (gitignored). Catches Satori errors before
   deploying instead of relying on the merge-deploy-error loop.
+- **OG Studio v2 — four-section composer.** Replaces the v1 single
+  Compose panel with a row of preset chips
+  (`tools-default` / `hero` / `minimal` / `twitter-banner` /
+  `square-post`) plus four collapsible sections rendered as native
+  `<details>` accordions:
+  - **Content** — title, subtitle, brand chip (icon + name + sub +
+    show), eyebrow (text + show), URL pill (text + show), divider
+    show.
+  - **Layout & size** — layout chips (5), size chips (4 named +
+    custom `W × H`), headline font (sans/serif/mono), accent-word
+    index stepper (−1 disables).
+  - **Colour** — palette chips (6), image-theme chips (dark/light),
+    five HEX overrides (colour-picker + text + clear) for
+    `bg`/`text`/`muted`/`accent`/`accent2`. Blank field falls back to
+    palette default.
+  - **Background** — style chips (5); contextual angle slider shown
+    only when `linear` is selected.
+  Preview frame's aspect ratio tracks the selected size; the panel
+  label updates live to "1200×630" / "1080×1080" / "1500×1500" etc.
+  Mobile collapses every section by default; desktop keeps them open.
+  Replaces the temporary "Advanced — raw cfg JSON" disclosure
+  introduced earlier in this Unreleased cycle.
+- **Length-aware hash state for the studio.** State round-trips
+  through `location.hash` in two forms: flat
+  (`#title=…&layout=hero&palette=violet`) when the URL-encoded diff
+  vs defaults fits in 180 chars and no nested cfg fields
+  (`colors`/`brand`/`eyebrow`/`url`) are set; otherwise compact
+  base64url (`#c=<encoded>`). The reader accepts both transparently
+  so shared links keep working in either form.
 
 ### Fixed
 - **`/api/og` returning empty PNGs.** Three Satori strictness

@@ -8,6 +8,10 @@ const CORE_VER = "0.12.6";
 
 const CDN = {
   ffmpegEsm: `https://unpkg.com/@ffmpeg/ffmpeg@${FF_VER}/dist/esm/index.js`,
+  // The FFmpeg class's own orchestrator worker. Must be pre-fetched as a
+  // same-origin blob URL via classWorkerURL — `new Worker()` rejects the
+  // cross-origin unpkg URL even though fetch() of the same URL succeeds.
+  ffmpegWorker: `https://unpkg.com/@ffmpeg/ffmpeg@${FF_VER}/dist/esm/worker.js`,
   utilEsm: `https://unpkg.com/@ffmpeg/util@${UTIL_VER}/dist/esm/index.js`,
   coreSt: `https://unpkg.com/@ffmpeg/core@${CORE_VER}/dist/umd`,
   coreMt: `https://unpkg.com/@ffmpeg/core-mt@${CORE_VER}/dist/umd`,
@@ -112,6 +116,7 @@ async function loadFFmpeg() {
 
   const base = state.isolated ? CDN.coreMt : CDN.coreSt;
   await ffmpeg.load({
+    classWorkerURL: await util.toBlobURL(CDN.ffmpegWorker, "text/javascript"),
     coreURL: await util.toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
     wasmURL: await util.toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm"),
     ...(state.isolated
