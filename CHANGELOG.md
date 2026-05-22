@@ -34,11 +34,35 @@ All notable changes to **tools** are recorded here. Format follows
   without re-rendering the whole matrix. PNGs written to
   `scripts/_og-out/` (gitignored). Catches Satori errors before
   deploying instead of relying on the merge-deploy-error loop.
-- **OG Studio "Advanced — raw cfg JSON" disclosure** — a temporary
-  `<details>` block that lets you paste a `cfg` object (or click a
-  preset chip to populate it) so the new engine is testable
-  end-to-end live before the polished UI for layout / palette /
-  background / size knobs ships in the follow-up PR.
+- **OG Studio v2 — four-section composer.** Replaces the v1 single
+  Compose panel with a row of preset chips
+  (`tools-default` / `hero` / `minimal` / `twitter-banner` /
+  `square-post`) plus four collapsible sections rendered as native
+  `<details>` accordions:
+  - **Content** — title, subtitle, brand chip (icon + name + sub +
+    show), eyebrow (text + show), URL pill (text + show), divider
+    show.
+  - **Layout & size** — layout chips (5), size chips (4 named +
+    custom `W × H`), headline font (sans/serif/mono), accent-word
+    index stepper (−1 disables).
+  - **Colour** — palette chips (6), image-theme chips (dark/light),
+    five HEX overrides (colour-picker + text + clear) for
+    `bg`/`text`/`muted`/`accent`/`accent2`. Blank field falls back to
+    palette default.
+  - **Background** — style chips (5); contextual angle slider shown
+    only when `linear` is selected.
+  Preview frame's aspect ratio tracks the selected size; the panel
+  label updates live to "1200×630" / "1080×1080" / "1500×1500" etc.
+  Mobile collapses every section by default; desktop keeps them open.
+  Replaces the temporary "Advanced — raw cfg JSON" disclosure
+  introduced earlier in this Unreleased cycle.
+- **Length-aware hash state for the studio.** State round-trips
+  through `location.hash` in two forms: flat
+  (`#title=…&layout=hero&palette=violet`) when the URL-encoded diff
+  vs defaults fits in 180 chars and no nested cfg fields
+  (`colors`/`brand`/`eyebrow`/`url`) are set; otherwise compact
+  base64url (`#c=<encoded>`). The reader accepts both transparently
+  so shared links keep working in either form.
 
 ### Fixed
 - **`/api/og` returning empty PNGs.** Three Satori strictness
