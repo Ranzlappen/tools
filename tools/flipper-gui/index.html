@@ -49,7 +49,7 @@
       align-items: start;
     }
     @media (max-width: 1080px) {
-      .fg-editor { grid-template-columns: 1fr; }
+      .fg-editor { grid-template-columns: minmax(0, 1fr); }
     }
 
     .fg-pane {
@@ -278,7 +278,7 @@
     }
     .fg-field__row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       gap: 6px;
     }
     .fg-field label {
