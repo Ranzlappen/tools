@@ -63,6 +63,9 @@ All run entirely in the browser. No network call leaves the page.
 | JWT Decoder           | Header + payload (signature not verified)         |
 | UUID & Hash Generator | UUID v4/v7 + MD5/SHA-1/SHA-256/SHA-384/SHA-512    |
 | QR & Barcode Generator| QR + every common 1D/2D symbology, ECC, design, exports |
+| Video Studio          | Reverse, boomerang, trim, re-encode via ffmpeg.wasm |
+| OG Image Studio       | Compose 1200×630 social cards via the edge        |
+| Metadata Studio       | Inspect, edit, strip, extend metadata in any file |
 
 ## Heavier tools (Vercel)
 

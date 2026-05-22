@@ -20,6 +20,21 @@ All notable changes to **tools** are recorded here. Format follows
   `Object.prototype` or smuggle in unexpected fields.
 
 ### Added
+- **Metadata Studio** (`tools/metadata-studio/`) — universal client-side
+  metadata viewer / editor / stripper. Magic-byte format detection plus
+  a handler registry covers JPEG, PNG, GIF, WebP, TIFF, HEIC, SVG, PDF,
+  DOCX/XLSX/PPTX, ZIP, MP3, WAV, FLAC, OGG, and MP4/MOV/M4A. Full
+  read+edit+strip for JPEG (EXIF), PNG (tEXt/iTXt/zTXt + custom),
+  PDF (info dict), Office docs (core.xml + app.xml), SVG, ZIP (archive
+  + per-entry comments), and MP3 (ID3v2). Read-only fallback for media
+  formats with no reliable browser write library, with a clear UI
+  banner. Per-format recommended-field lists float common keys to the
+  top of each group. All libraries (piexifjs, pdf-lib, jszip,
+  browser-id3-writer, exifr, music-metadata-browser) lazy-load from
+  jsDelivr with SRI only after a file is dropped.
+- **`scripts/test-og.mjs`** — local exerciser for `api/og.js`. Imports
+  the handler, runs it against five permutations (defaults, short/long
+  titles, dark/light themes, title+subtitle) and writes the PNGs to
 - **`/api/og` is now a small layout engine.** Refactored from a single
   hard-coded composition into layered tables: 6 named palettes
   (`green`, `slate`, `amber`, `violet`, `rose`, `mono`) each with
