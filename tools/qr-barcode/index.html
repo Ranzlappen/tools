@@ -176,6 +176,34 @@
       text-align: right;
     }
     input[type="range"] { width: 100%; accent-color: var(--c-accent); }
+
+    /* Multi-control row that must wrap on narrow viewports — used for the
+       gradient toggle and the logo overlay. Native color & file inputs
+       have wide UA defaults on mobile, so without flex-wrap they push
+       past the panel edge and get clipped by body { overflow-x: clip }. */
+    .inline-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+      min-width: 0;
+    }
+    label.inline-row { cursor: pointer; }
+    .inline-row > input[type="color"] {
+      width: 44px;
+      height: 38px;
+      padding: 0;
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      background: transparent;
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+    .inline-row > input[type="file"] {
+      flex: 1 1 12rem;
+      min-width: 0;
+      max-width: 100%;
+    }
   </style>
 </head>
 
@@ -353,7 +381,7 @@
             </div>
             <div>
               <label class="field-label">Gradient</label>
-              <label style="display: flex; align-items: center; gap: var(--space-sm); cursor: pointer;">
+              <label class="inline-row">
                 <input id="grad-on" type="checkbox" />
                 <input id="grad-stop" type="color" value="#22c55e" />
                 <span class="muted tiny">second stop (linear)</span>
@@ -361,7 +389,7 @@
             </div>
             <div class="full">
               <label for="logo-file" class="field-label">Logo overlay (PNG / SVG; auto-bumps ECC to Q)</label>
-              <div style="display: flex; gap: var(--space-sm); align-items: center;">
+              <div class="inline-row">
                 <input id="logo-file" type="file" accept="image/*" />
                 <button type="button" class="btn btn--ghost" data-action="logo-clear">Clear</button>
               </div>
