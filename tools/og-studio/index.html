@@ -95,6 +95,32 @@
       letter-spacing: 0.08em;
     }
     .og-counter.is-warn { color: var(--c-warning); }
+
+    .og-advanced { margin-top: var(--space-md); }
+    .og-advanced summary {
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--c-text-muted);
+      padding: var(--space-sm) 0;
+    }
+    .og-advanced summary:hover { color: var(--c-text); }
+    .og-advanced__hint {
+      font-size: 0.78rem;
+      color: var(--c-text-muted);
+      margin: var(--space-xs) 0 var(--space-sm);
+      line-height: 1.45;
+    }
+    .og-cfg {
+      width: 100%;
+      min-height: 110px;
+      font-family: var(--f-mono);
+      font-size: 0.78rem;
+      white-space: pre;
+      overflow-x: auto;
+    }
   </style>
 </head>
 
@@ -197,6 +223,28 @@
             <label class="field-label">Canonical URL</label>
             <code id="og-url-echo" class="og-url-echo">—</code>
           </div>
+
+          <details class="og-advanced">
+            <summary>Advanced — raw <code>cfg</code> JSON</summary>
+            <p class="og-advanced__hint">
+              The new engine supports <code>layout</code>, <code>palette</code>,
+              <code>bg</code>, <code>size</code>, <code>brand</code>,
+              <code>eyebrow</code>, <code>url</code>, custom <code>colors</code>
+              and more. Paste a JSON object below and hit Load — it's base64-encoded
+              and appended as <code>?cfg=…</code>. The polished UI for these
+              knobs ships in a follow-up; this disclosure goes with it.
+            </p>
+            <textarea id="og-cfg" class="textarea og-cfg" rows="6" spellcheck="false" placeholder='{"layout":"hero","palette":"violet","bg":"linear"}'></textarea>
+            <div class="btn-row">
+              <button type="button" class="btn btn--ghost" data-action="cfg-load">Load cfg</button>
+              <button type="button" class="btn btn--ghost" data-action="cfg-clear">Clear cfg</button>
+              <button type="button" class="btn btn--ghost" data-action="cfg-preset" data-preset="tools-default">tools-default</button>
+              <button type="button" class="btn btn--ghost" data-action="cfg-preset" data-preset="hero">hero</button>
+              <button type="button" class="btn btn--ghost" data-action="cfg-preset" data-preset="minimal">minimal</button>
+              <button type="button" class="btn btn--ghost" data-action="cfg-preset" data-preset="twitter-banner">twitter-banner</button>
+              <button type="button" class="btn btn--ghost" data-action="cfg-preset" data-preset="square-post">square-post</button>
+            </div>
+          </details>
 
           <div id="og-status" class="banner banner--info is-hidden" role="status" aria-live="polite">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>

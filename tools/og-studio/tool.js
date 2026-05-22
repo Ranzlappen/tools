@@ -23,8 +23,13 @@ const previewImg = $("#og-preview");
 const urlEcho = $("#og-url-echo");
 const statusEl = $("#og-status");
 const statusText = $("#og-status-text");
+const cfgEl = $("#og-cfg");
 
-const state = { title: "", subtitle: "", theme: "dark" };
+// `cfg` is a JSON object the user paste-loads to exercise the new
+// engine's layout/palette/background/size knobs. PR 2 will replace
+// this with structured controls; for now it travels as base64url-
+// encoded ?cfg=... on every request.
+const state = { title: "", subtitle: "", theme: "dark", cfg: null };
 let debounceTimer = null;
 let statusTimer = null;
 
@@ -50,11 +55,19 @@ function initialTheme() {
   }
 }
 
+function encodeCfg(obj) {
+  // base64url(JSON) — matches the decoder in api/og.js.
+  const json = JSON.stringify(obj);
+  const b64 = btoa(unescape(encodeURIComponent(json)));
+  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
 function buildUrl({ bust = false } = {}) {
   const params = new URLSearchParams();
   if (state.title) params.set("title", state.title);
   if (state.subtitle) params.set("subtitle", state.subtitle);
   if (state.theme && state.theme !== "dark") params.set("theme", state.theme);
+  if (state.cfg) params.set("cfg", encodeCfg(state.cfg));
   if (bust) params.set("t", String(Date.now()));
   const qs = params.toString();
   return qs ? `${API}?${qs}` : API;
@@ -182,13 +195,58 @@ themeChips.forEach((chip) => {
   });
 });
 
+function loadCfg() {
+  const text = (cfgEl.value || "").trim();
+  if (!text) {
+    state.cfg = null;
+    render({ bust: true });
+    showStatus("Cleared cfg.");
+    return;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (e) {
+    showStatus(`Invalid JSON: ${e.message}`, "error");
+    return;
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    showStatus("cfg must be a JSON object", "error");
+    return;
+  }
+  state.cfg = parsed;
+  render({ bust: true });
+  showStatus("Loaded cfg.");
+}
+
+function clearCfg() {
+  state.cfg = null;
+  cfgEl.value = "";
+  render({ bust: true });
+  showStatus("Cleared cfg.");
+}
+
+function loadPreset(name) {
+  const obj = { preset: name };
+  cfgEl.value = JSON.stringify(obj, null, 2);
+  state.cfg = obj;
+  render({ bust: true });
+  showStatus(`Loaded preset "${name}".`);
+}
+
 document.querySelectorAll("[data-action]").forEach((btn) => {
   btn.addEventListener("click", () => {
     const action = btn.dataset.action;
     if (action === "copy-url") copyUrl();
     else if (action === "download") downloadPng();
-    else if (action === "reset") applyState({ title: "", subtitle: "", theme: initialTheme() }, { immediate: true });
+    else if (action === "reset") {
+      cfgEl.value = "";
+      applyState({ title: "", subtitle: "", theme: initialTheme(), cfg: null }, { immediate: true });
+    }
     else if (action === "sample") applyState(SAMPLE, { immediate: true });
+    else if (action === "cfg-load") loadCfg();
+    else if (action === "cfg-clear") clearCfg();
+    else if (action === "cfg-preset") loadPreset(btn.dataset.preset);
   });
 });
 

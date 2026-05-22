@@ -7,11 +7,38 @@ All notable changes to **tools** are recorded here. Format follows
 ## [Unreleased]
 
 ### Added
-- **`scripts/test-og.mjs`** — local exerciser for `api/og.js`. Imports
-  the handler, runs it against five permutations (defaults, short/long
-  titles, dark/light themes, title+subtitle) and writes the PNGs to
+- **`/api/og` is now a small layout engine.** Refactored from a single
+  hard-coded composition into layered tables: 6 named palettes
+  (`green`, `slate`, `amber`, `violet`, `rose`, `mono`) each with
+  dark/light variants; 4 named sizes (`og` 1200×630, `twitter`
+  1200×675, `linkedin` 1200×627, `square` 1080×1080) plus custom
+  `WxH`; 5 backgrounds (`blobs`, `linear`, `solid`, `dots`, `noise`);
+  5 layouts (`classic`, `centered`, `hero`, `minimal`, `split`); per-
+  slot show/hide for brand chip, eyebrow, divider, URL pill; HEX
+  colour overrides; sans/serif/mono headline font; word-index accent
+  highlighting on the headline. Driven by a hybrid query surface:
+  flat `title` / `subtitle` / `theme` for the legacy / link-friendly
+  knobs (these still take precedence so existing OG meta-tag URLs
+  render unchanged), plus one `cfg=<base64url(JSON)>` for everything
+  else. Five bundled presets (`tools-default`, `hero`, `minimal`,
+  `twitter-banner`, `square-post`) cover the visual range and act as
+  golden test fixtures. Malformed `cfg` returns HTTP 400 with a
+  plain-text body instead of an empty PNG.
+- **`scripts/test-og.mjs`** — local exerciser for `api/og.js`,
+  expanded to 35 generated cases: 5 legacy regressions; the 5 × 2
+  layout × theme matrix; one case per background style; one case per
+  named size; one case per preset; edge cases for max-length title,
+  empty title, partial HEX accent override, custom dimensions,
+  all-slots-hidden, and malformed `cfg` (asserts HTTP 400 + friendly
+  body). Adds a `--filter <substr>` flag for iterating on one layout
+  without re-rendering the whole matrix. PNGs written to
   `scripts/_og-out/` (gitignored). Catches Satori errors before
   deploying instead of relying on the merge-deploy-error loop.
+- **OG Studio "Advanced — raw cfg JSON" disclosure** — a temporary
+  `<details>` block that lets you paste a `cfg` object (or click a
+  preset chip to populate it) so the new engine is testable
+  end-to-end live before the polished UI for layout / palette /
+  background / size knobs ships in the follow-up PR.
 
 ### Fixed
 - **`/api/og` returning empty PNGs.** Three Satori strictness
