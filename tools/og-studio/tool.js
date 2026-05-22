@@ -444,12 +444,37 @@ function setField(path, value, { immediate = false } = {}) {
 
 const debouncedRender = debounced(() => render({ bust: true }));
 
+// Hash / cfg payloads are user-controlled. Restrict writes to a fixed
+// allow-list of known top-level keys (and nested sub-keys) so a
+// crafted `#c=` blob can't pollute Object.prototype via `__proto__`,
+// `constructor`, or otherwise smuggle in unexpected fields. Mirrors
+// the engine's normaliseConfig() in api/og.js.
+const ALLOWED_TOP_KEYS = new Set([
+  "title", "subtitle", "theme", "layout", "palette", "bg", "bgAngle",
+  "size", "customW", "customH", "font", "accentTitleWord", "divider",
+  "colors", "brand", "eyebrow", "url",
+]);
+const ALLOWED_NESTED = {
+  colors:  new Set(["bg", "text", "muted", "accent", "accent2"]),
+  brand:   new Set(["icon", "name", "sub", "show"]),
+  eyebrow: new Set(["text", "show"]),
+  url:     new Set(["text", "show"]),
+};
+
 function applyPartial(partial, { immediate = false } = {}) {
-  // Merge partial into state — supports nested brand/eyebrow/url/colors.
-  for (const k of Object.keys(partial)) {
+  if (!partial || typeof partial !== "object" || Array.isArray(partial)) return;
+  const has = Object.prototype.hasOwnProperty;
+  for (const k of ALLOWED_TOP_KEYS) {
+    if (!has.call(partial, k)) continue;
     const v = partial[k];
-    if (v && typeof v === "object" && !Array.isArray(v) && state[k] && typeof state[k] === "object") {
-      state[k] = { ...state[k], ...v };
+    const nestedAllow = ALLOWED_NESTED[k];
+    if (nestedAllow) {
+      if (!v || typeof v !== "object" || Array.isArray(v)) continue;
+      const merged = { ...state[k] };
+      for (const sk of nestedAllow) {
+        if (has.call(v, sk)) merged[sk] = v[sk];
+      }
+      state[k] = merged;
     } else {
       state[k] = v;
     }

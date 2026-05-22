@@ -6,6 +6,19 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+### Security
+- **OG Studio prototype-pollution hardening.** CodeQL flagged
+  `applyPartial()` in `tools/og-studio/tool.js` as "Remote property
+  injection (high)" because it iterated `Object.keys(partial)` and
+  wrote `state[k] = …` where `partial` could flow from
+  `location.hash` (a `#c=<base64>` blob → arbitrary JSON keys
+  including `__proto__` / `constructor`). Replaced the open
+  iteration with an explicit allow-list of known top-level keys plus
+  per-nested-object sub-key allow-lists; uses
+  `Object.prototype.hasOwnProperty.call` so prototype-chain hits are
+  ignored. Crafted hash payloads can no longer pollute
+  `Object.prototype` or smuggle in unexpected fields.
+
 ### Added
 - **`/api/og` is now a small layout engine.** Refactored from a single
   hard-coded composition into layered tables: 6 named palettes
