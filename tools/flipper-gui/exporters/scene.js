@@ -65,7 +65,7 @@ const EVENT_TO_TYPE = {
 // redundant canvas_set_font calls.
 
 export function emitWidgetDraw(w, ctx, state) {
-  if (!w || w.locked) return [];
+  if (!w) return [];
   switch (w.type) {
     case "text": {
       const font = w.font || "primary";

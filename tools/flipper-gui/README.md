@@ -25,16 +25,32 @@ shared CDN that lazy-loads the markdown renderer for this info modal.
   a `goto` action. Custom-event actions emit an integer event code
   you can dispatch in your app.
 - **Per-widget inspector** auto-generated from each widget's schema —
-  coordinates, dimensions, fonts, keys, actions.
+  coordinates, dimensions, fonts, keys, actions. Text/number fields
+  commit on **Enter** or blur; **Esc** reverts the edit.
+- **Elements panel** — a layers list of every widget on the active
+  screen. Click a row to select it; tick its checkbox to **lock** the
+  widget (its position is frozen and it becomes clickthrough on the
+  canvas, so you can edit whatever sits beneath it). Locked widgets
+  still export normally.
 - **Variable bindings** — `progress`, `menu`, and `toggle` widgets can
   read from named model fields (set the value/state to `var:name`).
   The exporter collects all bindings into a single `<App>Model` struct.
 - **XBM icon pipeline** — upload any image; downscale; threshold or
   Floyd–Steinberg dither; emit as 1-bit byte array compatible with
   `canvas_draw_xbm`.
+- **Predefined icon library** — a built-in set of 1-bit glyphs (system,
+  navigation, media and Flipper-themed) at 16/32/64 px. Clicking the
+  **Icon** palette tool opens a picker to choose one (or one of your
+  uploads) instead of guessing; *Browse library* stocks your icon list
+  without placing a widget.
 - **Four export formats** — Snippet (draw-body only), Full scene
   (.c + .h pair, drop-in), XBM (icons-only header), JSON spec
   (round-trippable).
+- **Download bundle (.zip)** — one click packages everything for a
+  **C app** (scene .c/.h, icons.h, per-screen draw snippets, README) or
+  a **JS app** (the JSON spec, a ready-to-run canvas renderer, the
+  shared draw module + fonts, an `icons.js` data module, PNG icons, and
+  a README). Pick the target with the C | JS toggle.
 - **Undo / redo** — 50-step history, `Ctrl/Cmd+Z` / `Ctrl/Cmd+Y`.
 - **Keyboard nudge** — arrow keys move by 1 px, Shift+arrow by 8 px,
   Delete removes, `Ctrl/Cmd+D` duplicates.
@@ -55,15 +71,24 @@ shared CDN that lazy-loads the markdown renderer for this info modal.
 5. To bind a value, open a `progress`, `menu`, or `toggle` and switch
    its value/state from `static` to `var`. Name the variable; the
    scene exporter declares it as a model field.
-6. To add icons: *Icons / XBM* → *Upload image* → enter width/height
-   (Flipper screen is 128×64 so 8/16/32 are typical) → choose
-   threshold or dithering. The icon appears in the list and is
-   selectable from any `icon` widget's inspector.
-7. Open the **Export** section and pick:
+6. To add icons, either click the **Icon** palette tool and pick from
+   the **library** (choose a 16/32/64 px size) or your own uploads — or
+   use *Icons / XBM* → *Upload image* (enter width/height; the Flipper
+   screen is 128×64 so 8/16/32 are typical; choose threshold or
+   dithering). *Browse library* adds an icon to your list without
+   placing a widget. Any placed `icon` widget can be re-pointed from its
+   inspector dropdown.
+7. Use the **Elements** panel (top of the right pane) to find, select,
+   or **lock** widgets — handy when shapes overlap. A locked widget
+   won't move and lets clicks fall through to whatever is beneath it.
+8. Open the **Export** section and pick a format:
    - **Snippet** — paste into an existing `view_port_draw_callback`.
    - **Scene** — the `.c` + `.h` pair drops into your app directory.
    - **XBM** — icons-only header.
    - **JSON** — round-trippable spec; paste back via *Load JSON*.
+
+   …or hit **Download bundle (.zip)** with the **C** or **JS** toggle to
+   get a complete, ready-to-use project folder.
 
 ### How to integrate into a Momentum app
 
@@ -107,7 +132,17 @@ shared CDN that lazy-loads marked + DOMPurify for this README modal.
   table is the canonical place to add a new widget type.
 - `exporters/xbm.js` — icons-only header.
 - `exporters/json.js` — pretty-printed spec.
+- `exporters/bundle.js` — assembles the C-app / JS-app `.zip` (pure;
+  JSZip + the loaded exporters + a PNG renderer are injected).
 - `lib/xbm.js` — XBM packing, 1bpp dithering, base64.
+- `lib/draw-scene.js` — the pure 1-bit scene renderer, shared by the
+  editor canvas (`renderCanvas`) and the exported JS bundle (`render.js`)
+  so both draw identically. Takes the icon list as a parameter (no
+  editor state).
+- `lib/icon-picker.js` — the `<dialog>` icon picker; lazy-loads the
+  library on first open.
+- `lib/icons/library.js` — generated predefined-icon data (base64 XBM at
+  16/32/64). Regenerate with `icongen/` — see `icongen/README.md`.
 - `lib/font-metrics.js` — per-font vertical metrics + u8g2 names (and
   the `charW` fallback width).
 - `lib/font-render.js` — pixel-exact glyph rendering: loads the glyph
@@ -120,8 +155,9 @@ shared CDN that lazy-loads marked + DOMPurify for this README modal.
 
 1. Add it to `ALLOWED_WIDGET_TYPES` in `tool.js` and extend
    `sanitizeWidget` with its discriminated fields.
-2. Add a case to `drawWidget` (editor preview).
-3. Add a case to `widgetBbox` (selection handle sizing).
+2. Add a case to `drawWidget` in `lib/draw-scene.js` (shared by the
+   editor preview and the exported JS renderer).
+3. Add a case to `widgetBbox` in `tool.js` (selection handle sizing).
 4. Add a case to `addWidget` (default values).
 5. Add a case to `renderInspector` (the form fields).
 6. Add a case to `emitWidgetDraw` in `exporters/scene.js`.
@@ -137,6 +173,8 @@ shared CDN that lazy-loads marked + DOMPurify for this README modal.
     { "id": "scr_xxx", "name": "...", "widgets": [{ "id": "w_n", "type": "...", "x": 0, "y": 0, ... }] }
   ],
   "icons": [{ "id": "ico_xxx", "name": "I_xxx_8x8", "w": 8, "h": 8, "frames": 1, "rate": 0, "bits": "base64-1bpp" }],
+  // widgets may carry "locked": true — editor-only (frozen position +
+  // clickthrough); locked widgets still export.
   "activeScreenId": "scr_main",
   "selection": []
 }
