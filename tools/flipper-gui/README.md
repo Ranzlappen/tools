@@ -108,7 +108,13 @@ shared CDN that lazy-loads marked + DOMPurify for this README modal.
 - `exporters/xbm.js` — icons-only header.
 - `exporters/json.js` — pretty-printed spec.
 - `lib/xbm.js` — XBM packing, 1bpp dithering, base64.
-- `lib/font-metrics.js` — Flipper font width/height tables.
+- `lib/font-metrics.js` — per-font vertical metrics + u8g2 names (and
+  the `charW` fallback width).
+- `lib/font-render.js` — pixel-exact glyph rendering: loads the glyph
+  data, measures strings, and blits bitmaps onto the editor canvas.
+- `lib/fonts/*.js` — generated glyph data (bitmaps + advances) for
+  FontPrimary / FontKeyboard / FontBigNumbers, advances only for
+  FontSecondary. Regenerate with `fontgen/` — see `fontgen/README.md`.
 
 ### Adding a new widget type
 
@@ -138,11 +144,14 @@ shared CDN that lazy-loads marked + DOMPurify for this README modal.
 
 ### Limitations
 
-- **Font fidelity in preview.** Flipper bitmap fonts aren't strictly
-  monospaced. The editor uses approximate width tables in
-  `lib/font-metrics.js`; the on-device render is pixel-perfect, the
-  editor is a close approximation. If layout drifts in your app,
-  bump the relevant `charW` value.
+- **Font fidelity in preview.** FontPrimary, FontKeyboard and
+  FontBigNumbers render pixel-exact from the real u8g2 glyph bitmaps,
+  so the editor matches `canvas_draw_str` on device. FontSecondary
+  (haxrcorp4089) has no upstream BDF, so it falls back to an
+  antialiased `fillText` — text is laid out with the font's real
+  advances (centering/measuring is correct) but the glyph shapes are
+  approximate. None of these fonts include Cyrillic; Latin-1 is
+  covered where the source font provides it.
 - **Single-image icons only.** Multi-frame animated icons are on the
   v2 list.
 - **ViewPort target only.** Generated scenes use a single ViewPort;
