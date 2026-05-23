@@ -10,11 +10,13 @@
  */
 
 import { FONTS, getFont } from "./lib/font-metrics.js";
-import { preloadFonts, measureText, blitText } from "./lib/font-render.js";
+import { preloadFonts, measureText } from "./lib/font-render.js";
 import {
-  packXbm, unpackXbm, bytesToB64, b64ToBytes,
+  packXbm, bytesToB64, b64ToBytes,
   imageDataToBits, renderXbm,
 } from "./lib/xbm.js";
+import { openIconPicker } from "./lib/icon-picker.js";
+import { drawScene } from "./lib/draw-scene.js";
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
@@ -233,6 +235,7 @@ function sanitizeWidget(w) {
     y: clampInt(w.y, 0, 63),
   };
   if (typeof w.name === "string") base.name = w.name.slice(0, 32);
+  if (w.locked) base.locked = true;
   switch (w.type) {
     case "text":
       base.text = String(w.text || "").slice(0, 80);
@@ -319,6 +322,7 @@ function scheduleRender() {
     renderQueued = false;
     renderCanvas();
     renderOverlay();
+    renderElementsList();
     renderInspector();
     renderExport();
     syncHash();
@@ -332,147 +336,18 @@ function refreshAll() {
   scheduleRender();
 }
 
-const FG_FG = "#000000";   // pixel-on color in editor preview
-const FG_BG = "transparent"; // editor canvas background is set via CSS
-
 function renderCanvas() {
   if (!canvas) return;
   ctx.clearRect(0, 0, 128, 64);
   const sc = activeScreen();
   if (!sc) return;
-  for (const w of sc.widgets) {
-    drawWidget(ctx, w);
-  }
+  drawScene(ctx, sc.widgets, state.icons);
   // Optional grid overlay
   const gridOn = $("#fg-grid")?.checked;
   if (gridOn) {
     ctx.fillStyle = "rgba(0,0,0,0.18)";
     for (let x = 8; x < 128; x += 8) ctx.fillRect(x, 0, 1, 64);
     for (let y = 8; y < 64; y += 8) ctx.fillRect(0, y, 128, 1);
-  }
-}
-
-/* Draw text with its top-left at (x, y) using the current fillStyle.
- * Uses pixel-exact glyph bitmaps where available, falling back to a
- * cap-height monospace fillText for fonts without bitmap data
- * (FontSecondary). */
-function drawText(ctx, x, y, text, fontKey) {
-  if (blitText(ctx, x, y, text, fontKey) !== null) return;
-  const f = getFont(fontKey);
-  ctx.font = `${f.cap}px ui-monospace, Menlo, Consolas, monospace`;
-  ctx.textBaseline = "top";
-  ctx.fillText(text || "", x, y);
-}
-
-function drawWidget(ctx, w) {
-  ctx.fillStyle = FG_FG;
-  switch (w.type) {
-    case "text": {
-      drawText(ctx, w.x, w.y, w.text || "", w.font || "primary");
-      break;
-    }
-    case "box":
-      ctx.fillRect(w.x, w.y, w.w, w.h);
-      break;
-    case "frame":
-      ctx.fillRect(w.x, w.y, w.w, 1);
-      ctx.fillRect(w.x, w.y + w.h - 1, w.w, 1);
-      ctx.fillRect(w.x, w.y, 1, w.h);
-      ctx.fillRect(w.x + w.w - 1, w.y, 1, w.h);
-      break;
-    case "line":
-      drawLine(ctx, w.x, w.y, w.x2, w.y2);
-      break;
-    case "dot":
-      ctx.fillRect(w.x, w.y, 1, 1);
-      break;
-    case "icon": {
-      const icon = state.icons.find((i) => i.id === w.iconId);
-      if (icon) {
-        const bytes = b64ToBytes(icon.bits);
-        renderXbm(ctx, w.x, w.y, icon.w, icon.h, bytes, 1);
-      } else {
-        // Placeholder X
-        ctx.fillRect(w.x, w.y, 8, 1);
-        ctx.fillRect(w.x, w.y, 1, 8);
-        ctx.fillRect(w.x + 7, w.y, 1, 8);
-        ctx.fillRect(w.x, w.y + 7, 8, 1);
-        drawLine(ctx, w.x, w.y, w.x + 7, w.y + 7);
-        drawLine(ctx, w.x, w.y + 7, w.x + 7, w.y);
-      }
-      break;
-    }
-    case "button": {
-      if (w.style === "invert") {
-        ctx.fillRect(w.x, w.y, w.w, w.h);
-        // Inverted text below.
-        ctx.fillStyle = "#f0f0d0";
-      } else if (w.style === "framed") {
-        drawFrame(ctx, w.x, w.y, w.w, w.h);
-      }
-      const f = getFont("secondary");
-      const text = w.label || "";
-      const textW = measureText(text, "secondary").w;
-      const tx = w.x + Math.max(0, Math.floor((w.w - textW) / 2));
-      const ty = w.y + Math.floor((w.h - f.cap) / 2);
-      drawText(ctx, tx, ty, text, "secondary");
-      ctx.fillStyle = FG_FG;
-      break;
-    }
-    case "progress": {
-      drawFrame(ctx, w.x, w.y, w.w, w.h);
-      const val = typeof w.value === "string" ? 50 : (w.value | 0);
-      const inner = Math.max(0, Math.min(w.w - 2, Math.floor((val * (w.w - 2)) / 100)));
-      ctx.fillRect(w.x + 1, w.y + 1, inner, w.h - 2);
-      break;
-    }
-    case "menu": {
-      const f = getFont("primary");
-      const lineH = w.lineH || (f.lineH + 2);
-      const selected = 0; // editor preview always highlights first row.
-      const items = w.items || [];
-      for (let i = 0; i < items.length; i++) {
-        const iy = w.y + i * lineH;
-        if (i === selected) {
-          ctx.fillRect(w.x, iy, w.w, lineH);
-          ctx.fillStyle = "#f0f0d0";
-          drawText(ctx, w.x + 2, iy + 1, items[i].label || "", "primary");
-          ctx.fillStyle = FG_FG;
-        } else {
-          drawText(ctx, w.x + 2, iy + 1, items[i].label || "", "primary");
-        }
-      }
-      break;
-    }
-    case "toggle": {
-      const box = 7;
-      drawFrame(ctx, w.x, w.y, box, box);
-      const on = typeof w.state === "string" ? true : !!w.state;
-      if (on) ctx.fillRect(w.x + 2, w.y + 2, box - 4, box - 4);
-      drawText(ctx, w.x + box + 3, w.y, w.label || "", "secondary");
-      break;
-    }
-  }
-}
-
-function drawFrame(ctx, x, y, w, h) {
-  ctx.fillRect(x, y, w, 1);
-  ctx.fillRect(x, y + h - 1, w, 1);
-  ctx.fillRect(x, y, 1, h);
-  ctx.fillRect(x + w - 1, y, 1, h);
-}
-
-function drawLine(ctx, x0, y0, x1, y1) {
-  // Bresenham — gives pixel-perfect lines like canvas_draw_line.
-  let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-  let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-  let err = dx + dy;
-  for (;;) {
-    ctx.fillRect(x0, y0, 1, 1);
-    if (x0 === x1 && y0 === y1) break;
-    const e2 = 2 * err;
-    if (e2 >= dy) { err += dy; x0 += sx; }
-    if (e2 <= dx) { err += dx; y0 += sy; }
   }
 }
 
@@ -533,6 +408,68 @@ function renderOverlay() {
     handle.appendChild(label);
     overlay.appendChild(handle);
   }
+}
+
+function elementLabel(w) {
+  let detail = "";
+  if (w.type === "text") detail = w.text || "";
+  else if (w.type === "button" || w.type === "toggle") detail = w.label || "";
+  else if (w.type === "icon") detail = state.icons.find((i) => i.id === w.iconId)?.name || "(none)";
+  else if (w.type === "menu") detail = `${w.items?.length || 0} items`;
+  else detail = `${w.x},${w.y}`;
+  return detail ? `${w.type} · ${detail}` : w.type;
+}
+
+function renderElementsList() {
+  const ul = $("#fg-elements");
+  if (!ul) return;
+  ul.innerHTML = "";
+  const sc = activeScreen();
+  if (!sc || !sc.widgets.length) {
+    ul.innerHTML = '<li class="fg-el-empty">No elements yet.</li>';
+    return;
+  }
+  // Top-most first: the last-drawn widget sits on top, so list it first.
+  for (let i = sc.widgets.length - 1; i >= 0; i--) {
+    const w = sc.widgets[i];
+    const li = document.createElement("li");
+    li.className = "fg-el-row";
+    li.dataset.elId = w.id;
+    if (state.selection.includes(w.id)) li.classList.add("is-selected");
+    if (w.locked) li.classList.add("is-locked");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.className = "fg-el-lock";
+    cb.checked = !!w.locked;
+    cb.title = "Lock position & make clickthrough";
+    cb.setAttribute("aria-label", `Lock ${w.type}`);
+    const label = document.createElement("button");
+    label.type = "button";
+    label.className = "fg-el-label";
+    label.textContent = elementLabel(w);
+    li.appendChild(cb);
+    li.appendChild(label);
+    ul.appendChild(li);
+  }
+}
+
+function selectWidget(id) {
+  if (!findWidget(id)) return;
+  state.selection = [id];
+  scheduleRender();
+}
+
+function toggleWidgetLock(id) {
+  const found = findWidget(id);
+  if (!found) return;
+  pushUndo();
+  if (found.widget.locked) {
+    delete found.widget.locked;
+  } else {
+    found.widget.locked = true;
+    state.selection = state.selection.filter((s) => s !== id);
+  }
+  scheduleRender();
 }
 
 function getZoom() {
@@ -654,14 +591,21 @@ function addWidget(type, atX = 8, atY = 8) {
     case "toggle":
       w.label = "Enable"; w.state = false; break;
   }
-  // Clamp the new widget into the canvas.
+  return placeWidget(w);
+}
+
+/* Clamp a freshly-built widget into the canvas, append it to the active
+   screen, select it, and re-render. Caller is responsible for pushUndo. */
+function placeWidget(w) {
+  const sc = activeScreen();
+  if (!sc) return null;
   const bb = widgetBbox(w);
   if (bb.x + bb.w > 128) w.x = Math.max(0, 128 - bb.w);
   if (bb.y + bb.h > 64) w.y = Math.max(0, 64 - bb.h);
   sc.widgets.push(w);
-  state.selection = [id];
+  state.selection = [w.id];
   scheduleRender();
-  return id;
+  return w.id;
 }
 
 function updateWidget(id, patch) {
@@ -703,7 +647,7 @@ function moveSelectionBy(dx, dy) {
   const sc = activeScreen();
   for (const id of state.selection) {
     const w = sc.widgets.find((w) => w.id === id);
-    if (!w) continue;
+    if (!w || w.locked) continue;
     w.x = clampInt(w.x + dx, 0, 127);
     w.y = clampInt(w.y + dy, 0, 63);
     if (w.type === "line") {
@@ -729,9 +673,11 @@ function pointerToCanvas(ev) {
 function hitTestAt(x, y) {
   const sc = activeScreen();
   if (!sc) return null;
-  // Back-to-front: top widget wins on click.
+  // Back-to-front: top widget wins on click. Locked widgets are
+  // clickthrough — they don't intercept canvas hits.
   for (let i = sc.widgets.length - 1; i >= 0; i--) {
     const w = sc.widgets[i];
+    if (w.locked) continue;
     const bb = widgetBbox(w);
     if (x >= bb.x && x < bb.x + bb.w && y >= bb.y && y < bb.y + bb.h) return w;
   }
@@ -773,7 +719,7 @@ function wireCanvasPointer() {
     const sc = activeScreen();
     for (const o of drag.orig) {
       const w = sc.widgets.find((w) => w.id === o.id);
-      if (!w) continue;
+      if (!w || w.locked) continue;
       w.x = clampInt(o.x + dx, 0, 127);
       w.y = clampInt(o.y + dy, 0, 63);
       if (w.type === "line" && o.x2 !== undefined) {
@@ -805,7 +751,8 @@ function wirePaletteDrag() {
   $$("[data-add]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const type = btn.dataset.add;
-      addWidget(type, 8, 8);
+      if (type === "icon") addIconWidget(8, 8);
+      else addWidget(type, 8, 8);
     });
     // Drag-to-canvas: pointerdown starts ghost; pointerup over canvas places.
     btn.addEventListener("pointerdown", (ev) => {
@@ -844,7 +791,8 @@ function wirePaletteDrag() {
           const zoom = getZoom();
           const x = Math.floor((up.clientX - rect.left) / zoom);
           const y = Math.floor((up.clientY - rect.top) / zoom);
-          addWidget(type, x, y);
+          if (type === "icon") addIconWidget(x, y);
+          else addWidget(type, x, y);
         }
         if (ghost) ghost.remove();
       };
@@ -956,13 +904,38 @@ function fieldWrap(label) {
   return wrap;
 }
 
+/* Commit a text/number input on Enter + blur; Escape reverts. Avoids the
+   per-keystroke onChange that rebuilt the inspector mid-typing (stealing
+   focus) and flooded the undo stack — now exactly one commit per edit. */
+function wireCommitInput(inp, { read, commit }) {
+  let orig = inp.value;
+  let reverting = false;
+  inp.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      inp.blur();
+    } else if (ev.key === "Escape") {
+      ev.preventDefault();
+      reverting = true;
+      inp.value = orig;
+      inp.blur();
+    }
+  });
+  inp.addEventListener("blur", () => {
+    if (reverting) { reverting = false; return; }
+    if (inp.value === orig) return;
+    orig = inp.value;
+    commit(read());
+  });
+}
+
 function numField(label, val, lo, hi, onChange) {
   const wrap = fieldWrap(label);
   const inp = document.createElement("input");
   inp.type = "number";
   inp.min = String(lo); inp.max = String(hi); inp.step = "1";
   inp.value = String(val);
-  inp.addEventListener("input", () => onChange(clampInt(inp.value, lo, hi)));
+  wireCommitInput(inp, { read: () => clampInt(inp.value, lo, hi), commit: onChange });
   wrap.appendChild(inp);
   return wrap;
 }
@@ -972,7 +945,7 @@ function textField(label, val, onChange) {
   const inp = document.createElement("input");
   inp.type = "text";
   inp.value = val || "";
-  inp.addEventListener("input", () => onChange(inp.value));
+  wireCommitInput(inp, { read: () => inp.value, commit: onChange });
   wrap.appendChild(inp);
   return wrap;
 }
@@ -1037,9 +1010,9 @@ function valueField(label, val, onChange) {
     }
     renderInspector();
   });
-  inp.addEventListener("input", () => {
-    if (mode.value === "var") onChange("var:" + inp.value.replace(/[^a-zA-Z0-9_]/g, "_"));
-    else onChange(clampInt(inp.value, 0, 100));
+  wireCommitInput(inp, {
+    read: () => isVar ? "var:" + inp.value.replace(/[^a-zA-Z0-9_]/g, "_") : clampInt(inp.value, 0, 100),
+    commit: onChange,
   });
   row.appendChild(mode);
   row.appendChild(inp);
@@ -1062,7 +1035,7 @@ function toggleStateField(val, onChange) {
   if (isVar) {
     inner = document.createElement("input");
     inner.type = "text"; inner.value = val.slice(4);
-    inner.addEventListener("input", () => onChange("var:" + inner.value.replace(/[^a-zA-Z0-9_]/g, "_")));
+    wireCommitInput(inner, { read: () => "var:" + inner.value.replace(/[^a-zA-Z0-9_]/g, "_"), commit: onChange });
   } else {
     inner = document.createElement("select");
     for (const v of ["false","true"]) {
@@ -1104,7 +1077,7 @@ function actionField(action, onChange) {
     inner = document.createElement("input");
     inner.type = "number"; inner.min = "0"; inner.max = "9999"; inner.step = "1";
     inner.value = String(action.code | 0);
-    inner.addEventListener("input", () => onChange({ kind: "custom_event", code: clampInt(inner.value, 0, 9999) }));
+    wireCommitInput(inner, { read: () => ({ kind: "custom_event", code: clampInt(inner.value, 0, 9999) }), commit: onChange });
   }
   mode.addEventListener("change", () => {
     if (mode.value === "goto") onChange({ kind: "goto", target: state.screens[0].id });
@@ -1124,10 +1097,9 @@ function menuItemsField(items, onChange) {
     const inp = document.createElement("input");
     inp.type = "text"; inp.value = items[i].label || ""; inp.placeholder = "Label";
     inp.style.flex = "1";
-    inp.addEventListener("input", () => {
-      const next = clone(items);
-      next[i].label = inp.value;
-      onChange(next);
+    wireCommitInput(inp, {
+      read: () => inp.value,
+      commit: (label) => { const next = clone(items); next[i].label = label; onChange(next); },
     });
     const del = document.createElement("button");
     del.type = "button";
@@ -1232,6 +1204,48 @@ function deleteIcon(id) {
   refreshAll();
 }
 
+function libIconName(pick) {
+  return `I_${pick.name}_${pick.w}x${pick.h}`.replace(/[^a-zA-Z0-9_]/g, "_");
+}
+
+/* Resolve a picker result to an icon id in state.icons. Library picks
+   create a new record (deduped by name); uploaded picks already exist. */
+function ensureLibraryIcon(pick) {
+  if (pick.source === "uploaded" && pick.id) return pick.id;
+  const name = libIconName(pick);
+  const existing = state.icons.find((i) => i.name === name);
+  if (existing) return existing.id;
+  const id = genIconId();
+  state.icons.push({ id, name, w: pick.w, h: pick.h, frames: 1, rate: 0, bits: pick.b64 });
+  return id;
+}
+
+/* Open the picker, then place an icon widget referencing the chosen icon.
+   Cancelling leaves no widget and no undo entry. */
+async function addIconWidget(atX = 8, atY = 8) {
+  if (!activeScreen()) return;
+  const pick = await openIconPicker({ state });
+  if (!pick) return;
+  pushUndo();
+  const iconId = ensureLibraryIcon(pick);
+  placeWidget({ id: genWidgetId(), type: "icon", x: clampInt(atX, 0, 127), y: clampInt(atY, 0, 63), iconId });
+  renderIconList();
+}
+
+/* Stock the icon list from the library without placing a widget. */
+async function browseIcons() {
+  const pick = await openIconPicker({ state });
+  if (!pick || pick.source === "uploaded") return;
+  if (state.icons.some((i) => i.name === libIconName(pick))) {
+    setStatus("Icon already in your list.");
+    return;
+  }
+  pushUndo();
+  ensureLibraryIcon(pick);
+  refreshAll();
+  setStatus(`Added ${pick.name} ${pick.w}×${pick.h}.`);
+}
+
 // ── Export panel ──────────────────────────────────────────────────
 
 let activeExport = "snippet";
@@ -1249,12 +1263,99 @@ async function loadExporters() {
   ]);
   exporters = {
     snippet: () => snip.exportSnippet(state, state.activeScreenId),
+    snippetFor: (id) => snip.exportSnippet(state, id),
     scene: () => scene.exportScene(state),
     xbm: () => xbm.exportXbm(state),
     json: () => jsn.exportJson(state),
   };
   exportersLoaded = true;
   return exporters;
+}
+
+// ── Bundle (.zip) export ───────────────────────────────────────────
+
+const JSZIP_CDN = {
+  src: "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js",
+  sri: "sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG",
+};
+
+// Source files copied verbatim into the JS bundle (paths relative to the
+// tool dir; mirrored under bundle's lib/).
+const BUNDLE_LIB_FILES = [
+  "draw-scene.js", "xbm.js", "font-render.js", "font-metrics.js",
+  "fonts/primary.js", "fonts/secondary.js", "fonts/keyboard.js", "fonts/big_numbers.js",
+];
+
+let bundleTarget = "c";
+let jszipPromise = null;
+function ensureJSZip() {
+  if (window.JSZip) return Promise.resolve(window.JSZip);
+  if (!jszipPromise) {
+    jszipPromise = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = JSZIP_CDN.src;
+      s.integrity = JSZIP_CDN.sri;
+      s.crossOrigin = "anonymous";
+      s.referrerPolicy = "no-referrer";
+      s.onload = () => resolve(window.JSZip);
+      s.onerror = () => reject(new Error("Failed to load JSZip"));
+      document.head.appendChild(s);
+    });
+  }
+  return jszipPromise;
+}
+
+/* Render an icon to a transparent PNG at the given integer scale. */
+async function renderIconPng(icon, scale = 1) {
+  const cv = document.createElement("canvas");
+  cv.width = icon.w * scale;
+  cv.height = icon.h * scale;
+  const c = cv.getContext("2d");
+  c.fillStyle = "#000";
+  renderXbm(c, 0, 0, icon.w, icon.h, b64ToBytes(icon.bits), scale);
+  const blob = await new Promise((res) => cv.toBlob(res, "image/png"));
+  return { blob, dataURL: cv.toDataURL("image/png") };
+}
+
+async function downloadBundle() {
+  const target = bundleTarget;
+  setStatus("Building bundle…");
+  try {
+    await loadExporters();
+    const [JSZip, libFiles] = await Promise.all([
+      ensureJSZip(),
+      (async () => {
+        const out = {};
+        if (target === "js") {
+          await Promise.all(BUNDLE_LIB_FILES.map(async (p) => {
+            const r = await fetch(new URL("lib/" + p, location.href));
+            if (!r.ok) throw new Error("fetch " + p + " → " + r.status);
+            out[p] = await r.text();
+          }));
+        }
+        return out;
+      })(),
+    ]);
+    const { exportBundle } = await import("./exporters/bundle.js");
+    const { blob, filename } = await exportBundle(state, { target, exporters, JSZip, renderIconPng, libFiles });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setStatus(`Saved ${filename}.`);
+  } catch (e) {
+    setStatus("Bundle failed: " + e.message, true);
+  }
+}
+
+function setBundleTarget(t) {
+  bundleTarget = t === "js" ? "js" : "c";
+  $$("[data-bundle-target]").forEach((b) => {
+    b.setAttribute("aria-pressed", b.dataset.bundleTarget === bundleTarget ? "true" : "false");
+  });
 }
 
 async function renderExport() {
@@ -1429,6 +1530,7 @@ function boot() {
     btn.addEventListener("click", () => {
       const a = btn.dataset.action;
       if (a === "upload-icon") $("#fg-icon-upload").click();
+      else if (a === "browse-icons") browseIcons();
       else if (a === "reset") {
         if (confirm("Reset all? This clears every screen, widget, and icon.")) {
           pushUndo();
@@ -1449,6 +1551,7 @@ function boot() {
       }
       else if (a === "copy-export") copyExport(false);
       else if (a === "download-export") downloadExport(false);
+      else if (a === "download-bundle") downloadBundle();
       else if (a === "copy-export-extra") copyExport(true);
       else if (a === "download-export-extra") downloadExport(true);
       else if (a === "load-json") {
@@ -1476,9 +1579,21 @@ function boot() {
     e.target.value = "";
   });
 
+  // Elements list (delegated): row label selects, checkbox toggles lock.
+  $("#fg-elements").addEventListener("click", (e) => {
+    const row = e.target.closest("[data-el-id]");
+    if (!row) return;
+    const id = row.dataset.elId;
+    if (e.target.closest("input.fg-el-lock")) toggleWidgetLock(id);
+    else if (e.target.closest(".fg-el-label")) selectWidget(id);
+  });
+
   // Export tabs
   $$("[data-export-tab]").forEach((b) => {
     b.addEventListener("click", () => setActiveExport(b.dataset.exportTab));
+  });
+  $$("[data-bundle-target]").forEach((b) => {
+    b.addEventListener("click", () => setBundleTarget(b.dataset.bundleTarget));
   });
   $("#fg-export-panel").addEventListener("toggle", () => renderExport());
 

@@ -206,7 +206,7 @@
       position: absolute;
       border: 1.5px dashed #4ade80;
       background: rgba(74,222,128,0.08);
-      pointer-events: auto;
+      pointer-events: none;
       cursor: move;
       box-sizing: border-box;
     }
@@ -382,6 +382,101 @@
     }
     .fg-icon-row__del:hover { color: #ef4444; }
 
+    /* Elements (layers) list */
+    .fg-elements {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .fg-el-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: var(--border-radius-sm);
+    }
+    .fg-el-row.is-selected { background: rgba(74,222,128,0.14); }
+    .fg-el-lock { flex-shrink: 0; cursor: pointer; }
+    .fg-el-label {
+      flex: 1;
+      min-width: 0;
+      text-align: left;
+      background: none;
+      border: none;
+      color: var(--c-text);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.7rem;
+      padding: 4px 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .fg-el-label:hover { color: var(--c-accent); }
+    .fg-el-row.is-locked .fg-el-label { color: var(--c-text-faint); font-style: italic; }
+    .fg-el-empty { color: var(--c-text-faint); font-size: 0.7rem; padding: 4px 6px; }
+
+    /* Icon picker dialog */
+    .fg-icon-picker {
+      width: min(560px, 92vw);
+      max-height: 82vh;
+      padding: 0;
+      color: var(--c-text);
+      background: rgb(var(--c-bg-rgb));
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-lg);
+      box-shadow: 0 24px 64px -24px var(--c-card-shadow);
+    }
+    .fg-icon-picker::backdrop { background: rgba(0,0,0,0.55); }
+    .fg-pick-head { display:flex; align-items:center; justify-content:space-between; padding: var(--space-sm) var(--space-md); border-bottom:1px solid var(--c-border); }
+    .fg-pick-close { background:none; border:none; color:var(--c-text-faint); font-size:1.4rem; line-height:1; cursor:pointer; }
+    .fg-pick-close:hover { color:var(--c-text); }
+    .fg-pick-controls { display:flex; gap:var(--space-sm); align-items:center; padding: var(--space-sm) var(--space-md) 0; }
+    .fg-pick-search { flex:1; min-width:0; }
+    .fg-pick-sizes { display:flex; gap:2px; flex-shrink:0; }
+    .fg-pick-sizes button, .fg-pick-cat {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text-muted);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.7rem;
+      padding: 4px 8px;
+    }
+    .fg-pick-sizes button[aria-pressed="true"], .fg-pick-cat[aria-pressed="true"] {
+      background: var(--c-accent-bg);
+      border-color: var(--c-accent-border);
+      color: var(--c-accent);
+    }
+    .fg-pick-cats { display:flex; flex-wrap:wrap; gap:4px; padding: var(--space-sm) var(--space-md); }
+    .fg-pick-grid {
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+      gap: var(--space-sm);
+      padding: 0 var(--space-md) var(--space-md);
+      overflow-y: auto;
+      max-height: 50vh;
+    }
+    .fg-pick-tile {
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      padding: 6px;
+      cursor: pointer;
+      min-width: 0;
+    }
+    .fg-pick-tile:hover { border-color: var(--c-accent-border); background: var(--c-accent-bg); }
+    .fg-pick-tile canvas { image-rendering: pixelated; background:#f0f0d0; flex-shrink:0; }
+    .fg-pick-tile__cap { font-family:var(--f-mono); font-size:0.6rem; color:var(--c-text-faint); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .fg-pick-sep { grid-column:1/-1; font-family:var(--f-mono); font-size:0.68rem; color:var(--c-text-faint); border-top:1px solid var(--c-border); padding-top:var(--space-sm); margin-top:4px; }
+    .fg-pick-empty { grid-column:1/-1; color:var(--c-text-faint); font-size:0.75rem; text-align:center; padding:var(--space-md); }
+
     /* Export panel */
     .fg-export-tabs {
       display: flex;
@@ -436,6 +531,43 @@
       font-size: 0.72rem;
     }
     .fg-export-actions button:hover { background: rgba(255,255,255,0.06); }
+
+    .fg-bundle-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: var(--space-sm);
+      padding-top: var(--space-sm);
+      border-top: 1px solid var(--c-border);
+    }
+    .fg-bundle-targets { display: flex; gap: 2px; flex-shrink: 0; }
+    .fg-bundle-targets button {
+      padding: 5px 9px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text-muted);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.7rem;
+    }
+    .fg-bundle-targets button[aria-pressed="true"] {
+      background: var(--c-accent-bg);
+      border-color: var(--c-accent-border);
+      color: var(--c-accent);
+    }
+    .fg-bundle-row [data-action="download-bundle"] {
+      flex: 1;
+      padding: 6px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+    }
+    .fg-bundle-row [data-action="download-bundle"]:hover { background: rgba(255,255,255,0.06); }
 
     .fg-section {
       border: 1px solid var(--c-border);
@@ -559,6 +691,7 @@
               <summary>Icons / XBM</summary>
               <div class="fg-section__body">
                 <input type="file" id="fg-icon-upload" accept="image/*" class="is-hidden" />
+                <button type="button" class="fg-pal-btn" data-action="browse-icons">Browse library</button>
                 <button type="button" class="fg-pal-btn" data-action="upload-icon">+ Upload image</button>
                 <div id="fg-icon-list" class="fg-icons"></div>
               </div>
@@ -624,9 +757,16 @@
             </div>
           </section>
 
-          <!-- RIGHT PANE: Inspector + Export -->
-          <aside class="fg-pane" aria-label="Inspector and export">
-            <h2 class="fg-pane__title">Inspector</h2>
+          <!-- RIGHT PANE: Elements + Inspector + Export -->
+          <aside class="fg-pane" aria-label="Elements, inspector and export">
+            <details class="fg-section" id="fg-elements-panel" open>
+              <summary>Elements</summary>
+              <div class="fg-section__body">
+                <ul id="fg-elements" class="fg-elements"></ul>
+              </div>
+            </details>
+
+            <h2 class="fg-pane__title" style="margin-top: var(--space-md);">Inspector</h2>
             <div id="fg-inspector" class="fg-inspector">
               <div class="fg-inspector__empty">No selection.<br>Click a widget on the canvas, or add one from the palette.</div>
             </div>
@@ -654,6 +794,13 @@
                     <button type="button" data-action="copy-export-extra">Copy</button>
                     <button type="button" data-action="download-export-extra">Download</button>
                   </div>
+                </div>
+                <div class="fg-bundle-row">
+                  <div class="fg-bundle-targets" role="group" aria-label="Bundle target">
+                    <button type="button" data-bundle-target="c" aria-pressed="true">C app</button>
+                    <button type="button" data-bundle-target="js" aria-pressed="false">JS app</button>
+                  </div>
+                  <button type="button" data-action="download-bundle">Download bundle (.zip)</button>
                 </div>
               </div>
             </details>
