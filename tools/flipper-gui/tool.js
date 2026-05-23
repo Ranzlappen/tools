@@ -3,12 +3,14 @@
  * State mirrors the JSON export shape (schema "flipper-gui/v1"). The
  * editor canvas renders at native 128×64 with image-rendering:pixelated
  * CSS scaling, so the editor and on-device output use the same
- * coordinate system. Text rendering in the editor is approximate
- * (canvas fillText with a monospace font) — pixel-exact font rendering
- * is in the deferred set.
+ * coordinate system. Text rendering is pixel-exact for FontPrimary,
+ * FontKeyboard and FontBigNumbers (real u8g2 glyph bitmaps via
+ * lib/font-render.js); FontSecondary (haxrcorp4089) has no upstream
+ * BDF so it falls back to fillText, but lays out with real advances.
  */
 
-import { FONTS, getFont, measureText } from "./lib/font-metrics.js";
+import { FONTS, getFont } from "./lib/font-metrics.js";
+import { preloadFonts, measureText, blitText } from "./lib/font-render.js";
 import {
   packXbm, unpackXbm, bytesToB64, b64ToBytes,
   imageDataToBits, renderXbm,
@@ -350,16 +352,23 @@ function renderCanvas() {
   }
 }
 
+/* Draw text with its top-left at (x, y) using the current fillStyle.
+ * Uses pixel-exact glyph bitmaps where available, falling back to a
+ * cap-height monospace fillText for fonts without bitmap data
+ * (FontSecondary). */
+function drawText(ctx, x, y, text, fontKey) {
+  if (blitText(ctx, x, y, text, fontKey) !== null) return;
+  const f = getFont(fontKey);
+  ctx.font = `${f.cap}px ui-monospace, Menlo, Consolas, monospace`;
+  ctx.textBaseline = "top";
+  ctx.fillText(text || "", x, y);
+}
+
 function drawWidget(ctx, w) {
   ctx.fillStyle = FG_FG;
   switch (w.type) {
     case "text": {
-      const f = getFont(w.font || "primary");
-      // Editor approximation: monospace fillText sized to cap height.
-      // The CSS pixel-scaling makes small text look blocky.
-      ctx.font = `${f.cap}px ui-monospace, Menlo, Consolas, monospace`;
-      ctx.textBaseline = "top";
-      ctx.fillText(w.text || "", w.x, w.y);
+      drawText(ctx, w.x, w.y, w.text || "", w.font || "primary");
       break;
     }
     case "box":
@@ -402,13 +411,11 @@ function drawWidget(ctx, w) {
         drawFrame(ctx, w.x, w.y, w.w, w.h);
       }
       const f = getFont("secondary");
-      ctx.font = `${f.cap}px ui-monospace, Menlo, Consolas, monospace`;
-      ctx.textBaseline = "top";
       const text = w.label || "";
-      const textW = text.length * f.charW;
+      const textW = measureText(text, "secondary").w;
       const tx = w.x + Math.max(0, Math.floor((w.w - textW) / 2));
       const ty = w.y + Math.floor((w.h - f.cap) / 2);
-      ctx.fillText(text, tx, ty);
+      drawText(ctx, tx, ty, text, "secondary");
       ctx.fillStyle = FG_FG;
       break;
     }
@@ -421,8 +428,6 @@ function drawWidget(ctx, w) {
     }
     case "menu": {
       const f = getFont("primary");
-      ctx.font = `${f.cap}px ui-monospace, Menlo, Consolas, monospace`;
-      ctx.textBaseline = "top";
       const lineH = w.lineH || (f.lineH + 2);
       const selected = 0; // editor preview always highlights first row.
       const items = w.items || [];
@@ -431,23 +436,20 @@ function drawWidget(ctx, w) {
         if (i === selected) {
           ctx.fillRect(w.x, iy, w.w, lineH);
           ctx.fillStyle = "#f0f0d0";
-          ctx.fillText(items[i].label || "", w.x + 2, iy + 1);
+          drawText(ctx, w.x + 2, iy + 1, items[i].label || "", "primary");
           ctx.fillStyle = FG_FG;
         } else {
-          ctx.fillText(items[i].label || "", w.x + 2, iy + 1);
+          drawText(ctx, w.x + 2, iy + 1, items[i].label || "", "primary");
         }
       }
       break;
     }
     case "toggle": {
-      const f = getFont("secondary");
       const box = 7;
       drawFrame(ctx, w.x, w.y, box, box);
       const on = typeof w.state === "string" ? true : !!w.state;
       if (on) ctx.fillRect(w.x + 2, w.y + 2, box - 4, box - 4);
-      ctx.font = `${f.cap}px ui-monospace, Menlo, Consolas, monospace`;
-      ctx.textBaseline = "top";
-      ctx.fillText(w.label || "", w.x + box + 3, w.y);
+      drawText(ctx, w.x + box + 3, w.y, w.label || "", "secondary");
       break;
     }
   }
@@ -501,7 +503,7 @@ function widgetBbox(w) {
     }
     case "toggle": {
       const f = getFont("secondary");
-      const textW = (w.label || "").length * f.charW;
+      const textW = measureText(w.label || "", "secondary").w;
       return { x: w.x, y: w.y, w: 7 + 3 + textW, h: Math.max(7, f.lineH) };
     }
   }
@@ -1506,6 +1508,9 @@ function boot() {
   refreshAll();
   setZoom(getZoom());
   setStatus("Ready.");
+
+  // Load pixel-font glyph data, then re-render so text is pixel-exact.
+  preloadFonts().then(() => scheduleRender());
 }
 
 boot();

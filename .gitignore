@@ -33,3 +33,6 @@ coverage/
 
 # --- Test artifacts ---
 scripts/_og-out/
+
+# --- Flipper GUI: vendored font sources (regenerate via fontgen) ---
+tools/flipper-gui/fontgen/src/

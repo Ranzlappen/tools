@@ -18,6 +18,7 @@
  */
 
 import { getFont } from "../lib/font-metrics.js";
+import { measureText } from "../lib/font-render.js";
 import { bytesToCArray, b64ToBytes } from "../lib/xbm.js";
 
 // ── Identifier helpers ─────────────────────────────────────────────
@@ -111,7 +112,7 @@ export function emitWidgetDraw(w, ctx, state) {
       }
       const f = getFont(font);
       const label = w.label || "";
-      const textW = label.length * f.charW;
+      const textW = measureText(label, font).w;
       const tx = (w.x | 0) + Math.max(0, Math.floor(((w.w | 0) - textW) / 2));
       const ty = (w.y | 0) + Math.floor(((w.h | 0) - f.lineH) / 2) + f.baseline;
       lines.push(`canvas_draw_str(canvas, ${tx}, ${ty}, ${cString(label)});`);

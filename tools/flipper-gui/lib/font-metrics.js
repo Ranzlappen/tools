@@ -1,12 +1,13 @@
-/* Flipper font metrics — best-effort monospaced approximation.
+/* Flipper font metrics.
  *
- * Flipper's bitmap fonts are not strictly monospaced. These tables are
- * used by the editor preview only (the device renders pixel-perfect
- * from the actual bitmap fonts). Cap height / line height drive
- * widget bounding boxes; charWidth gates layout in the editor.
+ * Per-font vertical metrics (cap height, line height, baseline offset,
+ * descent) plus the u8g2 font name used in the C export. Text width and
+ * pixel rendering now come from lib/font-render.js (real glyph data);
+ * `charW` survives only as the monospaced fallback width used when a
+ * font's glyph data hasn't loaded or doesn't define a character.
  *
- * If you find drift between editor preview and device output, the
- * fix is here.
+ * If you find drift between editor preview and device output, look here
+ * (vertical metrics / baseline) and in font-render.js (glyph data).
  */
 
 export const FONTS = {
@@ -48,13 +49,6 @@ export const FONTS = {
     baseline: 12,
   },
 };
-
-export const FONT_KEYS = Object.keys(FONTS);
-
-export function measureText(text, fontKey) {
-  const f = FONTS[fontKey] || FONTS.primary;
-  return { w: (text || "").length * f.charW, h: f.lineH };
-}
 
 export function getFont(fontKey) {
   return FONTS[fontKey] || FONTS.primary;

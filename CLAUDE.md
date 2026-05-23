@@ -64,6 +64,10 @@ mobile URL bars collapse. Respect `prefers-reduced-motion` and
    `<button class="info-btn" data-info-button>` next to `.tool-title__text`
    and include `<script type="module" src="../../assets/js/info-modal.js">`.
    The modal fetches `./README.md` by default.
+7. Smoke-test the tool at a 360 px viewport before shipping. If
+   anything clips the right edge, the fix is almost always
+   `minmax(0, 1fr)` on the offending grid track or a `.scroll-x`
+   wrapper on wide content — not a custom per-tool media query.
 
 ## Tool documentation
 
@@ -111,6 +115,13 @@ Files present:
   trivial the moment you do.
 - Don't add per-card event listeners — delegate from the grid.
 - Don't animate properties that trigger layout/paint.
+- Don't use bare `1fr` for mobile-collapsed grid tracks that can
+  contain wide content (canvas, long strings, code). Use
+  `minmax(0, 1fr)` so the track can shrink below its content's
+  intrinsic min size. `tool.css` already zeroes `min-width` on
+  descendants of `.tool-main` / `.panel` / `.shell`, and turns
+  `<table>` inside `.panel` into a horizontal-scroll container —
+  rely on those defaults; only opt out if you know better.
 - Don't commit binaries beyond what the page actually needs. The OG
   hero card is allowed up to ~100 KB (gradients don't compress well in
   PNG); other binaries should stay under 50 KB.

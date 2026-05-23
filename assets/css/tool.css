@@ -3,6 +3,39 @@
    Reuses tokens from style.css (already imported by every tool page).
    ============================================================ */
 
+/* ---------- responsive defaults ----------
+   Grid and flex children default to min-width: auto, which equals
+   the intrinsic min size of their content. Wide content (canvases,
+   long filenames, monospaced strings) then inflates the parent
+   track past the viewport on narrow screens. Zero the intrinsic
+   min on every descendant of shared layout containers so children
+   shrink instead. Wrapped in :where() to keep specificity at 0 —
+   any per-element `min-width: <px>` rule wins as the author
+   intended. Desktop layout is unaffected: 1fr / flex-grow still
+   fill the available space. */
+:where(.tool-main, .panel, .shell) :where(*) {
+  min-width: 0;
+}
+
+/* Tables ignore min-width — give them a scroll container by
+   default when they appear inside a panel so a wide table never
+   blows out the page. The inner cells retain table layout because
+   thead/tbody/tr/td keep their default table-* display values. */
+.panel table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Utility for any wide content (pre, code blocks, ascii art) that
+   should scroll horizontally rather than overflow the page. */
+.scroll-x {
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* ---------- tool shell ---------- */
 
 .tool-header {
