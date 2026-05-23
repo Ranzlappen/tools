@@ -13,10 +13,11 @@ import { FONTS, getFont } from "./lib/font-metrics.js";
 import { preloadFonts, measureText } from "./lib/font-render.js";
 import {
   packXbm, bytesToB64, b64ToBytes,
-  imageDataToBits, renderXbm,
+  imageDataToBits, renderXbm, unpackXbm,
 } from "./lib/xbm.js";
 import { openIconPicker } from "./lib/icon-picker.js";
 import { drawScene } from "./lib/draw-scene.js";
+import { png1Blob } from "./lib/png1.js";
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
@@ -26,7 +27,12 @@ const $$ = (s) => document.querySelectorAll(s);
 function defaultState() {
   return {
     v: 1,
-    app: { name: "my_app", namespace: "my_app" },
+    app: {
+      name: "my_app", namespace: "my_app",
+      category: "Examples", stackSize: 2, requires: ["gui"],
+      description: "", author: "", version: "1.0", weburl: "",
+      iconMode: "png",
+    },
     screens: [
       { id: "scr_main", name: "Main", widgets: [] },
     ],
@@ -194,8 +200,24 @@ function validateState(p) {
   const out = defaultState();
   if (p.v) out.v = 1;
   if (p.app && typeof p.app === "object") {
-    if (typeof p.app.name === "string") out.app.name = p.app.name.slice(0, 40);
-    if (typeof p.app.namespace === "string") out.app.namespace = p.app.namespace.slice(0, 40);
+    const a = p.app;
+    if (typeof a.name === "string") out.app.name = a.name.slice(0, 40);
+    if (typeof a.namespace === "string") out.app.namespace = a.namespace.slice(0, 40);
+    if (typeof a.category === "string") out.app.category = a.category.slice(0, 24);
+    if (Number.isFinite(parseInt(a.stackSize, 10))) out.app.stackSize = Math.max(1, Math.min(8, parseInt(a.stackSize, 10)));
+    if (Array.isArray(a.requires)) {
+      const req = a.requires.filter((r) => typeof r === "string" && /^[a-z0-9_]+$/i.test(r)).slice(0, 12);
+      if (!req.includes("gui")) req.unshift("gui");
+      out.app.requires = req;
+    }
+    if (typeof a.description === "string") out.app.description = a.description.slice(0, 200);
+    if (typeof a.author === "string") out.app.author = a.author.slice(0, 60);
+    if (typeof a.version === "string") out.app.version = a.version.slice(0, 16);
+    if (typeof a.weburl === "string") out.app.weburl = a.weburl.slice(0, 200);
+    if (a.iconMode === "assets") out.app.iconMode = "assets";
+    if (a.icon && typeof a.icon === "object" && typeof a.icon.bits === "string") {
+      out.app.icon = { w: 10, h: 10, bits: a.icon.bits.slice(0, 512) };
+    }
   }
   if (Array.isArray(p.screens) && p.screens.length) {
     out.screens = p.screens.filter((s) => s && typeof s === "object").map((s) => ({
@@ -1255,11 +1277,13 @@ let exporters = null;
 
 async function loadExporters() {
   if (exportersLoaded) return exporters;
-  const [snip, scene, xbm, jsn] = await Promise.all([
+  const [snip, scene, xbm, jsn, fam, entry] = await Promise.all([
     import("./exporters/snippet.js"),
     import("./exporters/scene.js"),
     import("./exporters/xbm.js"),
     import("./exporters/json.js"),
+    import("./exporters/fam.js"),
+    import("./exporters/entry.js"),
   ]);
   exporters = {
     snippet: () => snip.exportSnippet(state, state.activeScreenId),
@@ -1267,6 +1291,8 @@ async function loadExporters() {
     scene: () => scene.exportScene(state),
     xbm: () => xbm.exportXbm(state),
     json: () => jsn.exportJson(state),
+    fam: () => fam.exportFam(state),
+    entry: () => entry.exportEntry(state),
   };
   exportersLoaded = true;
   return exporters;
@@ -1305,7 +1331,8 @@ function ensureJSZip() {
   return jszipPromise;
 }
 
-/* Render an icon to a transparent PNG at the given integer scale. */
+/* Render an icon to a transparent PNG at the given integer scale (RGBA,
+ * for the JS preview bundle only). */
 async function renderIconPng(icon, scale = 1) {
   const cv = document.createElement("canvas");
   cv.width = icon.w * scale;
@@ -1315,6 +1342,62 @@ async function renderIconPng(icon, scale = 1) {
   renderXbm(c, 0, 0, icon.w, icon.h, b64ToBytes(icon.bits), scale);
   const blob = await new Promise((res) => cv.toBlob(res, "image/png"));
   return { blob, dataURL: cv.toDataURL("image/png") };
+}
+
+/* Default 10x10 launcher icon (1 = black/on): a rounded tile with an
+ * inner square. Used when the user hasn't set a custom app icon. */
+const DEFAULT_APP_ICON_PX = [
+  0,1,1,1,1,1,1,1,1,0,
+  1,1,0,0,0,0,0,0,1,1,
+  1,0,0,0,0,0,0,0,0,1,
+  1,0,0,1,1,1,1,0,0,1,
+  1,0,0,1,0,0,1,0,0,1,
+  1,0,0,1,0,0,1,0,0,1,
+  1,0,0,1,1,1,1,0,0,1,
+  1,0,0,0,0,0,0,0,0,1,
+  1,1,0,0,0,0,0,0,1,1,
+  0,1,1,1,1,1,1,1,1,0,
+];
+
+function appIconPixels() {
+  const ic = state.app.icon;
+  if (ic && typeof ic.bits === "string") {
+    return { px: unpackXbm(b64ToBytes(ic.bits), 10, 10), w: 10, h: 10 };
+  }
+  return { px: DEFAULT_APP_ICON_PX, w: 10, h: 10 };
+}
+
+/* 10x10 1-bit launcher icon PNG for fap_icon. Must be true 1-bit (the
+ * asset compiler rejects canvas.toBlob's RGBA) — see lib/png1.js. */
+async function renderAppIconPng() {
+  const { px, w, h } = appIconPixels();
+  return png1Blob(px, w, h);
+}
+
+/* 1-bit PNG of a design icon, for fap_icon_assets (images/) mode. */
+async function renderIconPng1(icon) {
+  const px = unpackXbm(b64ToBytes(icon.bits), icon.w, icon.h);
+  return png1Blob(px, icon.w, icon.h);
+}
+
+async function setAppIconFromFile(file) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const off = (typeof OffscreenCanvas !== "undefined")
+      ? new OffscreenCanvas(10, 10)
+      : Object.assign(document.createElement("canvas"), { width: 10, height: 10 });
+    const oc = off.getContext("2d");
+    oc.imageSmoothingEnabled = true;
+    oc.drawImage(bmp, 0, 0, 10, 10);
+    const img = oc.getImageData(0, 0, 10, 10);
+    const bits = imageDataToBits(img, 10, 10, { dither: false });
+    pushUndo();
+    state.app.icon = { w: 10, h: 10, bits: bytesToB64(packXbm(bits, 10, 10)) };
+    refreshAll();
+    setStatus("App icon set (10×10).");
+  } catch (e) {
+    setStatus("App icon failed: " + e.message, true);
+  }
 }
 
 async function downloadBundle() {
@@ -1337,7 +1420,7 @@ async function downloadBundle() {
       })(),
     ]);
     const { exportBundle } = await import("./exporters/bundle.js");
-    const { blob, filename } = await exportBundle(state, { target, exporters, JSZip, renderIconPng, libFiles });
+    const { blob, filename } = await exportBundle(state, { target, exporters, JSZip, renderIconPng, renderAppIconPng, renderIconPng1, libFiles });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = filename;
@@ -1457,6 +1540,62 @@ function readHash() {
 function syncAppFields() {
   $("#fg-app-name").value = state.app.name || "";
   $("#fg-app-namespace").value = state.app.namespace || "";
+  const set = (sel, val) => { const el = $(sel); if (el) el.value = val; };
+  set("#fg-app-category", state.app.category || "Examples");
+  set("#fg-app-stack", String(state.app.stackSize || 2));
+  set("#fg-app-desc", state.app.description || "");
+  set("#fg-app-author", state.app.author || "");
+  set("#fg-app-version", state.app.version || "1.0");
+  set("#fg-app-weburl", state.app.weburl || "");
+  $$("[data-require]").forEach((cb) => {
+    cb.checked = (state.app.requires || ["gui"]).includes(cb.dataset.require);
+  });
+  $$("[data-icon-mode]").forEach((b) => {
+    b.setAttribute("aria-pressed", b.dataset.iconMode === (state.app.iconMode || "png") ? "true" : "false");
+  });
+  renderAppMeta();
+}
+
+/* Mirrors exporters/scene.js safeNs so the live UI can show the derived
+ * identifiers without eagerly importing the (heavier) exporter modules. */
+function safeNsLocal(s) {
+  return (s || "app").toLowerCase().replace(/[^a-z0-9_]/g, "_").replace(/^[0-9]/, "_$&") || "app";
+}
+
+/* Mirrors the two FAM checks in JS-Apps/scripts/validate.mjs so the user
+ * sees CI-green before downloading. */
+function validateReady() {
+  const ns = safeNsLocal(state.app.namespace || state.app.name || "app");
+  const appid = ns;
+  const folder = ns.replace(/_/g, "-");
+  const entry = `${ns}_app`;
+  const norm = (s) => s.toLowerCase().replace(/-/g, "_");
+  const ok = norm(appid) === norm(folder) && /^[a-z_][a-z0-9_]*_app$/.test(entry);
+  return { ok, appid, folder, entry };
+}
+
+function renderAppMeta() {
+  const el = $("#fg-app-derived");
+  if (el) {
+    const { ok, appid, folder, entry } = validateReady();
+    el.innerHTML =
+      `<div>drops into <code>C-Apps/${folder}/</code></div>` +
+      `<div>appid <code>${appid}</code> · entry <code>${entry}</code></div>` +
+      `<div class="${ok ? "fg-vbadge fg-vbadge--ok" : "fg-vbadge fg-vbadge--bad"}">` +
+      `${ok ? "✓ validate-ready" : "✗ check app name / namespace"}</div>`;
+  }
+  const cv = $("#fg-app-icon-canvas");
+  if (cv) {
+    const { px } = appIconPixels();
+    const c = cv.getContext("2d");
+    c.clearRect(0, 0, cv.width, cv.height);
+    c.fillStyle = "#000";
+    for (let y = 0; y < 10; y++) {
+      for (let x = 0; x < 10; x++) {
+        if (px[y * 10 + x]) c.fillRect(x * 3, y * 3, 3, 3);
+      }
+    }
+  }
 }
 
 // ── Boot ───────────────────────────────────────────────────────────
@@ -1484,13 +1623,59 @@ function boot() {
   $("#fg-app-name").addEventListener("input", (e) => {
     pushUndo();
     state.app.name = e.target.value.slice(0, 40);
+    renderAppMeta();
     scheduleRender();
   });
   $("#fg-app-namespace").addEventListener("input", (e) => {
     pushUndo();
     state.app.namespace = e.target.value.replace(/[^a-zA-Z0-9_]/g, "_").slice(0, 40);
     e.target.value = state.app.namespace;
+    renderAppMeta();
     scheduleRender();
+  });
+
+  // Extended app settings (manifest fields)
+  const bindAppField = (sel, key, transform) => {
+    const el = $(sel);
+    if (!el) return;
+    el.addEventListener("change", () => {
+      pushUndo();
+      state.app[key] = transform ? transform(el.value) : el.value;
+      renderAppMeta();
+      scheduleRender();
+    });
+  };
+  bindAppField("#fg-app-category", "category", (v) => v.slice(0, 24));
+  bindAppField("#fg-app-stack", "stackSize", (v) => Math.max(1, Math.min(8, parseInt(v, 10) || 2)));
+  bindAppField("#fg-app-desc", "description", (v) => v.slice(0, 200));
+  bindAppField("#fg-app-author", "author", (v) => v.slice(0, 60));
+  bindAppField("#fg-app-version", "version", (v) => v.slice(0, 16));
+  bindAppField("#fg-app-weburl", "weburl", (v) => v.slice(0, 200));
+
+  $$("[data-require]").forEach((cb) => {
+    cb.addEventListener("change", () => {
+      pushUndo();
+      const set = new Set(state.app.requires || ["gui"]);
+      if (cb.checked) set.add(cb.dataset.require); else set.delete(cb.dataset.require);
+      set.add("gui");
+      state.app.requires = [...set];
+      scheduleRender();
+    });
+  });
+
+  $$("[data-icon-mode]").forEach((b) => {
+    b.addEventListener("click", () => {
+      pushUndo();
+      state.app.iconMode = b.dataset.iconMode === "assets" ? "assets" : "png";
+      syncAppFields();
+      scheduleRender();
+    });
+  });
+
+  $("#fg-app-icon-upload")?.addEventListener("change", (e) => {
+    const f = e.target.files?.[0];
+    if (f) setAppIconFromFile(f);
+    e.target.value = "";
   });
 
   // Zoom / grid
@@ -1531,6 +1716,13 @@ function boot() {
       const a = btn.dataset.action;
       if (a === "upload-icon") $("#fg-icon-upload").click();
       else if (a === "browse-icons") browseIcons();
+      else if (a === "app-icon") $("#fg-app-icon-upload").click();
+      else if (a === "app-icon-reset") {
+        pushUndo();
+        delete state.app.icon;
+        refreshAll();
+        setStatus("App icon reset to default.");
+      }
       else if (a === "reset") {
         if (confirm("Reset all? This clears every screen, widget, and icon.")) {
           pushUndo();

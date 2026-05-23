@@ -44,13 +44,14 @@ shared CDN that lazy-loads the markdown renderer for this info modal.
   uploads) instead of guessing; *Browse library* stocks your icon list
   without placing a widget.
 - **Four export formats** — Snippet (draw-body only), Full scene
-  (.c + .h pair, drop-in), XBM (icons-only header), JSON spec
-  (round-trippable).
-- **Download bundle (.zip)** — one click packages everything for a
-  **C app** (scene .c/.h, icons.h, per-screen draw snippets, README) or
-  a **JS app** (the JSON spec, a ready-to-run canvas renderer, the
-  shared draw module + fonts, an `icons.js` data module, PNG icons, and
-  a README). Pick the target with the C | JS toggle.
+  (.c + .h pair), XBM (icons-only header), JSON spec (round-trippable).
+- **Download bundle (.zip)** — one click packages a **build-ready C app**
+  that unzips straight into `C-Apps/<app>/` in `ranzlappen/Flipper`:
+  `application.fam`, the `<appid>.c` entry point, the `<ns>_scene.c/.h`
+  pair, a 10×10 `icon.png`, and a README with the exact `ufbt` steps. The
+  **Preview** target instead emits a browser-only canvas preview (not a
+  deployable Flipper app — see *Limitations*). Pick the target with the
+  C | Preview toggle.
 - **Undo / redo** — 50-step history, `Ctrl/Cmd+Z` / `Ctrl/Cmd+Y`.
 - **Keyboard nudge** — arrow keys move by 1 px, Shift+arrow by 8 px,
   Delete removes, `Ctrl/Cmd+D` duplicates.
@@ -60,8 +61,10 @@ shared CDN that lazy-loads the markdown renderer for this info modal.
 
 ### How to use it
 
-1. Set **App name** and **Namespace** in the palette's *App settings*.
-   The namespace becomes the C identifier prefix.
+1. Fill in **App settings** in the palette — name, namespace (the C
+   identifier prefix), category, stack size, required SDK modules, and a
+   10×10 launcher icon. A *validate-ready* badge shows the derived
+   `C-Apps/<folder>/`, `appid` and entry point.
 2. **Drag a widget** from the palette onto the canvas — or click it
    to drop at the default position. Click the widget to select; use
    the inspector to fine-tune.
@@ -87,31 +90,39 @@ shared CDN that lazy-loads the markdown renderer for this info modal.
    - **XBM** — icons-only header.
    - **JSON** — round-trippable spec; paste back via *Load JSON*.
 
-   …or hit **Download bundle (.zip)** with the **C** or **JS** toggle to
-   get a complete, ready-to-use project folder.
+   …or hit **Download bundle (.zip)** with the **C** target for a
+   build-ready app folder (or **Preview** for a browser-only canvas
+   preview).
 
 ### How to integrate into a Momentum app
 
-After exporting the **Scene** files into your app folder:
+The **C app** bundle is already a complete app. Unzip it into the
+`C-Apps/` directory of your `ranzlappen/Flipper` checkout and build:
+
+```sh
+cd C-Apps/<your-app>
+ufbt            # → dist/<appid>.fap
+ufbt launch     # build + upload + run over USB
+```
+
+The bundle's `application.fam` already satisfies the repo's
+`validate.mjs` (its `appid` matches the folder name and its
+`entry_point` is defined in `<appid>.c`). To react to a button's custom
+event, override the generated `<ns>_on_event()` in `<appid>.c`:
 
 ```c
-// In your app's main entry point:
-#include "my_app_scene.h"
-
-int32_t my_app_main(void* p) {
-    UNUSED(p);
-    MyAppScene* scene = my_app_scene_alloc();
-    my_app_scene_run(scene);
-    my_app_scene_free(scene);
-    return 0;
+void my_app_on_event(int32_t event, MyAppModel* state) {
+    switch(event) {
+        case 1: /* … */ break;
+    }
 }
 ```
 
-The generated scene uses a single `ViewPort` (the simpler Flipper
-path). To plug into a multi-app `ViewDispatcher`, wrap the
-view port in a `View` (`view_alloc`, `view_set_*_callback`, then
-`view_dispatcher_add_view`). Native `ViewDispatcher` emission is on
-the v2 list — for now the bridge is a few hand-written lines.
+The generated app uses a single `ViewPort` with an idiomatic
+`FuriMessageQueue` input loop — the same pattern as the repo's
+`hello-world` C template. For richer multi-view apps you can wrap the
+scene in a `ViewDispatcher` by hand; native ViewDispatcher emission is a
+planned mode.
 
 ### Privacy
 
@@ -130,11 +141,18 @@ shared CDN that lazy-loads marked + DOMPurify for this README modal.
 - `exporters/snippet.js` — current screen's `draw_callback` body only.
 - `exporters/scene.js` — full `.c` + `.h` pair; the widget→C emitter
   table is the canonical place to add a new widget type.
+- `exporters/fam.js` — `application.fam` manifest, plus `appMeta` (the
+  single source of truth for the appid / folder / entry-point identifiers).
+- `exporters/entry.js` — the `<appid>.c` entry point and the
+  `<ns>_on_event` override stub.
 - `exporters/xbm.js` — icons-only header.
 - `exporters/json.js` — pretty-printed spec.
 - `exporters/bundle.js` — assembles the C-app / JS-app `.zip` (pure;
   JSZip + the loaded exporters + a PNG renderer are injected).
 - `lib/xbm.js` — XBM packing, 1bpp dithering, base64.
+- `lib/png1.js` — minimal 1-bit-grayscale PNG encoder for the launcher
+  `icon.png` and `images/` assets (`canvas.toBlob` can't emit 1-bit, which
+  the firmware asset compiler requires).
 - `lib/draw-scene.js` — the pure 1-bit scene renderer, shared by the
   editor canvas (`renderCanvas`) and the exported JS bundle (`render.js`)
   so both draw identically. Takes the icon list as a parameter (no
@@ -192,8 +210,13 @@ shared CDN that lazy-loads marked + DOMPurify for this README modal.
   covered where the source font provides it.
 - **Single-image icons only.** Multi-frame animated icons are on the
   v2 list.
-- **ViewPort target only.** Generated scenes use a single ViewPort;
-  ViewDispatcher / SceneManager scaffolding is on the v2 list.
+- **ViewPort target.** Generated apps use a single ViewPort with an
+  idiomatic blocking input loop — build-ready, but native ViewDispatcher
+  / SceneManager emission is still planned.
+- **Preview export is browser-only.** The *Preview* bundle renders the
+  design to an HTML canvas; it is **not** a deployable Flipper app (the
+  Momentum JS runtime has no pixel-canvas API). Use the **C app** bundle
+  to build something that runs on-device.
 - **One-way export.** Importing existing `.c` back into the editor
   isn't supported — round-trip via the JSON format.
 - **Desktop-first.** The drag-and-drop flow is built around pointer
