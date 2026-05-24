@@ -212,7 +212,7 @@ function aoaToMdTable(rows, warnings) {
     rows = rows.slice(0, MAX_TABLE_ROWS);
   }
   const cols = Math.max(...rows.map((r) => r.length));
-  const esc = (c) => String(c ?? "").replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
+  const esc = (c) => String(c ?? "").replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
   const pad = (r) => { const a = r.slice(); while (a.length < cols) a.push(""); return a; };
   const head = `| ${pad(rows[0]).map(esc).join(" | ")} |`;
   const sep = `| ${Array(cols).fill("---").join(" | ")} |`;
