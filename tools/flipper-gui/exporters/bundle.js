@@ -104,14 +104,15 @@ import { preloadFonts } from "./lib/font-render.js";
 
 const PAPER = "#f0f0d0"; // Flipper LCD background
 
-export function renderScreen(ctx, screen, icons) {
+export function renderScreen(ctx, screen, icons, now) {
   ctx.fillStyle = PAPER;
   ctx.fillRect(0, 0, 128, 64);
-  drawScene(ctx, screen.widgets || [], icons || []);
+  drawScene(ctx, screen.widgets || [], icons || [], now != null ? { now } : {});
 }
 
 export async function renderAll(spec, mount) {
   await preloadFonts();
+  const frames = [];
   for (const screen of spec.screens || []) {
     const wrap = document.createElement("div");
     wrap.className = "screen";
@@ -120,11 +121,23 @@ export async function renderAll(spec, mount) {
     const cv = document.createElement("canvas");
     cv.width = 128;
     cv.height = 64;
-    renderScreen(cv.getContext("2d"), screen, spec.icons || []);
+    const c2d = cv.getContext("2d");
+    renderScreen(c2d, screen, spec.icons || [], 0);
     wrap.appendChild(h);
     wrap.appendChild(cv);
     mount.appendChild(wrap);
+    frames.push({ ctx: c2d, screen });
   }
+  // Side-scroll long text, unless the design has none or motion is reduced.
+  const anyScroll = (spec.screens || []).some((s) => (s.widgets || []).some((w) => w.scroll));
+  const reduce = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!anyScroll || reduce) return;
+  const start = performance.now();
+  const tick = (t) => {
+    for (const f of frames) renderScreen(f.ctx, f.screen, spec.icons || [], t - start);
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 `;
 

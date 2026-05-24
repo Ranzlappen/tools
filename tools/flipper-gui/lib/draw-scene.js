@@ -23,6 +23,36 @@ function drawText(ctx, x, y, text, fontKey) {
   ctx.fillText(text || "", x, y);
 }
 
+/* Draw `text` clipped to `clipW`, side-scrolling when it overflows — the
+ * editor-side approximation of Flipper's elements_scrollable_text_line.
+ * Static (frozen at offset 0) when opts.now is absent (reduced-motion or a
+ * one-shot render). The motion: pause at the start, step left, loop with a
+ * blank gap, drawing a second copy as the tail wraps in. */
+function drawScrollText(ctx, x, y, text, fontKey, clipW, opts = {}) {
+  if (clipW <= 0) return;
+  const lineH = getFont(fontKey).lineH;
+  const full = measureText(text, fontKey).w;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, clipW, lineH);
+  ctx.clip();
+  if (full <= clipW || opts.now == null) {
+    drawText(ctx, x, y, text, fontKey);
+  } else {
+    const SPEED = 16;       // px/sec
+    const PAUSE = 1200;     // ms hold at the start of each cycle
+    const GAP = clipW;      // blank gap before the text repeats
+    const span = full + GAP;
+    const cycle = PAUSE + (span / SPEED) * 1000;
+    const t = opts.now % cycle;
+    const moved = t < PAUSE ? 0 : ((t - PAUSE) / 1000) * SPEED;
+    const off = Math.floor(moved) % span;
+    drawText(ctx, x - off, y, text, fontKey);
+    if (off > full) drawText(ctx, x - off + span, y, text, fontKey);
+  }
+  ctx.restore();
+}
+
 function drawFrame(ctx, x, y, w, h) {
   ctx.fillRect(x, y, w, 1);
   ctx.fillRect(x, y + h - 1, w, 1);
@@ -44,12 +74,19 @@ function drawLine(ctx, x0, y0, x1, y1) {
   }
 }
 
-export function drawWidget(ctx, w, icons = []) {
+export function drawWidget(ctx, w, icons = [], opts = {}) {
   ctx.fillStyle = PIXEL_ON;
   switch (w.type) {
-    case "text":
-      drawText(ctx, w.x, w.y, w.text || "", w.font || "primary");
+    case "text": {
+      const fontKey = w.font || "primary";
+      if (w.scroll) {
+        const clipW = Math.max(8, Math.min(128, w.scrollW ?? 64));
+        drawScrollText(ctx, w.x, w.y, w.text || "", fontKey, clipW, opts);
+      } else {
+        drawText(ctx, w.x, w.y, w.text || "", fontKey);
+      }
       break;
+    }
     case "box":
       ctx.fillRect(w.x, w.y, w.w, w.h);
       break;
@@ -84,12 +121,17 @@ export function drawWidget(ctx, w, icons = []) {
       } else if (w.style === "framed") {
         drawFrame(ctx, w.x, w.y, w.w, w.h);
       }
-      const f = getFont("secondary");
+      const fontKey = w.font || "secondary";
+      const f = getFont(fontKey);
       const text = w.label || "";
-      const textW = measureText(text, "secondary").w;
-      const tx = w.x + Math.max(0, Math.floor((w.w - textW) / 2));
       const ty = w.y + Math.floor((w.h - f.cap) / 2);
-      drawText(ctx, tx, ty, text, "secondary");
+      if (w.scroll) {
+        drawScrollText(ctx, w.x + 2, ty, text, fontKey, w.w - 4, opts);
+      } else {
+        const textW = measureText(text, fontKey).w;
+        const tx = w.x + Math.max(0, Math.floor((w.w - textW) / 2));
+        drawText(ctx, tx, ty, text, fontKey);
+      }
       ctx.fillStyle = PIXEL_ON;
       break;
     }
@@ -101,7 +143,8 @@ export function drawWidget(ctx, w, icons = []) {
       break;
     }
     case "menu": {
-      const f = getFont("primary");
+      const fontKey = w.font || "primary";
+      const f = getFont(fontKey);
       const lineH = w.lineH || (f.lineH + 2);
       const selected = 0; // preview highlights the first row.
       const items = w.items || [];
@@ -110,25 +153,29 @@ export function drawWidget(ctx, w, icons = []) {
         if (i === selected) {
           ctx.fillRect(w.x, iy, w.w, lineH);
           ctx.fillStyle = PAPER;
-          drawText(ctx, w.x + 2, iy + 1, items[i].label || "", "primary");
+          if (w.scroll) drawScrollText(ctx, w.x + 2, iy + 1, items[i].label || "", fontKey, w.w - 4, opts);
+          else drawText(ctx, w.x + 2, iy + 1, items[i].label || "", fontKey);
           ctx.fillStyle = PIXEL_ON;
         } else {
-          drawText(ctx, w.x + 2, iy + 1, items[i].label || "", "primary");
+          drawText(ctx, w.x + 2, iy + 1, items[i].label || "", fontKey);
         }
       }
       break;
     }
     case "toggle": {
+      const fontKey = w.font || "secondary";
       const box = 7;
       drawFrame(ctx, w.x, w.y, box, box);
       const on = typeof w.state === "string" ? true : !!w.state;
       if (on) ctx.fillRect(w.x + 2, w.y + 2, box - 4, box - 4);
-      drawText(ctx, w.x + box + 3, w.y, w.label || "", "secondary");
+      const labelX = w.x + box + 3;
+      if (w.scroll) drawScrollText(ctx, labelX, w.y, w.label || "", fontKey, 128 - labelX, opts);
+      else drawText(ctx, labelX, w.y, w.label || "", fontKey);
       break;
     }
   }
 }
 
-export function drawScene(ctx, widgets, icons = []) {
-  for (const w of widgets) drawWidget(ctx, w, icons);
+export function drawScene(ctx, widgets, icons = [], opts = {}) {
+  for (const w of widgets) drawWidget(ctx, w, icons, opts);
 }

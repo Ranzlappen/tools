@@ -27,6 +27,18 @@ shared CDN that lazy-loads the markdown renderer for this info modal.
 - **Per-widget inspector** auto-generated from each widget's schema —
   coordinates, dimensions, fonts, keys, actions. Text/number fields
   commit on **Enter** or blur; **Esc** reverts the edit.
+- **Font / size picker on every text-bearing widget** — `text`, `button`,
+  `menu`, and `toggle` each pick from Flipper's four native bitmap fonts.
+  Since `canvas_set_font` has no size argument, the font *is* the size:
+  Secondary 5×7, Primary 6×8, Keyboard 6×9, BigNumbers 8×13. The choice
+  maps straight to `canvas_set_font(canvas, Font…)` on export.
+- **Native side-scroll for long text** — flip **Scroll** on any
+  text-bearing widget and overflowing text marquees Flipper-style. The
+  `text` widget also takes a **Scroll width**; `button`/`menu`/`toggle`
+  scroll within their own bounds. The editor preview animates it, and the
+  exported C app drives it for real with a `FuriTimer` +
+  `elements_scrollable_text_line`. Both freeze under
+  `prefers-reduced-motion`.
 - **Elements panel** — a layers list of every widget on the active
   screen. Click a row to select it; tick its checkbox to **lock** the
   widget (its position is frozen and it becomes clickthrough on the
@@ -191,6 +203,8 @@ shared CDN that lazy-loads marked + DOMPurify for this README modal.
     { "id": "scr_xxx", "name": "...", "widgets": [{ "id": "w_n", "type": "...", "x": 0, "y": 0, ... }] }
   ],
   "icons": [{ "id": "ico_xxx", "name": "I_xxx_8x8", "w": 8, "h": 8, "frames": 1, "rate": 0, "bits": "base64-1bpp" }],
+  // text/button/menu/toggle carry "font" (primary|secondary|keyboard|big_numbers)
+  // and "scroll": true|false; the text widget also carries "scrollW" (clip px).
   // widgets may carry "locked": true — editor-only (frozen position +
   // clickthrough); locked widgets still export.
   "activeScreenId": "scr_main",
@@ -208,6 +222,11 @@ shared CDN that lazy-loads marked + DOMPurify for this README modal.
   advances (centering/measuring is correct) but the glyph shapes are
   approximate. None of these fonts include Cyrillic; Latin-1 is
   covered where the source font provides it.
+- **Side-scroll preview is an approximation.** The editor clips and
+  marquees long text to convey the effect; the exact cadence on device
+  comes from `elements_scrollable_text_line` driven by the generated
+  `FuriTimer`. Both the preview and the exported JS bundle freeze the
+  motion under `prefers-reduced-motion`.
 - **Single-image icons only.** Multi-frame animated icons are on the
   v2 list.
 - **ViewPort target.** Generated apps use a single ViewPort with an

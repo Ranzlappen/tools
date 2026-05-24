@@ -53,7 +53,7 @@ const SAMPLE = {
         { id: "w_2", type: "frame", x: 0, y: 14, w: 128, h: 1 },
         { id: "w_3", type: "text", x: 4, y: 20, text: "press ok for menu", font: "secondary" },
         { id: "w_4", type: "button", x: 36, y: 48, w: 56, h: 12, label: "menu", style: "framed",
-          key: "ok", event: "short", action: { kind: "goto", target: "scr_menu" } },
+          key: "ok", event: "short", font: "secondary", action: { kind: "goto", target: "scr_menu" } },
       ],
     },
     {
@@ -61,7 +61,7 @@ const SAMPLE = {
       widgets: [
         { id: "w_5", type: "text", x: 4, y: 2, text: "settings", font: "primary" },
         { id: "w_6", type: "menu", x: 4, y: 14, w: 120, lineH: 10,
-          selectedVar: "var:menu_cursor",
+          selectedVar: "var:menu_cursor", font: "primary",
           items: [
             { label: "Brightness", action: { kind: "custom_event", code: 1 } },
             { label: "Sound",      action: { kind: "custom_event", code: 2 } },
@@ -262,6 +262,8 @@ function sanitizeWidget(w) {
     case "text":
       base.text = String(w.text || "").slice(0, 80);
       base.font = (FONTS[w.font]) ? w.font : "primary";
+      base.scroll = !!w.scroll;
+      base.scrollW = Number.isFinite(+w.scrollW) ? clampInt(w.scrollW, 8, 128) : 64;
       break;
     case "box":
     case "frame":
@@ -284,6 +286,8 @@ function sanitizeWidget(w) {
       base.key = ["ok","up","down","left","right","back"].includes(w.key) ? w.key : "ok";
       base.event = ["short","long","repeat"].includes(w.event) ? w.event : "short";
       base.style = ["framed","plain","invert"].includes(w.style) ? w.style : "framed";
+      base.font = (FONTS[w.font]) ? w.font : "secondary";
+      base.scroll = !!w.scroll;
       base.action = sanitizeAction(w.action);
       break;
     case "progress":
@@ -295,6 +299,8 @@ function sanitizeWidget(w) {
       base.w = clampInt(w.w, 16, 128);
       base.lineH = clampInt(w.lineH, 6, 32);
       base.selectedVar = typeof w.selectedVar === "string" ? w.selectedVar.slice(0, 48) : "var:menu_cursor";
+      base.font = (FONTS[w.font]) ? w.font : "primary";
+      base.scroll = !!w.scroll;
       base.items = Array.isArray(w.items) ? w.items.slice(0, 16).map((it) => ({
         label: String(it.label || "").slice(0, 32),
         action: sanitizeAction(it.action),
@@ -303,6 +309,8 @@ function sanitizeWidget(w) {
     case "toggle":
       base.label = String(w.label || "").slice(0, 32);
       base.state = sanitizeBoolOrVar(w.state);
+      base.font = (FONTS[w.font]) ? w.font : "secondary";
+      base.scroll = !!w.scroll;
       break;
   }
   return base;
@@ -348,6 +356,10 @@ function scheduleRender() {
     renderInspector();
     renderExport();
     syncHash();
+    // Re-evaluate the side-scroll animation after any state change: starts
+    // the loop when the active screen has a scrolling widget, stops it
+    // otherwise. Idempotent and gated on reduced-motion.
+    syncScrollAnim();
   });
 }
 
@@ -358,12 +370,12 @@ function refreshAll() {
   scheduleRender();
 }
 
-function renderCanvas() {
+function renderCanvas(now) {
   if (!canvas) return;
   ctx.clearRect(0, 0, 128, 64);
   const sc = activeScreen();
   if (!sc) return;
-  drawScene(ctx, sc.widgets, state.icons);
+  drawScene(ctx, sc.widgets, state.icons, now != null ? { now } : {});
   // Optional grid overlay
   const gridOn = $("#fg-grid")?.checked;
   if (gridOn) {
@@ -373,12 +385,51 @@ function renderCanvas() {
   }
 }
 
+// ── Side-scroll preview animation ──────────────────────────────────
+// The canvas renders on-demand; this drives a continuous rAF *only* while
+// the active screen has a scroll-enabled text widget and motion is allowed.
+// It repaints the canvas alone — never scheduleRender — so it doesn't churn
+// the inspector, undo stack or URL hash.
+
+const SCROLLABLE = ["text", "button", "menu", "toggle"];
+let scrollRAF = 0;
+let scrollStart = 0;
+const reduceMotion = typeof matchMedia === "function"
+  ? matchMedia("(prefers-reduced-motion: reduce)") : { matches: false, addEventListener() {} };
+
+function screenHasScroll() {
+  const sc = activeScreen();
+  return !!sc && sc.widgets.some((w) => w.scroll && SCROLLABLE.includes(w.type));
+}
+
+function syncScrollAnim() {
+  if (reduceMotion.matches || !screenHasScroll()) { stopScrollAnim(); return; }
+  if (scrollRAF) return;
+  scrollStart = performance.now();
+  const tick = (t) => {
+    renderCanvas(t - scrollStart);
+    scrollRAF = requestAnimationFrame(tick);
+  };
+  scrollRAF = requestAnimationFrame(tick);
+}
+
+function stopScrollAnim() {
+  if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = 0; }
+}
+
+reduceMotion.addEventListener("change", () => { stopScrollAnim(); scheduleRender(); });
+
 // ── Selection overlay ──────────────────────────────────────────────
 
 function widgetBbox(w) {
   switch (w.type) {
     case "text": {
-      const m = measureText(w.text || "", w.font || "primary");
+      const fontKey = w.font || "primary";
+      if (w.scroll) {
+        const cw = clampInt(w.scrollW ?? 64, 8, 128);
+        return { x: w.x, y: w.y, w: cw, h: getFont(fontKey).lineH };
+      }
+      const m = measureText(w.text || "", fontKey);
       return { x: w.x, y: w.y, w: Math.max(2, m.w), h: m.h };
     }
     case "box":
@@ -399,8 +450,9 @@ function widgetBbox(w) {
       return { x: w.x, y: w.y, w: icon ? icon.w : 8, h: icon ? icon.h : 8 };
     }
     case "toggle": {
-      const f = getFont("secondary");
-      const textW = measureText(w.label || "", "secondary").w;
+      const fontKey = w.font || "secondary";
+      const f = getFont(fontKey);
+      const textW = measureText(w.label || "", fontKey).w;
       return { x: w.x, y: w.y, w: 7 + 3 + textW, h: Math.max(7, f.lineH) };
     }
   }
@@ -591,7 +643,7 @@ function addWidget(type, atX = 8, atY = 8) {
   let w = { id, type, x: clampInt(atX, 0, 127), y: clampInt(atY, 0, 63) };
   switch (type) {
     case "text":
-      w.text = "Text"; w.font = "primary"; break;
+      w.text = "Text"; w.font = "primary"; w.scroll = false; w.scrollW = 64; break;
     case "box": w.w = 32; w.h = 16; break;
     case "frame": w.w = 32; w.h = 16; break;
     case "line": w.x2 = w.x + 16; w.y2 = w.y; break;
@@ -600,6 +652,7 @@ function addWidget(type, atX = 8, atY = 8) {
       w.iconId = state.icons[0]?.id || ""; break;
     case "button":
       w.w = 40; w.h = 12; w.label = "OK"; w.key = "ok"; w.event = "short"; w.style = "framed";
+      w.font = "secondary"; w.scroll = false;
       w.action = state.screens.length > 1
         ? { kind: "goto", target: state.screens.find((s) => s.id !== sc.id).id }
         : { kind: "custom_event", code: 1 };
@@ -607,11 +660,11 @@ function addWidget(type, atX = 8, atY = 8) {
     case "progress":
       w.w = 64; w.h = 6; w.value = 50; break;
     case "menu":
-      w.w = 120; w.lineH = 10; w.selectedVar = "var:menu_cursor";
+      w.w = 120; w.lineH = 10; w.selectedVar = "var:menu_cursor"; w.font = "primary"; w.scroll = false;
       w.items = [{ label: "Item 1", action: { kind: "custom_event", code: 1 } }];
       break;
     case "toggle":
-      w.label = "Enable"; w.state = false; break;
+      w.label = "Enable"; w.state = false; w.font = "secondary"; w.scroll = false; break;
   }
   return placeWidget(w);
 }
@@ -854,10 +907,19 @@ function renderInspector() {
   root.appendChild(numField("X", w.x, 0, 127, (v) => updateWidget(w.id, { x: v })));
   root.appendChild(numField("Y", w.y, 0, 63, (v) => updateWidget(w.id, { y: v })));
 
+  // Font chips read as a size picker — the four fixed bitmap fonts ARE the
+  // sizes Flipper offers (canvas_set_font has no size argument).
+  const fontLabel = (k) => `${FONTS[k].label} ${FONTS[k].charW}×${FONTS[k].lineH}`;
+  const fontChip = () => chipField("Font / size", Object.keys(FONTS), w.font, (v) => updateWidget(w.id, { font: v }), fontLabel);
+  const scrollChip = () => chipField("Scroll", ["off", "on"], w.scroll ? "on" : "off",
+    (v) => updateWidget(w.id, { scroll: v === "on" }), (k) => k === "on" ? "Side-scroll" : "Off");
+
   switch (w.type) {
     case "text":
       root.appendChild(textField("Text", w.text, (v) => updateWidget(w.id, { text: v })));
-      root.appendChild(chipField("Font", Object.keys(FONTS), w.font, (v) => updateWidget(w.id, { font: v }), (k) => FONTS[k].label));
+      root.appendChild(fontChip());
+      root.appendChild(scrollChip());
+      if (w.scroll) root.appendChild(numField("Scroll width", w.scrollW ?? 64, 8, 128, (v) => updateWidget(w.id, { scrollW: v })));
       break;
     case "box":
     case "frame":
@@ -880,6 +942,8 @@ function renderInspector() {
       root.appendChild(chipField("Key", ["ok","up","down","left","right","back"], w.key, (v) => updateWidget(w.id, { key: v })));
       root.appendChild(chipField("Event", ["short","long","repeat"], w.event, (v) => updateWidget(w.id, { event: v })));
       root.appendChild(chipField("Style", ["framed","plain","invert"], w.style, (v) => updateWidget(w.id, { style: v })));
+      root.appendChild(fontChip());
+      root.appendChild(scrollChip());
       root.appendChild(actionField(w.action, (a) => updateWidget(w.id, { action: a })));
       break;
     case "progress":
@@ -891,10 +955,14 @@ function renderInspector() {
       root.appendChild(numField("Width", w.w, 16, 128, (v) => updateWidget(w.id, { w: v })));
       root.appendChild(numField("Line height", w.lineH, 6, 32, (v) => updateWidget(w.id, { lineH: v })));
       root.appendChild(textField("Cursor var", w.selectedVar, (v) => updateWidget(w.id, { selectedVar: v })));
+      root.appendChild(fontChip());
+      root.appendChild(scrollChip());
       root.appendChild(menuItemsField(w.items, (items) => updateWidget(w.id, { items })));
       break;
     case "toggle":
       root.appendChild(textField("Label", w.label, (v) => updateWidget(w.id, { label: v })));
+      root.appendChild(fontChip());
+      root.appendChild(scrollChip());
       root.appendChild(toggleStateField(w.state, (v) => updateWidget(w.id, { state: v })));
       break;
   }
