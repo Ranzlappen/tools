@@ -1,8 +1,15 @@
-/* Markdown Preview — uses marked + DOMPurify (CDN-loaded with SRI). */
+/* Markdown Preview — uses marked + DOMPurify (CDN-loaded with SRI).
+   File import converts dropped files to Markdown via ./convert.js. */
+
+import { convertFileToMarkdown } from "./convert.js";
 
 const $ = (s) => document.querySelector(s);
 const inEl = $("#md-in");
 const outEl = $("#md-out");
+const dropEl = $("#drop");
+const fileEl = $("#md-file");
+const statusEl = $("#status");
+const statusTextEl = $("#status-text");
 
 const SAMPLE = `# Hello, world
 
@@ -57,15 +64,93 @@ inEl.addEventListener("input", () => {
   t = setTimeout(render, 80);
 });
 
+// ─── file import → Markdown ────────────────────────────────────────────
+function setStatus(kind, msg) {
+  statusEl.classList.remove("banner--info", "banner--warn", "banner--error", "is-hidden");
+  statusEl.classList.add("banner--" + kind);
+  statusTextEl.textContent = msg;
+}
+function safeBlobUrl(url) {
+  try { return new URL(url).protocol === "blob:" ? url : ""; }
+  catch (_) { return ""; }
+}
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = safeBlobUrl(url);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function onFile(file) {
+  setStatus("info", `Converting ${file.name}…`);
+  try {
+    const { markdown, kind, warnings } = await convertFileToMarkdown(file, {
+      onProgress: (m) => setStatus("info", m),
+    });
+    inEl.value = markdown;
+    render();
+    if (warnings.length) {
+      setStatus("warn", `Imported ${file.name} as ${kind} — ${warnings.join(" ")}`);
+    } else {
+      setStatus("info", `Imported ${file.name} as Markdown (${kind}).`);
+    }
+  } catch (e) {
+    setStatus("error", "Import failed: " + (e.message || e));
+  } finally {
+    fileEl.value = ""; // allow re-importing the same file
+  }
+}
+
+dropEl.addEventListener("click", () => fileEl.click());
+dropEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    fileEl.click();
+  }
+});
+["dragenter", "dragover"].forEach((ev) =>
+  dropEl.addEventListener(ev, (e) => {
+    e.preventDefault();
+    dropEl.classList.add("is-hover");
+  }),
+);
+dropEl.addEventListener("dragleave", (e) => {
+  e.preventDefault();
+  dropEl.classList.remove("is-hover");
+});
+dropEl.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropEl.classList.remove("is-hover");
+  const f = e.dataTransfer?.files?.[0];
+  if (f) onFile(f);
+});
+fileEl.addEventListener("change", () => {
+  const f = fileEl.files?.[0];
+  if (f) onFile(f);
+});
+
 document.addEventListener("click", (e) => {
   const btn = e.target.closest("[data-action]");
   if (!btn) return;
   if (btn.dataset.action === "copy-html") {
     if (!outEl.innerHTML) return;
-    navigator.clipboard.writeText(outEl.innerHTML).then(() => {
+    navigator.clipboard?.writeText(outEl.innerHTML)?.then(() => {
       btn.textContent = "Copied ✓";
       setTimeout(() => (btn.textContent = "Copy HTML"), 1200);
     });
+  } else if (btn.dataset.action === "copy-md") {
+    if (!inEl.value) return;
+    navigator.clipboard?.writeText(inEl.value)?.then(() => {
+      btn.textContent = "Copied ✓";
+      setTimeout(() => (btn.textContent = "Copy Markdown"), 1200);
+    });
+  } else if (btn.dataset.action === "download-md") {
+    if (!inEl.value) return;
+    downloadBlob(new Blob([inEl.value], { type: "text/markdown" }), "document.md");
   } else if (btn.dataset.action === "sample") {
     inEl.value = SAMPLE;
     render();
