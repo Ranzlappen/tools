@@ -10,8 +10,18 @@ export function exportSnippet(state, activeScreenId) {
   if (!screen) {
     return { filename: "draw_callback.snippet.c", text: "// No screen selected." };
   }
-  const ctx = { lastFont: null };
-  const lines = ["canvas_clear(canvas);"];
+  const ctx = { lastFont: null, scrollExpr: "scroll" };
+  const needsScroll = (screen.widgets || []).some(
+    (w) => w.scroll && ["text", "button", "menu", "toggle"].includes(w.type));
+  const lines = [];
+  if (needsScroll) {
+    lines.push(
+      "// Side-scroll requires: #include <gui/elements.h>",
+      "// Provide a `size_t scroll;` you increment on a periodic timer",
+      "// (call view_port_update each tick) to animate the long text.",
+    );
+  }
+  lines.push("canvas_clear(canvas);");
   for (const w of screen.widgets) {
     const out = emitWidgetDraw(w, ctx, state);
     if (out) lines.push(...out);

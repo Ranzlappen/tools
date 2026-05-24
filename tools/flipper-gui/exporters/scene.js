@@ -36,6 +36,29 @@ function cString(s) {
   return '"' + String(s ?? "").replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "\\r") + '"';
 }
 
+/* Emit a self-contained block that side-scrolls `text` within `width`
+ * using Flipper's native elements_scrollable_text_line. `x`/`y`/`width`
+ * may be numbers or C expression strings (e.g. the menu's `iy + 9`). The
+ * scroll offset comes from ctx.scrollExpr ("state->scroll_tick" for the
+ * full app, "scroll" for the paste-in snippet). y is the text baseline. */
+function scrollLines(ctx, x, y, width, text) {
+  const scroll = (ctx && ctx.scrollExpr) || "scroll";
+  return [
+    `{`,
+    `    FuriString* s = furi_string_alloc_set_str(${cString(text)});`,
+    `    elements_scrollable_text_line(canvas, ${x}, ${y}, ${width}, s, ${scroll}, false);`,
+    `    furi_string_free(s);`,
+    `}`,
+  ];
+}
+
+/* True if any widget anywhere uses the side-scroll option — gates the
+ * scroll_tick model field, the FuriTimer, and the <gui/elements.h> include. */
+export function anyScroll(state) {
+  return (state.screens || []).some((s) =>
+    (s.widgets || []).some((w) => w.scroll && ["text", "button", "menu", "toggle"].includes(w.type)));
+}
+
 function parseVar(field) {
   if (typeof field === "string" && field.startsWith("var:")) {
     const name = field.slice(4).trim();
@@ -77,7 +100,12 @@ export function emitWidgetDraw(w, ctx, state) {
       }
       const f = getFont(font);
       const baselineY = (w.y | 0) + f.baseline;
-      lines.push(`canvas_draw_str(canvas, ${w.x | 0}, ${baselineY}, ${cString(w.text || "")});`);
+      if (w.scroll) {
+        const clipW = Math.max(8, Math.min(128, w.scrollW ?? 64));
+        lines.push(...scrollLines(ctx, w.x | 0, baselineY, clipW, w.text || ""));
+      } else {
+        lines.push(`canvas_draw_str(canvas, ${w.x | 0}, ${baselineY}, ${cString(w.text || "")});`);
+      }
       return lines;
     }
     case "box":
@@ -107,7 +135,7 @@ export function emitWidgetDraw(w, ctx, state) {
         lines.push(`canvas_draw_box(canvas, ${w.x | 0}, ${w.y | 0}, ${w.w | 0}, ${w.h | 0});`);
         lines.push(`canvas_set_color(canvas, ColorWhite);`);
       }
-      const font = "secondary";
+      const font = w.font || "secondary";
       const fontC = getFont(font).name;
       if (ctx.lastFont !== font) {
         lines.push(`canvas_set_font(canvas, ${fontC});`);
@@ -115,10 +143,14 @@ export function emitWidgetDraw(w, ctx, state) {
       }
       const f = getFont(font);
       const label = w.label || "";
-      const textW = measureText(label, font).w;
-      const tx = (w.x | 0) + Math.max(0, Math.floor(((w.w | 0) - textW) / 2));
       const ty = (w.y | 0) + Math.floor(((w.h | 0) - f.lineH) / 2) + f.baseline;
-      lines.push(`canvas_draw_str(canvas, ${tx}, ${ty}, ${cString(label)});`);
+      if (w.scroll) {
+        lines.push(...scrollLines(ctx, (w.x | 0) + 2, ty, (w.w | 0) - 4, label));
+      } else {
+        const textW = measureText(label, font).w;
+        const tx = (w.x | 0) + Math.max(0, Math.floor(((w.w | 0) - textW) / 2));
+        lines.push(`canvas_draw_str(canvas, ${tx}, ${ty}, ${cString(label)});`);
+      }
       if (style === "invert") {
         lines.push(`canvas_set_color(canvas, ColorBlack);`);
       }
@@ -133,7 +165,7 @@ export function emitWidgetDraw(w, ctx, state) {
     }
     case "menu": {
       const lines = [];
-      const font = "primary";
+      const font = w.font || "primary";
       const fontC = getFont(font).name;
       if (ctx.lastFont !== font) {
         lines.push(`canvas_set_font(canvas, ${fontC});`);
@@ -143,6 +175,7 @@ export function emitWidgetDraw(w, ctx, state) {
       const lineH = (w.lineH | 0) || (f.lineH + 2);
       const selVar = parseVar(w.selectedVar) || "menu_cursor";
       const items = w.items || [];
+      const sExpr = (ctx && ctx.scrollExpr) || "scroll";
       // Render items via a small in-place loop so the count is dynamic.
       const cArr = items.map((it) => cString(it.label || ""));
       lines.push(`{`);
@@ -153,7 +186,16 @@ export function emitWidgetDraw(w, ctx, state) {
       lines.push(`        if(i == state->${selVar}) {`);
       lines.push(`            canvas_draw_box(canvas, ${w.x | 0}, iy, ${w.w | 0}, ${lineH});`);
       lines.push(`            canvas_set_color(canvas, ColorWhite);`);
-      lines.push(`            canvas_draw_str(canvas, ${(w.x | 0) + 2}, iy + ${f.baseline + 1}, items[i]);`);
+      if (w.scroll) {
+        // The selected row side-scrolls if its label overflows.
+        lines.push(`            {`);
+        lines.push(`                FuriString* s = furi_string_alloc_set_str(items[i]);`);
+        lines.push(`                elements_scrollable_text_line(canvas, ${(w.x | 0) + 2}, iy + ${f.baseline + 1}, ${(w.w | 0) - 4}, s, ${sExpr}, false);`);
+        lines.push(`                furi_string_free(s);`);
+        lines.push(`            }`);
+      } else {
+        lines.push(`            canvas_draw_str(canvas, ${(w.x | 0) + 2}, iy + ${f.baseline + 1}, items[i]);`);
+      }
       lines.push(`            canvas_set_color(canvas, ColorBlack);`);
       lines.push(`        } else {`);
       lines.push(`            canvas_draw_str(canvas, ${(w.x | 0) + 2}, iy + ${f.baseline + 1}, items[i]);`);
@@ -165,7 +207,7 @@ export function emitWidgetDraw(w, ctx, state) {
     }
     case "toggle": {
       const lines = [];
-      const font = "secondary";
+      const font = w.font || "secondary";
       const fontC = getFont(font).name;
       if (ctx.lastFont !== font) {
         lines.push(`canvas_set_font(canvas, ${fontC});`);
@@ -182,7 +224,11 @@ export function emitWidgetDraw(w, ctx, state) {
       lines.push(`}`);
       const tx = (w.x | 0) + boxSize + 3;
       const ty = (w.y | 0) + f.baseline - 1;
-      lines.push(`canvas_draw_str(canvas, ${tx}, ${ty}, ${cString(w.label || "")});`);
+      if (w.scroll) {
+        lines.push(...scrollLines(ctx, tx, ty, 128 - tx, w.label || ""));
+      } else {
+        lines.push(`canvas_draw_str(canvas, ${tx}, ${ty}, ${cString(w.label || "")});`);
+      }
       return lines;
     }
     default:
@@ -288,6 +334,7 @@ export function exportScene(state) {
   const screens = state.screens.length ? state.screens : [{ id: "scr_main", name: "Main", widgets: [] }];
   const referencedIcons = collectReferencedIcons(state);
   const modelVars = collectModelVars(state);
+  const hasScroll = anyScroll(state);
 
   // ── Header ────────────────────────────────────────────────────
   const screenEnum = screens.map((s, i) => `    ${TPrefix}Screen${pascal(s.name)}${i === 0 ? " = 0" : ""},`).join("\n");
@@ -297,6 +344,7 @@ export function exportScene(state) {
   for (const [name, type] of modelVars) {
     modelFields.push(`    ${type} ${name};`);
   }
+  if (hasScroll) modelFields.push(`    uint32_t scroll_tick;`);
 
   const h = `#pragma once
 
@@ -346,7 +394,7 @@ ${bytesToCArray(bytes)}
       }).join("\n\n");
 
   const drawHelpers = screens.map((screen) => {
-    const ctx = { lastFont: null, iconMode };
+    const ctx = { lastFont: null, iconMode, scrollExpr: "state->scroll_tick" };
     const lines = [];
     for (const w of screen.widgets) {
       const out = emitWidgetDraw(w, ctx, state);
@@ -381,20 +429,21 @@ ${branchBody.join("\n")}
     const init = type === "bool" ? "false" : "0";
     modelInit.push(`    scene->model.${name} = ${init};`);
   }
+  if (hasScroll) modelInit.push(`    scene->model.scroll_tick = 0;`);
 
   const c = `#include "${ns}_scene.h"
 
 #include <furi.h>
 #include <gui/gui.h>
 #include <gui/view_port.h>
-#include <input/input.h>
+#include <input/input.h>${hasScroll ? "\n#include <gui/elements.h>" : ""}
 
 // ─── Internal scene struct ────────────────────────────────────────────
 
 struct ${TPrefix}Scene {
     Gui* gui;
     ViewPort* vp;
-    FuriMessageQueue* events;
+    FuriMessageQueue* events;${hasScroll ? "\n    FuriTimer* scroll_timer;" : ""}
     ${TPrefix}Model model;
 };
 
@@ -438,7 +487,18 @@ static void ${ns}_input_callback(InputEvent* e, void* ctx) {
     ${TPrefix}Scene* scene = ctx;
     furi_message_queue_put(scene->events, e, FuriWaitForever);
 }
+${hasScroll ? `
+// ─── Scroll animation timer ───────────────────────────────────────────
+// Periodic tick advances the offset consumed by elements_scrollable_text_line
+// and asks the GUI to repaint. Runs on the timer thread; incrementing a
+// monotonic counter and calling view_port_update is safe from there.
 
+static void ${ns}_scroll_timer_cb(void* ctx) {
+    ${TPrefix}Scene* scene = ctx;
+    scene->model.scroll_tick++;
+    view_port_update(scene->vp);
+}
+` : ""}
 // ─── Public API ───────────────────────────────────────────────────────
 
 ${TPrefix}Scene* ${ns}_scene_alloc(void) {
@@ -451,12 +511,16 @@ ${modelInit.join("\n")}
     view_port_draw_callback_set(scene->vp, ${ns}_draw_callback, &scene->model);
     view_port_input_callback_set(scene->vp, ${ns}_input_callback, scene);
     gui_add_view_port(scene->gui, scene->vp, GuiLayerFullscreen);
-    return scene;
+${hasScroll ? `    scene->scroll_timer = furi_timer_alloc(${ns}_scroll_timer_cb, FuriTimerTypePeriodic, scene);
+    furi_timer_start(scene->scroll_timer, furi_ms_to_ticks(120));
+` : ""}    return scene;
 }
 
 void ${ns}_scene_free(${TPrefix}Scene* scene) {
     if(!scene) return;
-    view_port_enabled_set(scene->vp, false);
+${hasScroll ? `    furi_timer_stop(scene->scroll_timer);
+    furi_timer_free(scene->scroll_timer);
+` : ""}    view_port_enabled_set(scene->vp, false);
     gui_remove_view_port(scene->gui, scene->vp);
     view_port_free(scene->vp);
     furi_message_queue_free(scene->events);
