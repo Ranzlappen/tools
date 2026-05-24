@@ -568,6 +568,13 @@
       font-size: 0.72rem;
     }
     .fg-bundle-row [data-action="download-bundle"]:hover { background: rgba(255,255,255,0.06); }
+    .fg-bundle-hint { margin-top: 6px; font-size: 0.66rem; color: var(--c-text-faint); line-height: 1.4; }
+    .fg-app-derived { margin-top: 8px; font-family: var(--f-mono); font-size: 0.68rem; color: var(--c-text-faint); line-height: 1.5; }
+    .fg-app-derived code { color: var(--c-text-muted); }
+    .fg-vbadge { display: inline-block; margin-top: 4px; padding: 1px 6px; border-radius: 4px; font-size: 0.66rem; }
+    .fg-vbadge--ok { color: #22c55e; background: rgba(34,197,94,0.12); }
+    .fg-vbadge--bad { color: #ef4444; background: rgba(239,68,68,0.12); }
+    .fg-req { display: inline-flex; align-items: center; gap: 3px; font-family: var(--f-mono); font-size: 0.7rem; margin-right: 6px; }
 
     .fg-section {
       border: 1px solid var(--c-border);
@@ -708,6 +715,63 @@
                   <label for="fg-app-namespace">Namespace (snake_case prefix)</label>
                   <input type="text" id="fg-app-namespace" maxlength="40" placeholder="my_app" />
                 </div>
+                <div class="fg-field">
+                  <label for="fg-app-category">Category</label>
+                  <select id="fg-app-category">
+                    <option>Examples</option><option>Tools</option><option>Games</option>
+                    <option>Media</option><option>NFC</option><option>Sub-GHz</option>
+                    <option>Infrared</option><option>GPIO</option><option>Bluetooth</option>
+                    <option>USB</option><option>Misc</option>
+                  </select>
+                </div>
+                <div class="fg-field">
+                  <label for="fg-app-stack">Stack size (KB)</label>
+                  <input type="number" id="fg-app-stack" min="1" max="8" step="1" value="2" />
+                </div>
+                <div class="fg-field">
+                  <label>Requires (SDK modules)</label>
+                  <div class="fg-chiprow" style="flex-wrap:wrap;">
+                    <label class="fg-req"><input type="checkbox" data-require="gui" checked disabled /> gui</label>
+                    <label class="fg-req"><input type="checkbox" data-require="storage" /> storage</label>
+                    <label class="fg-req"><input type="checkbox" data-require="notification" /> notification</label>
+                    <label class="fg-req"><input type="checkbox" data-require="dialogs" /> dialogs</label>
+                    <label class="fg-req"><input type="checkbox" data-require="subghz" /> subghz</label>
+                    <label class="fg-req"><input type="checkbox" data-require="infrared" /> infrared</label>
+                  </div>
+                </div>
+                <div class="fg-field">
+                  <label for="fg-app-version">Version</label>
+                  <input type="text" id="fg-app-version" maxlength="16" placeholder="1.0" />
+                </div>
+                <div class="fg-field">
+                  <label for="fg-app-author">Author</label>
+                  <input type="text" id="fg-app-author" maxlength="60" placeholder="you" />
+                </div>
+                <div class="fg-field">
+                  <label for="fg-app-desc">Description</label>
+                  <input type="text" id="fg-app-desc" maxlength="200" placeholder="What it does" />
+                </div>
+                <div class="fg-field">
+                  <label for="fg-app-weburl">Web URL</label>
+                  <input type="text" id="fg-app-weburl" maxlength="200" placeholder="https://…" />
+                </div>
+                <div class="fg-field">
+                  <label>Launcher icon (10×10)</label>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                    <canvas id="fg-app-icon-canvas" width="30" height="30" style="image-rendering:pixelated;background:#f0f0d0;border:1px solid #333;"></canvas>
+                    <button type="button" class="fg-pal-btn" data-action="app-icon">Set…</button>
+                    <button type="button" class="fg-pal-btn" data-action="app-icon-reset">Default</button>
+                  </div>
+                  <input type="file" id="fg-app-icon-upload" accept="image/*" hidden />
+                </div>
+                <div class="fg-field">
+                  <label>Icon embedding</label>
+                  <div class="fg-bundle-targets" role="group" aria-label="Icon embedding mode">
+                    <button type="button" data-icon-mode="png" aria-pressed="true">Inline XBM</button>
+                    <button type="button" data-icon-mode="assets" aria-pressed="false">images/ assets</button>
+                  </div>
+                </div>
+                <div id="fg-app-derived" class="fg-app-derived"></div>
               </div>
             </details>
 
@@ -798,10 +862,11 @@
                 <div class="fg-bundle-row">
                   <div class="fg-bundle-targets" role="group" aria-label="Bundle target">
                     <button type="button" data-bundle-target="c" aria-pressed="true">C app</button>
-                    <button type="button" data-bundle-target="js" aria-pressed="false">JS app</button>
+                    <button type="button" data-bundle-target="js" aria-pressed="false">Preview</button>
                   </div>
                   <button type="button" data-action="download-bundle">Download bundle (.zip)</button>
                 </div>
+                <div class="fg-bundle-hint">C app = build-ready Momentum folder (unzip into <code>C-Apps/</code>, run <code>ufbt</code>). Preview = browser canvas only, not deployable.</div>
               </div>
             </details>
 
