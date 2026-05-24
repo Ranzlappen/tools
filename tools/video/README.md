@@ -41,7 +41,9 @@ budget is untouched.
 ### Privacy
 
 100% local. ffmpeg.wasm runs in a worker; no upload, no telemetry.
-The core bundle is fetched from a pinned CDN on first run.
+The ffmpeg modules and wasm core are fetched from a version-pinned CDN
+(unpkg) on first run — the CDN sees only those static file requests,
+never your video.
 
 ## Developer guide
 
@@ -54,13 +56,22 @@ The core bundle is fetched from a pinned CDN on first run.
 
 ### Dependencies
 
-CDN-loaded (SHA-384 SRI pinned):
+Version-pinned and dynamically `import()`-ed from unpkg on first run.
+These are ES modules loaded via `import()` (and the wasm core via
+`util.toBlobURL`), so they carry **no SRI** — dynamic imports can't, the
+same precedent as the pdf.js worker in the markdown tool. The version
+constants live at the top of `tool.js` (`FF_VER`, `UTIL_VER`,
+`CORE_VER`).
 
 - `@ffmpeg/ffmpeg@0.12.10` — JS wrapper.
-- `@ffmpeg/util@0.12.1` — helpers (`fetchFile`, etc.).
+- `@ffmpeg/util@0.12.1` — helpers (`fetchFile`, `toBlobURL`).
 - `@ffmpeg/core@0.12.6` — wasm core. Uses `core-mt` (multi-threaded)
   when the page is `crossOriginIsolated` and `SharedArrayBuffer` is
-  available; falls back to single-threaded otherwise.
+  available; falls back to single-threaded `core` otherwise.
+
+A same-origin module-worker shim re-imports the cross-origin worker so
+its relative imports resolve against unpkg (see the comments around the
+worker setup in `tool.js`).
 
 ### Extending
 
