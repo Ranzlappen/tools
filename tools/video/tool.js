@@ -8,13 +8,16 @@ const CORE_VER = "0.12.6";
 
 const CDN = {
   ffmpegEsm: `https://unpkg.com/@ffmpeg/ffmpeg@${FF_VER}/dist/esm/index.js`,
-  // The FFmpeg class's own orchestrator worker. Must be pre-fetched as a
-  // same-origin blob URL via classWorkerURL — `new Worker()` rejects the
-  // cross-origin unpkg URL even though fetch() of the same URL succeeds.
+  // The FFmpeg class's own orchestrator worker. Loaded via classWorkerURL
+  // through classWorkerBlobURL() below — `new Worker()` rejects this
+  // cross-origin unpkg URL directly even though fetch() of it succeeds.
   ffmpegWorker: `https://unpkg.com/@ffmpeg/ffmpeg@${FF_VER}/dist/esm/worker.js`,
   utilEsm: `https://unpkg.com/@ffmpeg/util@${UTIL_VER}/dist/esm/index.js`,
-  coreSt: `https://unpkg.com/@ffmpeg/core@${CORE_VER}/dist/umd`,
-  coreMt: `https://unpkg.com/@ffmpeg/core-mt@${CORE_VER}/dist/umd`,
+  // ESM core: the class worker runs as a module worker, so the core is pulled
+  // in via `import(coreURL).default` (importScripts is unavailable there). That
+  // needs the esm build's `export default`; the umd build has no default.
+  coreSt: `https://unpkg.com/@ffmpeg/core@${CORE_VER}/dist/esm`,
+  coreMt: `https://unpkg.com/@ffmpeg/core-mt@${CORE_VER}/dist/esm`,
 };
 
 const QUALITY_CRF = { low: 30, medium: 23, high: 18 };
@@ -86,6 +89,27 @@ function setProgress(pct) {
   progressFillEl.style.width = `${v}%`;
 }
 
+// A same-origin module worker that re-imports the real (cross-origin) worker
+// by its absolute URL. `new Worker(crossOriginURL)` is blocked, and a raw blob
+// of worker.js breaks because its ./const.js / ./errors.js imports resolve
+// against the opaque blob: URL. Importing the absolute URL makes worker.js's
+// own relative imports resolve against unpkg (cross-origin module imports are
+// allowed with CORS, which unpkg sends).
+function classWorkerBlobURL(workerSrcURL) {
+  const shim = `import ${JSON.stringify(workerSrcURL)};`;
+  return URL.createObjectURL(new Blob([shim], { type: "text/javascript" }));
+}
+
+// ffmpeg.load() never rejects when its worker fails to init, so race it against
+// a timeout to turn an otherwise-silent hang into a surfaced error.
+function withTimeout(promise, ms, message) {
+  let t;
+  const timeout = new Promise((_, reject) => {
+    t = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(t));
+}
+
 // ─── ffmpeg loader (mt when crossOriginIsolated, st otherwise) ─────────
 async function loadFFmpeg() {
   if (state.ffmpeg) return state.ffmpeg;
@@ -115,14 +139,18 @@ async function loadFFmpeg() {
   });
 
   const base = state.isolated ? CDN.coreMt : CDN.coreSt;
-  await ffmpeg.load({
-    classWorkerURL: await util.toBlobURL(CDN.ffmpegWorker, "text/javascript"),
-    coreURL: await util.toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
-    wasmURL: await util.toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm"),
-    ...(state.isolated
-      ? { workerURL: await util.toBlobURL(`${base}/ffmpeg-core.worker.js`, "text/javascript") }
-      : {}),
-  });
+  await withTimeout(
+    ffmpeg.load({
+      classWorkerURL: classWorkerBlobURL(CDN.ffmpegWorker),
+      coreURL: await util.toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
+      wasmURL: await util.toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm"),
+      ...(state.isolated
+        ? { workerURL: await util.toBlobURL(`${base}/ffmpeg-core.worker.js`, "text/javascript") }
+        : {}),
+    }),
+    120_000,
+    "Engine failed to load — check your connection and try again.",
+  );
 
   engineTagEl.textContent = `engine: ${which} · ready`;
   state.ffmpeg = ffmpeg;
