@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MIUI Theme Studio · tools · ranzlappen</title>
+  <meta name="description" content="Build and edit MIUI / HyperOS themes for the Xiaomi 14T Pro in your browser — wallpapers, icons, fonts, boot animation, system colors and MAML. Download a ready-to-install .mtz." />
+  <meta name="theme-color" content="#0b1210" />
+  <meta name="color-scheme" content="dark light" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="MIUI Theme Studio · tools · ranzlappen" />
+  <meta property="og:description" content="Build and edit MIUI / HyperOS .mtz themes for the Xiaomi 14T Pro in your browser — wallpapers, icons, fonts, boot animation, system colors and MAML." />
+  <meta property="og:url" content="https://tools.ranzlappen.com/tools/miui-theme-studio/" />
+  <meta property="og:site_name" content="ranzlappen tools" />
+  <meta property="og:image" content="https://tools.ranzlappen.com/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="ranzlappen tools — Small tools, sharp edges." />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="MIUI Theme Studio · tools · ranzlappen" />
+  <meta name="twitter:description" content="Build and edit MIUI / HyperOS .mtz themes for the Xiaomi 14T Pro in your browser." />
+  <meta name="twitter:image" content="https://tools.ranzlappen.com/assets/og.png" />
+
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem("tools:theme") === "light") {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="icon" type="image/png" href="../../assets/icon.png" />
+  <link rel="apple-touch-icon" href="../../assets/icon.png" />
+
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+  <link rel="stylesheet" href="../../assets/css/backdrops.css" />
+  <link rel="stylesheet" href="../../assets/css/tool.css" />
+
+  <style>
+    .is-hidden { display: none !important; }
+
+    .mt-editor {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr) 340px;
+      gap: var(--space-md);
+      align-items: start;
+    }
+    @media (max-width: 1080px) {
+      .mt-editor { grid-template-columns: minmax(0, 1fr); }
+      .mt-canvas-pane { position: static; }
+    }
+
+    .mt-pane {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      padding: var(--space-md);
+      border-radius: var(--border-radius-lg);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.005) 100%),
+        rgba(var(--c-bg-rgb), 0.88);
+      border: 1px solid var(--c-border);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 12px 32px -16px var(--c-card-shadow);
+    }
+    .mt-canvas-pane { gap: var(--space-md); position: sticky; top: var(--space-md); }
+
+    .mt-pane__title {
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--c-text-faint);
+      margin: 0;
+    }
+
+    /* collapsible sections */
+    .mt-section { border: 1px solid var(--c-border); border-radius: var(--border-radius); overflow: hidden; }
+    .mt-section > summary {
+      cursor: pointer;
+      padding: 8px 10px;
+      font-family: var(--f-mono);
+      font-size: 0.78rem;
+      color: var(--c-text);
+      background: rgba(255,255,255,0.02);
+      list-style: none;
+      user-select: none;
+    }
+    .mt-section > summary::-webkit-details-marker { display: none; }
+    .mt-section > summary::before { content: "▸ "; color: var(--c-text-faint); }
+    .mt-section[open] > summary::before { content: "▾ "; }
+    .mt-section__body { padding: 10px; display: flex; flex-direction: column; gap: var(--space-sm); }
+
+    .mt-row { display: flex; gap: 6px; align-items: center; }
+    .mt-row__name { flex: 1; text-align: left; background: none; border: none; color: var(--c-text); cursor: pointer; font-family: var(--f-mono); font-size: 0.78rem; padding: 4px; }
+    .mt-row__name:hover { color: var(--c-accent); }
+    .mt-row__thumb {
+      width: 40px; height: 40px; flex-shrink: 0;
+      border: 1px solid var(--c-border); border-radius: var(--border-radius-sm);
+      background: rgba(0,0,0,0.25); cursor: pointer; display: grid; place-items: center;
+      color: var(--c-text-faint); overflow: hidden; padding: 0;
+    }
+    .mt-icon-thumb, .mt-row__thumb img { width: 100%; height: 100%; object-fit: contain; }
+
+    .mt-thumb { width: 100%; max-width: 120px; border-radius: var(--border-radius-sm); border: 1px solid var(--c-border); display: block; }
+    .mt-thumb--empty { aspect-ratio: 1; display: grid; place-items: center; color: var(--c-text-faint); font-family: var(--f-mono); font-size: 0.7rem; }
+
+    .mt-hint { color: var(--c-text-faint); font-size: 0.78rem; margin: 0; }
+    .mt-add-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .mt-add-row .input { flex: 1 1 120px; }
+
+    .mt-field { display: flex; flex-direction: column; gap: 3px; font-family: var(--f-mono); font-size: 0.72rem; color: var(--c-text-muted); }
+    .mt-field span { color: var(--c-text-faint); }
+    .mt-subhead { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-family: var(--f-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--c-text-faint); margin-top: var(--space-xs); }
+
+    .mt-color { width: 38px; height: 32px; padding: 0; border: 1px solid var(--c-border); border-radius: var(--border-radius-sm); background: none; cursor: pointer; flex-shrink: 0; }
+    .mt-hex { max-width: 130px; }
+
+    .mt-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+    /* canvas / phone */
+    .mt-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .mt-tab {
+      padding: 6px 12px; background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border); border-radius: var(--border-radius-sm);
+      color: var(--c-text-muted); cursor: pointer; font-family: var(--f-mono); font-size: 0.78rem;
+    }
+    .mt-tab[aria-selected="true"] { background: var(--c-accent-bg); border-color: var(--c-accent-border); color: var(--c-accent); }
+
+    .mt-stage { display: flex; justify-content: center; padding: var(--space-md); background: rgba(0,0,0,0.32); border: 1px solid var(--c-border); border-radius: var(--border-radius); }
+    [data-theme="light"] .mt-stage { background: rgba(0,0,0,0.06); }
+    .mt-phone {
+      width: calc(240px * var(--mt-zoom, 1));
+      max-width: 100%;
+      aspect-ratio: 1220 / 2712;
+      border-radius: 28px;
+      padding: 8px;
+      background: #05060a;
+      box-shadow: 0 0 0 2px #1b2230, 0 20px 50px -20px #000;
+      flex-shrink: 0;
+    }
+    .mt-canvas { width: 100%; height: 100%; display: block; border-radius: 22px; background: #000; }
+
+    .mt-toolrow { display: flex; gap: var(--space-sm); align-items: center; flex-wrap: wrap; font-family: var(--f-mono); font-size: 0.75rem; color: var(--c-text-muted); }
+    .mt-toolrow input[type="range"] { width: 120px; }
+    .mt-toolrow label { display: inline-flex; align-items: center; gap: 4px; }
+    #mt-status { margin-left: auto; }
+    #mt-status[data-kind="err"] { color: var(--c-danger); }
+    #mt-status[data-kind="ok"] { color: var(--c-accent); }
+
+    .mt-boot-controls { display: flex; gap: var(--space-sm); align-items: center; }
+    .mt-boot-controls input[type="range"] { flex: 1; }
+
+    /* boot parts */
+    .mt-part { border: 1px solid var(--c-border); border-radius: var(--border-radius-sm); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+    .mt-part__head { display: flex; gap: 8px; align-items: center; }
+    .mt-part__head strong { font-family: var(--f-mono); font-size: 0.8rem; }
+    .mt-part__row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .mt-part__row label { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; color: var(--c-text-faint); }
+    .mt-part__row .input { max-width: 70px; }
+
+    /* inspector / validation */
+    .mt-inspector { display: flex; flex-direction: column; gap: var(--space-sm); }
+    .mt-inspector__empty { color: var(--c-text-faint); font-size: 0.82rem; }
+    .mt-el-block { border-top: 1px dashed var(--c-border); padding-top: var(--space-xs); display: flex; flex-direction: column; gap: 4px; }
+
+    .mt-val { font-size: 0.78rem; padding: 6px 8px; border-radius: var(--border-radius-sm); margin-bottom: 4px; }
+    .mt-val--err { background: rgba(248,113,113,0.12); color: var(--c-danger); }
+    .mt-val--warn { background: rgba(251,191,36,0.10); color: var(--c-warning); }
+    .mt-val--ok { background: var(--c-accent-bg); color: var(--c-accent); }
+
+    .mt-prev { margin: 0; }
+    .mt-prev img { width: 100%; border: 1px solid var(--c-border); border-radius: var(--border-radius-sm); }
+    .mt-prev figcaption { font-family: var(--f-mono); font-size: 0.66rem; color: var(--c-text-faint); margin-top: 2px; }
+    #mt-previews { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  </style>
+</head>
+<body>
+  <div id="backdrop" aria-hidden="true">
+    <div class="grid-bg__sky"></div>
+    <div class="grid-bg__plane"></div>
+    <div class="grid-bg__scan"></div>
+    <div class="grid-bg__spot"></div>
+  </div>
+
+  <div class="page">
+    <header class="site-header">
+      <div class="shell site-header__inner">
+        <a href="/" class="brand" aria-label="ranzlappen tools home">
+          <span class="brand__mark" aria-hidden="true"><img src="../../assets/icon.png" alt="" width="32" height="32" /></span>
+          <span class="brand__name">ranzlappen<span class="brand__sub"> / tools</span></span>
+        </a>
+        <div class="header-actions">
+          <button type="button" class="theme-toggle" aria-label="Switch to light theme" aria-pressed="false" title="Toggle theme">
+            <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          </button>
+          <span class="site-header__meta">tools.ranzlappen.com</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="tool-main">
+      <div class="shell">
+        <section class="tool-header">
+          <a href="../../" class="tool-header__back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            All tools
+          </a>
+          <div class="tool-title">
+            <div class="tool-title__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M9 7h6M9 11h6M11 18h2"/></svg>
+            </div>
+            <div class="tool-title__text">
+              <h1>MIUI Theme Studio</h1>
+              <p>Build and edit MIUI / HyperOS themes for the Xiaomi 14T Pro — wallpapers, icons, fonts, boot animation, system colors, MAML. Download a ready-to-install <code>.mtz</code>.</p>
+            </div>
+            <button type="button" class="info-btn" data-info-button aria-label="About this tool" title="About this tool">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <div class="mt-editor" id="mt-editor">
+
+          <!-- hidden file inputs (shared, target chosen at click time) -->
+          <input type="file" id="mt-wall-file" accept="image/*" class="is-hidden" />
+          <input type="file" id="mt-icon-bulk-file" accept="image/*" multiple class="is-hidden" />
+          <input type="file" id="mt-icon-single-file" accept="image/*" class="is-hidden" />
+          <input type="file" id="mt-font-file" accept=".ttf,font/ttf" multiple class="is-hidden" />
+          <input type="file" id="mt-boot-frames-file" accept="image/*" multiple class="is-hidden" />
+          <input type="file" id="mt-drawable-file" accept="image/*" class="is-hidden" />
+          <input type="file" id="mt-import-file" accept=".mtz,.zip,application/zip" class="is-hidden" />
+
+          <!-- LEFT: component editor -->
+          <aside class="mt-pane" aria-label="Theme components">
+            <h2 class="mt-pane__title">Components</h2>
+
+            <details class="mt-section" open>
+              <summary>Metadata</summary>
+              <div class="mt-section__body">
+                <label class="mt-field"><span>Title</span><input class="input input--single" data-meta="title" /></label>
+                <label class="mt-field"><span>Designer</span><input class="input input--single" data-meta="designer" /></label>
+                <label class="mt-field"><span>Author</span><input class="input input--single" data-meta="author" /></label>
+                <div class="mt-grid2">
+                  <label class="mt-field"><span>Version</span><input class="input input--single" type="number" min="1" data-meta="version" /></label>
+                  <label class="mt-field"><span>uiVersion</span><input class="input input--single" type="number" data-meta="uiVersion" /></label>
+                </div>
+                <p class="mt-hint">uiVersion 14 = MIUI 14 / HyperOS (14T Pro).</p>
+              </div>
+            </details>
+
+            <details class="mt-section" open>
+              <summary>Wallpaper</summary>
+              <div class="mt-section__body">
+                <div class="mt-grid2">
+                  <div>
+                    <span class="field-label">Home</span>
+                    <div id="mt-wall-home-thumb"></div>
+                    <div class="mt-add-row">
+                      <button class="btn btn--copy" data-action="wall-pick" data-target="home">Upload</button>
+                      <button class="btn btn--ghost btn--copy" data-action="clear-wall" data-target="home">Clear</button>
+                    </div>
+                    <select class="input input--single" data-wall-fit="home"><option value="cover">cover</option><option value="contain">contain</option></select>
+                  </div>
+                  <div>
+                    <span class="field-label">Lockscreen</span>
+                    <div id="mt-wall-lock-thumb"></div>
+                    <div class="mt-add-row">
+                      <button class="btn btn--copy" data-action="wall-pick" data-target="lock">Upload</button>
+                      <button class="btn btn--ghost btn--copy" data-action="clear-wall" data-target="lock">Clear</button>
+                    </div>
+                    <select class="input input--single" data-wall-fit="lock"><option value="cover">cover</option><option value="contain">contain</option></select>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <details class="mt-section">
+              <summary>Lockscreen</summary>
+              <div class="mt-section__body">
+                <div class="mt-add-row" role="group" aria-label="Lockscreen mode">
+                  <button class="btn btn--copy" data-action="lock-mode" data-mode="static" aria-pressed="true">Static</button>
+                  <button class="btn btn--copy" data-action="lock-mode" data-mode="maml" aria-pressed="false">Animated (MAML)</button>
+                </div>
+                <div id="mt-maml-wrap" style="display:none; flex-direction:column; gap:var(--space-sm);">
+                  <div class="mt-add-row">
+                    <select class="input input--single" id="mt-lock-type">
+                      <option>Time</option><option>DateTime</option><option>Image</option><option>Unlocker</option>
+                    </select>
+                    <button class="btn btn--copy" data-action="lock-add">+ overlay</button>
+                  </div>
+                  <div id="mt-maml-list"></div>
+                  <p class="mt-hint">Select an overlay to edit it in the inspector. MAML is best-effort — test on device.</p>
+                </div>
+              </div>
+            </details>
+
+            <details class="mt-section">
+              <summary>Icons</summary>
+              <div class="mt-section__body">
+                <div class="mt-add-row">
+                  <button class="btn btn--copy" data-action="icon-bulk">Drop / pick PNGs</button>
+                </div>
+                <div class="mt-add-row">
+                  <select class="input input--single" id="mt-icon-preset"></select>
+                  <button class="btn btn--copy" data-action="icon-add-preset">+ preset</button>
+                </div>
+                <div class="mt-add-row">
+                  <input class="input input--single" id="mt-icon-custom" placeholder="com.example.app" />
+                  <button class="btn btn--copy" data-action="icon-add-custom">+ custom</button>
+                </div>
+                <div id="mt-icons"></div>
+                <p class="mt-hint">PNGs are re-encoded to 192×192. Filename (minus .png) becomes the package name.</p>
+              </div>
+            </details>
+
+            <details class="mt-section">
+              <summary>Fonts</summary>
+              <div class="mt-section__body">
+                <div class="mt-add-row"><button class="btn btn--copy" data-action="font-add">+ upload .ttf</button></div>
+                <div id="mt-fonts"></div>
+              </div>
+            </details>
+
+            <details class="mt-section">
+              <summary>Boot animation</summary>
+              <div class="mt-section__body">
+                <div class="mt-add-row">
+                  <label class="mt-field"><span>W</span><input class="input input--single" type="number" data-boot="width" style="max-width:80px" /></label>
+                  <label class="mt-field"><span>H</span><input class="input input--single" type="number" data-boot="height" style="max-width:80px" /></label>
+                  <label class="mt-field"><span>FPS</span><input class="input input--single" type="number" data-boot="fps" style="max-width:60px" /></label>
+                </div>
+                <div class="mt-add-row"><button class="btn btn--copy" data-action="boot-add-part">+ part</button></div>
+                <div id="mt-boot-parts"></div>
+              </div>
+            </details>
+
+            <details class="mt-section">
+              <summary>System colors / drawables</summary>
+              <div class="mt-section__body">
+                <div class="mt-add-row">
+                  <select class="input input--single" id="mt-pkg-known"></select>
+                  <button class="btn btn--copy" data-action="pkg-add-known">+ add</button>
+                </div>
+                <div class="mt-add-row">
+                  <input class="input input--single" id="mt-pkg-custom" placeholder="com.some.package" />
+                  <button class="btn btn--copy" data-action="pkg-add-custom">+ custom</button>
+                </div>
+                <label class="mt-field"><span>Editing package</span><select class="input input--single" id="mt-pkg-active"></select></label>
+                <div id="mt-pkg-editor"></div>
+              </div>
+            </details>
+
+            <details class="mt-section">
+              <summary>Previews</summary>
+              <div class="mt-section__body">
+                <div class="mt-add-row">
+                  <button class="btn btn--copy" data-action="gen-previews">Generate from canvas</button>
+                  <button class="btn btn--ghost btn--copy" data-action="clear-previews">Clear</button>
+                </div>
+                <div id="mt-previews"></div>
+              </div>
+            </details>
+          </aside>
+
+          <!-- CENTER: canvas -->
+          <section class="mt-pane mt-canvas-pane" aria-label="Preview">
+            <div class="mt-tabs" role="tablist" aria-label="Preview view">
+              <button class="mt-tab" data-view="home" role="tab" aria-selected="true">Home</button>
+              <button class="mt-tab" data-view="lock" role="tab" aria-selected="false">Lockscreen</button>
+              <button class="mt-tab" data-view="boot" role="tab" aria-selected="false">Boot</button>
+              <button class="mt-tab" data-view="colors" role="tab" aria-selected="false">System Colors</button>
+            </div>
+
+            <div class="mt-stage">
+              <div class="mt-phone" id="mt-phone">
+                <canvas id="mt-canvas" class="mt-canvas" width="610" height="1356" aria-label="Theme preview"></canvas>
+              </div>
+            </div>
+
+            <div class="mt-boot-controls" id="mt-boot-controls" style="display:none;">
+              <button class="btn btn--copy" data-action="boot-play">⏸</button>
+              <input type="range" id="mt-boot-scrub" min="0" max="0" value="0" aria-label="Boot frame" />
+            </div>
+
+            <div class="mt-toolrow">
+              <label>Zoom <input type="range" id="mt-zoom" min="0.5" max="1.6" step="0.1" value="1" /> <span id="mt-zoom-val">1.0×</span></label>
+              <span id="mt-status">—</span>
+            </div>
+          </section>
+
+          <!-- RIGHT: inspector + export -->
+          <aside class="mt-pane" aria-label="Inspector and export">
+            <h2 class="mt-pane__title">Inspector</h2>
+            <div id="mt-inspector" class="mt-inspector"></div>
+
+            <h2 class="mt-pane__title" style="margin-top:var(--space-md);">Status</h2>
+            <div id="mt-validation"></div>
+
+            <h2 class="mt-pane__title" style="margin-top:var(--space-md);">Export</h2>
+            <button class="btn btn--primary" id="mt-build" data-action="build">Build &amp; download .mtz</button>
+            <div class="mt-add-row">
+              <button class="btn btn--copy" data-action="import">Import .mtz</button>
+              <button class="btn btn--copy" data-action="load-sample">Load sample</button>
+              <button class="btn btn--ghost btn--copy" data-action="reset">Reset</button>
+            </div>
+            <p class="mt-hint">100% in your browser. Themes are unsigned — install via the HyperOS Themes app / file manager. Nothing is uploaded.</p>
+          </aside>
+
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell site-footer__inner">
+        <span>Built by <a href="https://ranzlappen.com">Ranzlappen</a>.</span>
+        <span><a href="https://github.com/Ranzlappen/tools">source</a> · MIT licensed</span>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="../../assets/js/main.js"></script>
+  <script type="module" src="../../assets/js/info-modal.js"></script>
+  <script type="module" src="./tool.js"></script>
+</body>
+</html>
