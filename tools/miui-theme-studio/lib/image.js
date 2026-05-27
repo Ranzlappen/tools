@@ -27,8 +27,8 @@ export async function decode(blob) {
 
 function dims(src) {
   return {
-    w: src.width || src.naturalWidth || 0,
-    h: src.height || src.naturalHeight || 0,
+    w: src.naturalWidth || src.videoWidth || src.width || 0,
+    h: src.naturalHeight || src.videoHeight || src.height || 0,
   };
 }
 

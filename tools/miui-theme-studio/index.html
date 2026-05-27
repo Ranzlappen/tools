@@ -51,7 +51,6 @@
     }
     @media (max-width: 1080px) {
       .mt-editor { grid-template-columns: minmax(0, 1fr); }
-      .mt-canvas-pane { position: static; }
     }
 
     .mt-pane {
@@ -66,7 +65,7 @@
       border: 1px solid var(--c-border);
       box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 12px 32px -16px var(--c-card-shadow);
     }
-    .mt-canvas-pane { gap: var(--space-md); position: sticky; top: var(--space-md); }
+    .mt-canvas-pane { gap: var(--space-md); }
 
     .mt-pane__title {
       font-family: var(--f-mono);
@@ -172,6 +171,18 @@
     .mt-val--warn { background: rgba(251,191,36,0.10); color: var(--c-warning); }
     .mt-val--ok { background: var(--c-accent-bg); color: var(--c-accent); }
 
+    /* boot frame strip */
+    .mt-frames { display: flex; flex-wrap: wrap; gap: 4px; }
+    .mt-frame { position: relative; width: 34px; height: 34px; border: 1px solid var(--c-border); border-radius: 3px; overflow: hidden; background: #000; }
+    .mt-frame img { width: 100%; height: 100%; object-fit: cover; }
+    .mt-frame button { position: absolute; top: -1px; right: -1px; background: rgba(0,0,0,0.7); color: #fff; border: none; font-size: 10px; line-height: 1; padding: 1px 3px; cursor: pointer; border-radius: 0 0 0 3px; }
+
+    /* font catalog */
+    .mt-font-cat { display: flex; flex-wrap: wrap; gap: 6px; max-height: 180px; overflow: auto; }
+    .mt-font-btn { padding: 5px 9px; background: rgba(255,255,255,0.02); border: 1px solid var(--c-border); border-radius: var(--border-radius-sm); color: var(--c-text); cursor: pointer; font-size: 0.82rem; }
+    .mt-font-btn:hover { border-color: var(--c-accent-border); color: var(--c-accent); }
+    .mt-font-btn--resolve { border-style: dashed; color: var(--c-text-muted); }
+
     .mt-prev { margin: 0; }
     .mt-prev img { width: 100%; border: 1px solid var(--c-border); border-radius: var(--border-radius-sm); }
     .mt-prev figcaption { font-family: var(--f-mono); font-size: 0.66rem; color: var(--c-text-faint); margin-top: 2px; }
@@ -232,6 +243,7 @@
           <input type="file" id="mt-icon-single-file" accept="image/*" class="is-hidden" />
           <input type="file" id="mt-font-file" accept=".ttf,font/ttf" multiple class="is-hidden" />
           <input type="file" id="mt-boot-frames-file" accept="image/*" multiple class="is-hidden" />
+          <input type="file" id="mt-boot-video-file" accept="video/*" class="is-hidden" />
           <input type="file" id="mt-drawable-file" accept="image/*" class="is-hidden" />
           <input type="file" id="mt-import-file" accept=".mtz,.zip,application/zip" class="is-hidden" />
 
@@ -254,36 +266,32 @@
             </details>
 
             <details class="mt-section" open>
-              <summary>Wallpaper</summary>
+              <summary>Home wallpaper</summary>
               <div class="mt-section__body">
-                <div class="mt-grid2">
-                  <div>
-                    <span class="field-label">Home</span>
-                    <div id="mt-wall-home-thumb"></div>
-                    <div class="mt-add-row">
-                      <button class="btn btn--copy" data-action="wall-pick" data-target="home">Upload</button>
-                      <button class="btn btn--ghost btn--copy" data-action="clear-wall" data-target="home">Clear</button>
-                    </div>
-                    <select class="input input--single" data-wall-fit="home"><option value="cover">cover</option><option value="contain">contain</option></select>
-                  </div>
-                  <div>
-                    <span class="field-label">Lockscreen</span>
-                    <div id="mt-wall-lock-thumb"></div>
-                    <div class="mt-add-row">
-                      <button class="btn btn--copy" data-action="wall-pick" data-target="lock">Upload</button>
-                      <button class="btn btn--ghost btn--copy" data-action="clear-wall" data-target="lock">Clear</button>
-                    </div>
-                    <select class="input input--single" data-wall-fit="lock"><option value="cover">cover</option><option value="contain">contain</option></select>
-                  </div>
+                <p class="mt-hint">The home-screen (desktop) background → <code>wallpaper/default_wallpaper.jpg</code>.</p>
+                <div id="mt-wall-home-thumb"></div>
+                <div class="mt-add-row">
+                  <button class="btn btn--copy" data-action="wall-pick" data-target="home">Upload home wallpaper</button>
+                  <button class="btn btn--ghost btn--copy" data-action="clear-wall" data-target="home">Clear</button>
                 </div>
+                <label class="mt-field"><span>Fit</span><select class="input input--single" data-wall-fit="home"><option value="cover">cover</option><option value="contain">contain</option></select></label>
               </div>
             </details>
 
             <details class="mt-section">
-              <summary>Lockscreen</summary>
+              <summary>Lock screen</summary>
               <div class="mt-section__body">
-                <div class="mt-add-row" role="group" aria-label="Lockscreen mode">
-                  <button class="btn btn--copy" data-action="lock-mode" data-mode="static" aria-pressed="true">Static</button>
+                <p class="mt-hint">The lock-screen background → <code>wallpaper/default_lock_wallpaper.jpg</code>, plus optional animated overlays.</p>
+                <span class="field-label">Lock wallpaper</span>
+                <div id="mt-wall-lock-thumb"></div>
+                <div class="mt-add-row">
+                  <button class="btn btn--copy" data-action="wall-pick" data-target="lock">Upload lock wallpaper</button>
+                  <button class="btn btn--ghost btn--copy" data-action="clear-wall" data-target="lock">Clear</button>
+                </div>
+                <label class="mt-field"><span>Fit</span><select class="input input--single" data-wall-fit="lock"><option value="cover">cover</option><option value="contain">contain</option></select></label>
+                <span class="field-label" style="margin-top:var(--space-sm)">Clock / overlays</span>
+                <div class="mt-add-row" role="group" aria-label="Lockscreen overlay mode">
+                  <button class="btn btn--copy" data-action="lock-mode" data-mode="static" aria-pressed="true">Default clock</button>
                   <button class="btn btn--copy" data-action="lock-mode" data-mode="maml" aria-pressed="false">Animated (MAML)</button>
                 </div>
                 <div id="mt-maml-wrap" style="display:none; flex-direction:column; gap:var(--space-sm);">
@@ -321,8 +329,14 @@
             <details class="mt-section">
               <summary>Fonts</summary>
               <div class="mt-section__body">
-                <div class="mt-add-row"><button class="btn btn--copy" data-action="font-add">+ upload .ttf</button></div>
+                <div class="mt-add-row">
+                  <input class="input input--single" id="mt-font-search" placeholder="Search Google Fonts…" />
+                  <button class="btn btn--copy" data-action="font-add">Upload .ttf</button>
+                </div>
+                <div id="mt-font-cat" class="mt-font-cat"></div>
+                <span class="field-label" style="margin-top:var(--space-sm)">In this theme</span>
                 <div id="mt-fonts"></div>
+                <p class="mt-hint">Picked fonts are fetched as real .ttf from Google Fonts (open-license) and embedded. Type any family name to fetch it.</p>
               </div>
             </details>
 
@@ -334,8 +348,13 @@
                   <label class="mt-field"><span>H</span><input class="input input--single" type="number" data-boot="height" style="max-width:80px" /></label>
                   <label class="mt-field"><span>FPS</span><input class="input input--single" type="number" data-boot="fps" style="max-width:60px" /></label>
                 </div>
-                <div class="mt-add-row"><button class="btn btn--copy" data-action="boot-add-part">+ part</button></div>
+                <div class="mt-add-row">
+                  <label class="mt-field"><span>Frames from video</span><input class="input input--single" type="number" id="mt-boot-frame-count" min="2" max="240" value="24" style="max-width:70px" /></label>
+                  <button class="btn btn--copy" data-action="boot-from-video">Pick video</button>
+                </div>
+                <div class="mt-add-row"><button class="btn btn--copy" data-action="boot-add-part">+ empty part</button></div>
                 <div id="mt-boot-parts"></div>
+                <p class="mt-hint">A video is sampled into evenly-spaced PNG frames (a new part). Or add a part and upload frames yourself.</p>
               </div>
             </details>
 
@@ -408,7 +427,20 @@
               <button class="btn btn--copy" data-action="load-sample">Load sample</button>
               <button class="btn btn--ghost btn--copy" data-action="reset">Reset</button>
             </div>
-            <p class="mt-hint">100% in your browser. Themes are unsigned — install via the HyperOS Themes app / file manager. Nothing is uploaded.</p>
+            <details class="mt-section" style="margin-top:var(--space-md);">
+              <summary>How to apply on your phone</summary>
+              <div class="mt-section__body">
+                <ol style="margin:0; padding-left:1.1rem; font-size:0.8rem; line-height:1.5; color:var(--c-text-muted);">
+                  <li>Build and download the <code>.mtz</code>.</li>
+                  <li>Copy it to your phone (USB, cloud, or download it directly on the device).</li>
+                  <li>Open the <strong>File Manager</strong>, find the <code>.mtz</code>, and tap it — it opens in the <strong>Themes</strong> app.</li>
+                  <li>Alternatively: <strong>Themes</strong> app → profile/account → <strong>Import</strong> (or the three-dot menu) → pick the <code>.mtz</code>.</li>
+                  <li>Tap <strong>Apply</strong>. You may need to confirm a reboot for fonts / boot animation.</li>
+                </ol>
+                <p class="mt-hint">Themes are unsigned. If applying is blocked, your region/build may restrict third-party themes — that's a device policy, not a broken file.</p>
+              </div>
+            </details>
+            <p class="mt-hint">100% in your browser. Nothing is uploaded.</p>
           </aside>
 
         </div>
