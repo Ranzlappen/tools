@@ -10,6 +10,7 @@ import * as pc from "./lib/preview-canvas.js";
 import { defaultState, validate, slugify, uid, normalizeColor } from "./lib/state.js";
 import { DEVICE, KNOWN_PACKAGES, PRESET_APPS, DRAWABLE_DENSITIES } from "./lib/mtz-spec.js";
 import { LOCKSCREEN_TYPES, FANCY_TYPES, makeElement, editableFields } from "./lib/maml.js";
+import * as gfonts from "./lib/fonts.js";
 
 // ── lazy CDN: JSZip (already pinned + SRI elsewhere in this repo) ──────────
 const CDN = {
@@ -237,6 +238,23 @@ function renderFonts() {
     : `<p class="mt-hint">No fonts. Upload a .ttf to theme the system font.</p>`;
 }
 
+function renderFontCatalog(query = "") {
+  const cat = $("#mt-font-cat");
+  if (!cat) return;
+  const list = gfonts.searchCurated(query);
+  let html = list
+    .map(
+      (f) =>
+        `<button class="mt-font-btn" data-action="font-pick" data-slug="${xml.esc(f.slug)}" data-dir="${xml.esc(f.dir)}" data-file="${xml.esc(f.file)}" data-family="${xml.esc(f.family)}">${xml.esc(f.family)}</button>`,
+    )
+    .join("");
+  const q = query.trim();
+  if (q && !list.some((f) => f.family.toLowerCase() === q.toLowerCase())) {
+    html += `<button class="mt-font-btn mt-font-btn--resolve" data-action="font-resolve" data-family="${xml.esc(q)}">Fetch “${xml.esc(q)}” from Google Fonts ↗</button>`;
+  }
+  cat.innerHTML = html || `<p class="mt-hint">No matches — type a family name to fetch it.</p>`;
+}
+
 function renderBoot() {
   for (const k of ["width", "height", "fps"]) {
     const el = editor.querySelector(`[data-boot="${k}"]`);
@@ -257,6 +275,12 @@ function renderBoot() {
               <label>pause <input class="input input--single" type="number" min="0" data-boot-part="pause" data-name="${p.name}" value="${p.pause}" /></label>
               <button class="btn btn--copy" data-action="boot-part-frames" data-name="${p.name}">+ frames</button>
             </div>
+            <div class="mt-frames">${p.frames
+              .map(
+                (f, fi) =>
+                  `<span class="mt-frame"><img src="${f.url}" alt="frame ${fi}" /><button data-action="boot-frame-remove" data-name="${p.name}" data-idx="${fi}" aria-label="Remove frame ${fi}">×</button></span>`,
+              )
+              .join("")}</div>
           </div>`,
         )
         .join("")
@@ -399,6 +423,7 @@ function renderAll() {
   syncLockMode();
   renderIcons();
   renderFonts();
+  renderFontCatalog($("#mt-font-search") ? $("#mt-font-search").value : "");
   renderBoot();
   renderPackages();
   renderPreviews();
@@ -462,6 +487,94 @@ async function generatePreviewsNow() {
     setStatus("Previews generated.", "ok");
   } catch (e) {
     setStatus("Preview render failed: " + e.message, "err");
+  }
+}
+
+async function addGoogleFont(entry) {
+  try {
+    setStatus(`Fetching ${entry.family}…`);
+    const blob = await gfonts.fetchTtf(entry);
+    state.fonts.push({ id: uid("ft"), name: gfonts.safeName(entry.family), blob, family: null });
+    registerFonts();
+    renderFonts();
+    renderValidation();
+    setStatus(`Added ${entry.family}.`, "ok");
+  } catch (e) {
+    setStatus(e.message, "err");
+  }
+}
+
+async function resolveAndAddFont(name) {
+  setStatus(`Looking up ${name}…`);
+  let entry;
+  try {
+    entry = await gfonts.resolveFamily(name);
+  } catch {
+    entry = null;
+  }
+  if (!entry) {
+    setStatus(`Couldn't find "${name}" in Google Fonts. Check the spelling or upload a .ttf.`, "err");
+    return;
+  }
+  await addGoogleFont(entry);
+}
+
+function seekTo(video, t) {
+  return new Promise((resolve, reject) => {
+    const onSeeked = () => {
+      video.removeEventListener("seeked", onSeeked);
+      resolve();
+    };
+    video.addEventListener("seeked", onSeeked);
+    try {
+      video.currentTime = t;
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+async function extractVideoFrames(file) {
+  const count = Math.max(2, Math.min(240, Number($("#mt-boot-frame-count").value) || 24));
+  const url = URL.createObjectURL(file);
+  const video = document.createElement("video");
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  video.src = url;
+  try {
+    setStatus("Decoding video…");
+    await new Promise((res, rej) => {
+      video.onloadedmetadata = () => res();
+      video.onerror = () => rej(new Error("Couldn't decode this video format."));
+    });
+    const dur = isFinite(video.duration) ? video.duration : 0;
+    if (!dur) throw new Error("Video has no readable duration.");
+    const W = state.boot.width;
+    const H = state.boot.height;
+    const cv = document.createElement("canvas");
+    cv.width = W;
+    cv.height = H;
+    const ctx = cv.getContext("2d");
+    const part = { name: `part${state.boot.parts.length}`, count: state.boot.parts.length ? 1 : 0, pause: 0, frames: [] };
+    for (let i = 0; i < count; i += 1) {
+      await seekTo(video, (i / (count - 1)) * Math.max(0, dur - 0.05));
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, W, H);
+      image.drawFit(ctx, video, W, H, "contain");
+      const blob = await new Promise((r) => cv.toBlob(r, "image/png"));
+      part.frames.push(await image.toAsset(blob, `${String(i).padStart(4, "0")}.png`));
+      setStatus(`Extracting frame ${i + 1}/${count}…`);
+    }
+    state.boot.parts.push(part);
+    renderBoot();
+    renderValidation();
+    scheduleRender();
+    setStatus(`Extracted ${count} frames into ${part.name}.`, "ok");
+  } catch (e) {
+    setStatus(e.message, "err");
+  } finally {
+    URL.revokeObjectURL(url);
   }
 }
 
@@ -592,6 +705,12 @@ function onClick(e) {
     case "font-add":
       $("#mt-font-file").click();
       break;
+    case "font-pick":
+      addGoogleFont({ slug: btn.dataset.slug, dir: btn.dataset.dir, file: btn.dataset.file, family: btn.dataset.family });
+      break;
+    case "font-resolve":
+      resolveAndAddFont(btn.dataset.family);
+      break;
     case "font-remove":
       state.fonts = state.fonts.filter((x) => x.id !== id);
       renderFonts();
@@ -615,6 +734,21 @@ function onClick(e) {
       pendingPartName = name;
       $("#mt-boot-frames-file").click();
       break;
+    case "boot-from-video":
+      $("#mt-boot-video-file").click();
+      break;
+    case "boot-frame-remove": {
+      const p = state.boot.parts.find((p) => p.name === name);
+      if (p) {
+        const idx = Number(btn.dataset.idx);
+        image.revokeAsset(p.frames[idx]);
+        p.frames.splice(idx, 1);
+      }
+      renderBoot();
+      renderValidation();
+      scheduleRender();
+      break;
+    }
     case "pkg-add-known": {
       const v = $("#mt-pkg-known").value;
       if (v) {
@@ -720,6 +854,10 @@ function onInput(e) {
     state.ui.activePackage = t.value;
     renderPackages();
     scheduleRender();
+    return;
+  }
+  if (t.id === "mt-font-search") {
+    renderFontCatalog(t.value);
     return;
   }
   if (t.dataset.meta) {
@@ -858,6 +996,11 @@ function wireFileInputs() {
       }
       renderPackages();
     }
+    e.target.value = "";
+  });
+  $("#mt-boot-video-file").addEventListener("change", async (e) => {
+    const f = e.target.files[0];
+    if (f) await extractVideoFrames(f);
     e.target.value = "";
   });
   $("#mt-import-file").addEventListener("change", async (e) => {
