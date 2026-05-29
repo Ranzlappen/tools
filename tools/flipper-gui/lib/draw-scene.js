@@ -30,11 +30,13 @@ function drawText(ctx, x, y, text, fontKey) {
  * blank gap, drawing a second copy as the tail wraps in. */
 function drawScrollText(ctx, x, y, text, fontKey, clipW, opts = {}) {
   if (clipW <= 0) return;
-  const lineH = getFont(fontKey).lineH;
   const full = measureText(text, fontKey).w;
   ctx.save();
   ctx.beginPath();
-  ctx.rect(x, y, clipW, lineH);
+  // Clip horizontally only (full 64px canvas height): glyphs render up to a
+  // pixel above `y` (Primary's ascent 7 < its 8px cell), so a lineH-tall clip
+  // would shave their top row. This mirrors the unclipped non-scroll path.
+  ctx.rect(x, 0, clipW, 64);
   ctx.clip();
   if (full <= clipW || opts.now == null) {
     drawText(ctx, x, y, text, fontKey);

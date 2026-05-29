@@ -32,7 +32,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 
 const here = dirname(fileURLToPath(import.meta.url));
-const SIZES = [16, 32, 64];
+const SIZES = [8, 16, 32, 64];
 
 async function rasterize(page, inner, size) {
   return page.evaluate(async ({ inner, size, vb }) => {
@@ -64,7 +64,7 @@ function serialize(categories) {
     body += `    { id: ${JSON.stringify(cat.id)}, label: ${JSON.stringify(cat.label)}, icons: [\n`;
     for (const ic of cat.icons) {
       const s = ic.sizes;
-      body += `      { name: ${JSON.stringify(ic.name)}, sizes: { "16": ${JSON.stringify(s[16])}, "32": ${JSON.stringify(s[32])}, "64": ${JSON.stringify(s[64])} } },\n`;
+      body += `      { name: ${JSON.stringify(ic.name)}, sizes: { "8": ${JSON.stringify(s[8])}, "16": ${JSON.stringify(s[16])}, "32": ${JSON.stringify(s[32])}, "64": ${JSON.stringify(s[64])} } },\n`;
     }
     body += "    ] },\n";
   }

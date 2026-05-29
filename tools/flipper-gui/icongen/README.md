@@ -8,7 +8,7 @@ lazily by the browser. You only run this when the glyph set changes.
 ## What it generates
 
 `generate-icons.mjs` rasterizes every glyph defined in `icons.svg.mjs`
-at **16, 32 and 64 px** and packs each through the *same* 1-bit pipeline
+at **8, 16, 32 and 64 px** and packs each through the *same* 1-bit pipeline
 the tool uses for uploaded images (`../lib/xbm.js`:
 `imageDataToBits → packXbm → bytesToB64`). Library icons are therefore
 byte-identical in format to user uploads and flow through the existing
@@ -21,7 +21,7 @@ Output shape (`lib/icons/library.js`):
 export default {
   categories: [
     { id: "system", label: "System", icons: [
-      { name: "battery", sizes: { "16": "<base64>", "32": "...", "64": "..." } },
+      { name: "battery", sizes: { "8": "<base64>", "16": "...", "32": "...", "64": "..." } },
       …
     ] },
     …
@@ -71,3 +71,17 @@ node icongen/generate-icons.mjs
 
 The script prints a per-category icon count and writes
 `../lib/icons/library.js`. Commit the regenerated module.
+
+### Without a browser (8×8 only)
+
+Where Chromium can't be installed, `downsample-8.mjs` adds the **8×8** size
+headlessly by 2×2 box-downsampling the already-committed 16×16 bitmaps through
+`../lib/xbm.js` (no browser, no network, deterministic):
+
+```sh
+node icongen/downsample-8.mjs
+```
+
+It rewrites `../lib/icons/library.js` in place with a `"8"` entry first in each
+icon's `sizes`. Prefer the full `generate-icons.mjs` (SVG-accurate at every
+size) when a browser is available; both emit the same file shape.

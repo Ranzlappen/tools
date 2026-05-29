@@ -13,7 +13,7 @@
 
 import { renderXbm, b64ToBytes } from "./xbm.js";
 
-const SIZES = [16, 32, 64];
+const SIZES = [8, 16, 32, 64];
 
 let dialog = null;
 let libraryPromise = null;
