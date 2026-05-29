@@ -57,15 +57,26 @@ npm run validate
 
 ## Files
 
+- \`${m.appid}.flipper-gui.json\` — the design spec and **source of truth**.
+  Load it back into Flipper GUI Studio to keep editing. Everything below
+  except \`${m.appid}.c\` regenerates from it.
 - \`application.fam\` — manifest (appid \`${m.appid}\`, entry \`${m.entry}\`).
-- \`${m.appid}.c\` — entry point. Override \`${m.ns}_on_event()\` for your logic.
-- \`${m.ns}_scene.c\` / \`${m.ns}_scene.h\` — generated screens, drawing and input.
+  Generated from the JSON — don't hand-edit.
+- \`${m.appid}.c\` — entry point, **generated once and now yours**. Override
+  \`${m.ns}_on_event()\` here for your logic; re-export never overwrites it.
+- \`${m.ns}_scene.c\` / \`${m.ns}_scene.h\` — generated screens, drawing and
+  input. Regenerated from the JSON — don't hand-edit.
 - \`icon.png\` — 10x10 launcher icon.
 
 ## Editing
 
-Re-import the design's JSON spec into Flipper GUI Studio and regenerate,
-rather than hand-editing the generated scene file.
+Don't hand-edit the generated scene. Instead **Load JSON** the
+\`${m.appid}.flipper-gui.json\` sidecar back into Flipper GUI Studio, make your
+change, and re-export the C bundle over this folder. On re-export you keep your
+existing \`${m.appid}.c\` and overwrite only \`application.fam\`,
+\`${m.ns}_scene.c\`/\`.h\`, and the JSON sidecar. CI (\`npm run regen-check\`)
+regenerates the FAM + scene from the committed JSON and byte-diffs them, so the
+spec and the generated files must stay in lockstep.
 `;
 }
 
@@ -180,6 +191,11 @@ export async function exportBundle(state, { target, exporters, JSZip, renderIcon
     const entry = exporters.entry();
     root.file(entry.filename, entry.text);
     for (const f of exporters.scene()) root.file(f.filename, f.text); // [h, c]
+    // The round-trippable design spec — source of truth for the FAM + scene.
+    // Ships in the C bundle so the folder is self-describing and re-editable
+    // (Load JSON ← this file), and so CI can regenerate-and-diff against it.
+    const spec = exporters.json();
+    root.file(spec.filename, spec.text);
     root.file("icon.png", await renderAppIconPng(state));
     if (m.iconMode === "assets") {
       const refs = referencedIcons(state);

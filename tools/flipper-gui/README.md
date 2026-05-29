@@ -152,6 +152,25 @@ The generated app uses a single `ViewPort` with an idiomatic
 scene in a `ViewDispatcher` by hand; native ViewDispatcher emission is a
 planned mode.
 
+### Editing a deployed app later (round-trip)
+
+The C bundle ships an `<appid>.flipper-gui.json` sidecar — the design's
+**source of truth**. The FAM and scene are fully recoverable from it, so
+that one file is all you need to keep editing:
+
+1. **Load JSON** the committed `<appid>.flipper-gui.json` back into the
+   editor.
+2. Make your change and re-export the **C** bundle over the folder.
+3. Re-export overwrites `application.fam`, `<ns>_scene.c`/`.h`, and the
+   JSON sidecar; it **never** touches `<appid>.c`, so your hand-written
+   `<ns>_on_event()` logic survives.
+
+The `ranzlappen/flipper` repo commits this sidecar next to every
+Studio-generated app and runs `npm run regen-check` in CI: it regenerates
+the FAM + scene from the committed JSON (using these exporters, headless)
+and byte-diffs them, so the spec and generated files can't drift. The
+exclusion list (`<appid>.c` + assets) matches step 3.
+
 ### Privacy
 
 This tool is entirely client-side. The generated code, JSON spec, and
@@ -174,9 +193,17 @@ shared CDN that lazy-loads marked + DOMPurify for this README modal.
 - `exporters/entry.js` — the `<appid>.c` entry point and the
   `<ns>_on_event` override stub.
 - `exporters/xbm.js` — icons-only header.
-- `exporters/json.js` — pretty-printed spec.
+- `exporters/json.js` — pretty-printed `flipper-gui/v1` spec; the
+  `<appid>.flipper-gui.json` round-trip sidecar (filename derived from
+  `appMeta`).
+- `exporters/index.js` — the stable, **DOM-free** export surface
+  (`exportFam`, `exportScene`, `exportEntry`, `exportJson`, `appMeta`,
+  `preloadFonts`) that headless consumers like the Flipper repo's
+  `regen-check` import. `await preloadFonts()` once before `exportScene`
+  for byte-identical output.
 - `exporters/bundle.js` — assembles the C-app / JS-app `.zip` (pure;
-  JSZip + the loaded exporters + a PNG renderer are injected).
+  JSZip + the loaded exporters + a PNG renderer are injected). The C
+  target also writes the `<appid>.flipper-gui.json` sidecar.
 - `lib/xbm.js` — XBM packing, 1bpp dithering, base64.
 - `lib/png1.js` — minimal 1-bit-grayscale PNG encoder for the launcher
   `icon.png` and `images/` assets (`canvas.toBlob` can't emit 1-bit, which
@@ -254,7 +281,10 @@ shared CDN that lazy-loads marked + DOMPurify for this README modal.
   design to an HTML canvas; it is **not** a deployable Flipper app (the
   Momentum JS runtime has no pixel-canvas API). Use the **C app** bundle
   to build something that runs on-device.
-- **One-way export.** Importing existing `.c` back into the editor
-  isn't supported — round-trip via the JSON format.
+- **Round-trip is via JSON, not `.c`.** The C bundle ships an
+  `<appid>.flipper-gui.json` sidecar — the design's source of truth — next
+  to the generated FAM and scene. To keep editing a deployed app, **Load
+  JSON** that sidecar back into the editor, change it, and re-export over the
+  folder. Reverse-engineering hand-written `.c` is deliberately out of scope.
 - **Desktop-first.** The drag-and-drop flow is built around pointer
   events; mobile users should use the inspector form fields.
