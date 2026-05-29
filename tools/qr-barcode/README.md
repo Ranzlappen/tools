@@ -76,6 +76,9 @@ CDN-loaded with SHA-384 SRI:
   matching `<option>` in `index.html`.
 - **Add an export format:** add a button in the export row and a
   handler that reads the rendered SVG/canvas.
+- **Logo overlay note:** adding a logo auto-bumps QR error correction
+  to level Q so the code still scans with the centre occluded — keep
+  that coupling if you touch the logo or ECC handling.
 
 ### Limitations
 

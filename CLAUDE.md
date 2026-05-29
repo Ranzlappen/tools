@@ -4,14 +4,15 @@ Architectural notes for AI assistants working on this repo.
 
 ## What this is
 
-`tools.ranzlappen.com` — a static landing dashboard plus eleven working
+`tools.ranzlappen.com` — a static landing dashboard plus twelve working
 utilities (JSON formatter, color picker, regex tester, markdown
 preview, multi-encoder, JWT decoder, UUID/hash generator, QR/barcode
-generator, video studio, OG image studio, metadata studio). Ten run
-entirely in the browser; OG Image Studio is the first to call an API
-(`/api/og` on `api.tools.ranzlappen.com`, served by Vercel). Video
-Studio and Metadata Studio both lazy-load their format libraries from
-pinned CDNs on first use, so the first-paint budget is unaffected.
+generator, video studio, OG image studio, metadata studio, Flipper GUI
+studio). Eleven run entirely in the browser; OG Image Studio is the
+first to call an API (`/api/og` on `api.tools.ranzlappen.com`, served by
+Vercel). Video Studio, Metadata Studio, and the Markdown file-importer
+lazy-load their format libraries from pinned CDNs on first use, so the
+first-paint budget is unaffected.
 
 ## Hosting
 

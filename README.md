@@ -32,14 +32,19 @@ tool subpage.
 │       ├── main.js             # theme + backdrop toggle, persistence
 │       ├── backdrop-shader.js  # WebGL plasma (lazy)
 │       └── backdrop-particles.js # canvas constellation (lazy)
-├── tools/                      # client-only tool subpages
+├── tools/                      # tool subpages (client-only unless noted)
 │   ├── json-formatter/
 │   ├── color-picker/
 │   ├── regex/
 │   ├── markdown/
 │   ├── encoder/
 │   ├── jwt/
-│   └── uuid-hash/
+│   ├── uuid-hash/
+│   ├── qr-barcode/
+│   ├── video/
+│   ├── og-studio/             # calls the /api/og edge function
+│   ├── metadata-studio/
+│   └── flipper-gui/           # incl. fontgen/ + icongen/ dev tools
 ├── api/                        # Vercel serverless functions
 │   ├── health.js
 │   └── README.md
@@ -51,21 +56,23 @@ tool subpage.
 
 ## Tools (shipped)
 
-All run entirely in the browser. No network call leaves the page.
+All run entirely in the browser except OG Image Studio, which calls the
+`/api/og` edge function to render its cards.
 
 | Tool                  | Description                                       |
 | --------------------- | ------------------------------------------------- |
 | JSON Formatter        | Pretty-print, minify, validate                    |
 | Color Picker          | Pick, convert HEX/RGB/HSL/OKLCH/HSV, WCAG check   |
 | Regex Tester & Builder| Live highlight + common-pattern snippet palette   |
-| Markdown Preview      | Live GFM preview with copy-to-clipboard           |
+| Markdown Preview      | Live GFM preview, or import a file → Markdown      |
 | Multi-Encoder         | Base64 ↔ Hex / URL / Binary / ASCII (UTF-8 safe)  |
 | JWT Decoder           | Header + payload (signature not verified)         |
 | UUID & Hash Generator | UUID v4/v7 + MD5/SHA-1/SHA-256/SHA-384/SHA-512    |
 | QR & Barcode Generator| QR + every common 1D/2D symbology, ECC, design, exports |
 | Video Studio          | Reverse, boomerang, trim, re-encode via ffmpeg.wasm |
-| OG Image Studio       | Compose 1200×630 social cards via the edge        |
+| OG Image Studio       | Compose social cards via the edge (server-rendered) |
 | Metadata Studio       | Inspect, edit, strip, extend metadata in any file |
+| Flipper GUI Studio    | Visual editor for Flipper Zero / Momentum apps, exports C |
 
 ## Heavier tools (Vercel)
 
