@@ -245,12 +245,12 @@ function renderFontCatalog(query = "") {
   let html = list
     .map(
       (f) =>
-        `<button class="mt-font-btn" data-action="font-pick" data-slug="${f.slug}" data-dir="${f.dir}" data-file="${f.file}" data-family="${f.family}">${f.family}</button>`,
+        `<button class="mt-font-btn" data-action="font-pick" data-slug="${xml.esc(f.slug)}" data-dir="${xml.esc(f.dir)}" data-file="${xml.esc(f.file)}" data-family="${xml.esc(f.family)}">${xml.esc(f.family)}</button>`,
     )
     .join("");
   const q = query.trim();
   if (q && !list.some((f) => f.family.toLowerCase() === q.toLowerCase())) {
-    html += `<button class="mt-font-btn mt-font-btn--resolve" data-action="font-resolve" data-family="${q.replace(/"/g, "")}">Fetch “${q}” from Google Fonts ↗</button>`;
+    html += `<button class="mt-font-btn mt-font-btn--resolve" data-action="font-resolve" data-family="${xml.esc(q)}">Fetch “${xml.esc(q)}” from Google Fonts ↗</button>`;
   }
   cat.innerHTML = html || `<p class="mt-hint">No matches — type a family name to fetch it.</p>`;
 }
