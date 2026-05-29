@@ -162,16 +162,33 @@
     .fg-stage {
       position: relative;
       display: flex;
-      align-items: center;
-      justify-content: center;
+      /* `safe` keeps the canvas centred when it fits, but falls back to
+         start alignment when zoomed past the viewport so the top/left
+         overflow stays scroll-reachable (plain `center` traps it). */
+      align-items: safe center;
+      justify-content: safe center;
       padding: var(--space-md);
       background: rgba(0,0,0,0.32);
       border: 1px solid var(--c-border);
       border-radius: var(--border-radius);
       min-height: 280px;
       overflow: auto;
+      /* Foreground, theme-matched scrollbars (Firefox). */
+      scrollbar-width: thin;
+      scrollbar-color: var(--c-accent) transparent;
     }
     [data-theme="light"] .fg-stage { background: rgba(0,0,0,0.06); }
+    /* Foreground, theme-matched scrollbars (WebKit/Chromium). */
+    .fg-stage::-webkit-scrollbar { width: 10px; height: 10px; }
+    .fg-stage::-webkit-scrollbar-track { background: transparent; }
+    .fg-stage::-webkit-scrollbar-thumb {
+      background: var(--c-accent);
+      border-radius: 6px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    .fg-stage::-webkit-scrollbar-thumb:hover { background: var(--c-accent-border, var(--c-accent)); }
+    .fg-stage::-webkit-scrollbar-corner { background: transparent; }
 
     .fg-stage__inner {
       position: relative;
@@ -844,6 +861,7 @@
                 <button type="button" class="fg-tool-btn is-active" data-tool="select" title="Select / move (V)">Select</button>
                 <button type="button" class="fg-tool-btn" data-tool="pencil" title="Free draw (P)">Pencil</button>
                 <button type="button" class="fg-tool-btn" data-tool="eraser" title="Erase free draw (E)">Eraser</button>
+                <button type="button" class="fg-tool-btn" data-tool="hand" title="Pan canvas (H)">Hand</button>
                 <label class="fg-brush">
                   Brush
                   <select id="fg-brush-size" aria-label="Brush size">

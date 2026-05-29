@@ -349,7 +349,7 @@ function clampInt(v, lo, hi) {
 
 // ── Render loop ────────────────────────────────────────────────────
 
-let canvas, ctx, overlay, stageInner, statusEl;
+let canvas, ctx, overlay, stage, stageInner, statusEl;
 
 function scheduleRender() {
   if (renderQueued) return;
@@ -750,22 +750,25 @@ function moveSelectionBy(dx, dy) {
 // Tool mode is UI-only state, deliberately NOT part of the document so it
 // never leaks into saved JSON or the share URL.
 
-let currentTool = "select";   // "select" | "pencil" | "eraser"
+let currentTool = "select";   // "select" | "pencil" | "eraser" | "hand"
 let brushSize = 1;            // 1..3 px square brush
 let strokeBuf = null;         // Uint8Array(128*64) live during a paint stroke
 
+const TOOL_CURSORS = { select: "crosshair", hand: "grab", pencil: "cell", eraser: "cell" };
+
 function setTool(name) {
-  if (!["select", "pencil", "eraser"].includes(name)) return;
+  if (!["select", "pencil", "eraser", "hand"].includes(name)) return;
   currentTool = name;
   $$("[data-tool]").forEach((b) => b.classList.toggle("is-active", b.dataset.tool === name));
   // Drawing tools paint pixels, not widgets — drop the selection so its
-  // handles don't sit on top of the canvas while you draw.
-  if (name !== "select") {
+  // handles don't sit on top of the canvas while you draw. The hand tool
+  // only pans, so it keeps the current selection.
+  if (name === "pencil" || name === "eraser") {
     state.selection = [];
     renderOverlay();
     renderInspector();
   }
-  if (canvas) canvas.style.cursor = name === "select" ? "crosshair" : "cell";
+  if (canvas) canvas.style.cursor = TOOL_CURSORS[name] || "crosshair";
 }
 
 /* The active screen's paint layer (a full-canvas bitmap widget), or null. */
@@ -848,6 +851,17 @@ function wireCanvasPointer() {
     canvas.setPointerCapture(ev.pointerId);
     const p = pointerToCanvas(ev);
 
+    if (currentTool === "hand") {
+      // Pan the stage by following the pointer — no document mutation.
+      drag = {
+        kind: "pan",
+        startClientX: ev.clientX, startClientY: ev.clientY,
+        startScrollLeft: stage.scrollLeft, startScrollTop: stage.scrollTop,
+      };
+      canvas.style.cursor = "grabbing";
+      return;
+    }
+
     if (currentTool === "pencil" || currentTool === "eraser") {
       // Snapshot before the layer may be auto-created, so undoing the
       // first stroke removes the layer entirely rather than leaving an
@@ -887,6 +901,13 @@ function wireCanvasPointer() {
   });
   canvas.addEventListener("pointermove", (ev) => {
     if (!drag) return;
+
+    if (drag.kind === "pan") {
+      stage.scrollLeft = drag.startScrollLeft - (ev.clientX - drag.startClientX);
+      stage.scrollTop = drag.startScrollTop - (ev.clientY - drag.startClientY);
+      return;
+    }
+
     const p = pointerToCanvas(ev);
 
     if (drag.kind === "draw") {
@@ -937,6 +958,7 @@ function wireCanvasPointer() {
 
   canvas.addEventListener("pointerup", () => {
     if (!drag) return;
+    if (drag.kind === "pan") { canvas.style.cursor = "grab"; drag = null; return; }
     if (drag.kind === "draw") { endDraw(); return; }
     // Commit the pre-drag snapshot as a single undo entry, only if
     // the drag actually moved something.
@@ -950,6 +972,7 @@ function wireCanvasPointer() {
   });
   canvas.addEventListener("pointercancel", () => {
     if (drag && drag.kind === "draw") { endDraw(); return; }
+    if (drag && drag.kind === "pan") canvas.style.cursor = "grab";
     drag = null;
   });
 }
@@ -960,6 +983,9 @@ function wirePaletteDrag() {
       const type = btn.dataset.add;
       if (type === "icon") addIconWidget(8, 8);
       else addWidget(type, 8, 8);
+      // A new widget is ready to position — drop back to Select so a
+      // lingering pencil/eraser doesn't paint over it on the next click.
+      setTool("select");
     });
     // Drag-to-canvas: pointerdown starts ghost; pointerup over canvas places.
     btn.addEventListener("pointerdown", (ev) => {
@@ -1000,6 +1026,7 @@ function wirePaletteDrag() {
           const y = Math.floor((up.clientY - rect.top) / zoom);
           if (type === "icon") addIconWidget(x, y);
           else addWidget(type, x, y);
+          setTool("select"); // ready to position the new widget
         }
         if (ghost) ghost.remove();
       };
@@ -1820,6 +1847,7 @@ function boot() {
   ctx = canvas.getContext("2d");
   ctx.imageSmoothingEnabled = false;
   overlay = $("#fg-overlay");
+  stage = $("#fg-stage");
   stageInner = $("#fg-stage-inner");
   statusEl = $("#fg-status");
 
@@ -2021,12 +2049,13 @@ function boot() {
       for (const id of state.selection) duplicateWidget(id);
       return;
     }
-    // Tool shortcuts (no modifier): V select, P pencil, E eraser, Esc select.
+    // Tool shortcuts (no modifier): V select, P pencil, E eraser, H hand, Esc select.
     if (!meta) {
       const k = e.key.toLowerCase();
       if (k === "v") { e.preventDefault(); setTool("select"); return; }
       if (k === "p") { e.preventDefault(); setTool("pencil"); return; }
       if (k === "e") { e.preventDefault(); setTool("eraser"); return; }
+      if (k === "h") { e.preventDefault(); setTool("hand"); return; }
       if (e.key === "Escape" && currentTool !== "select") { e.preventDefault(); setTool("select"); return; }
     }
     const step = e.shiftKey ? 8 : 1;
