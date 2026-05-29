@@ -19,7 +19,44 @@
 
 import { getFont } from "../lib/font-metrics.js";
 import { measureText } from "../lib/font-render.js";
-import { bytesToCArray, b64ToBytes } from "../lib/xbm.js";
+import { bytesToCArray, b64ToBytes, packXbm, unpackXbm } from "../lib/xbm.js";
+
+// ── Free-draw bitmap emission ──────────────────────────────────────
+// A "bitmap" widget stores a full-canvas (128×64) base64 XBM. For export
+// we trim it to the tight bounding box of set pixels and emit a
+// self-contained scoped block (inline static array + canvas_draw_xbm), so
+// it works in both the scene file and the paste-in snippet without a
+// separate top-of-file collection pass. Returns [] for an empty layer.
+function emitBitmapDraw(w) {
+  if (!w.bits) return [];
+  const px = unpackXbm(b64ToBytes(w.bits), 128, 64);
+  let minX = 128, minY = 64, maxX = -1, maxY = -1;
+  for (let y = 0; y < 64; y++) {
+    for (let x = 0; x < 128; x++) {
+      if (px[y * 128 + x]) {
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) return [];
+  const tw = maxX - minX + 1, th = maxY - minY + 1;
+  const trimmed = new Uint8Array(tw * th);
+  for (let y = 0; y < th; y++) {
+    for (let x = 0; x < tw; x++) {
+      trimmed[y * tw + x] = px[(minY + y) * 128 + (minX + x)];
+    }
+  }
+  const name = `bitmap_${safeNs(w.id)}`;
+  return [
+    `{`,
+    `    static const uint8_t ${name}[] = {`,
+    bytesToCArray(packXbm(trimmed, tw, th)),
+    `    };`,
+    `    canvas_draw_xbm(canvas, ${minX}, ${minY}, ${tw}, ${th}, ${name});`,
+    `}`,
+  ];
+}
 
 // ── Identifier helpers ─────────────────────────────────────────────
 
@@ -116,6 +153,8 @@ export function emitWidgetDraw(w, ctx, state) {
       return [`canvas_draw_line(canvas, ${w.x | 0}, ${w.y | 0}, ${w.x2 | 0}, ${w.y2 | 0});`];
     case "dot":
       return [`canvas_draw_dot(canvas, ${w.x | 0}, ${w.y | 0});`];
+    case "bitmap":
+      return emitBitmapDraw(w);
     case "icon": {
       const icon = (state.icons || []).find((i) => i.id === w.iconId);
       if (!icon) return [`// missing icon ref: ${w.iconId}`];

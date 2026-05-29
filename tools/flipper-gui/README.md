@@ -8,7 +8,8 @@
 A WYSIWYG editor for the Flipper Zero's 128×64 monochrome screen.
 Drop primitives (text, box, frame, line, dot), interactive buttons,
 icons, and composite widgets (progress bar, menu, toggle) onto a
-multi-screen canvas; wire buttons to screen transitions; export as
+multi-screen canvas; free-draw pixel art with a pencil and eraser;
+wire buttons to screen transitions; export as
 **C** that drops straight into a Momentum app under
 `ranzlappen/Flipper` — or as a JSON spec, snippet, or XBM header.
 
@@ -21,6 +22,14 @@ shared CDN that lazy-loads the markdown renderer for this info modal.
 
 - **Drag-and-drop placement** from the palette onto the 128×64 canvas
   (CSS-scaled, pixel-aligned).
+- **Free draw + eraser** — the tool row above the canvas has **Select**
+  (the default move tool), **Pencil**, and **Eraser**, plus a 1–3 px
+  brush-size picker. Pencil paints individual pixels MS-Paint-style;
+  Eraser clears them. Strokes collect into a single per-screen paint
+  layer (a `bitmap` widget) that lives in the Elements list, undoes one
+  stroke at a time, round-trips through JSON, and exports as a
+  `canvas_draw_xbm` call trimmed to its bounding box. Switch tools with
+  **V / P / E** (or **Esc** to return to Select).
 - **Multi-screen** with a tab bar; buttons wire screen-to-screen with
   a `goto` action. Custom-event actions emit an integer event code
   you can dispatch in your app.
@@ -66,7 +75,8 @@ shared CDN that lazy-loads the markdown renderer for this info modal.
   C | Preview toggle.
 - **Undo / redo** — 50-step history, `Ctrl/Cmd+Z` / `Ctrl/Cmd+Y`.
 - **Keyboard nudge** — arrow keys move by 1 px, Shift+arrow by 8 px,
-  Delete removes, `Ctrl/Cmd+D` duplicates.
+  Delete removes, `Ctrl/Cmd+D` duplicates. `V`/`P`/`E` switch between the
+  Select, Pencil and Eraser tools.
 - **Hash round-trip** — the entire design lives in the URL hash, so
   designs are shareable as deep-links. Large designs (oversized
   icons, many screens) fall back to the JSON download flow.
@@ -93,10 +103,16 @@ shared CDN that lazy-loads the markdown renderer for this info modal.
    dithering). *Browse library* adds an icon to your list without
    placing a widget. Any placed `icon` widget can be re-pointed from its
    inspector dropdown.
-7. Use the **Elements** panel (top of the right pane) to find, select,
+7. To draw freehand, click **Pencil** in the tool row under the canvas
+   (or press `P`), pick a brush size, and drag on the canvas. **Eraser**
+   (`E`) removes painted pixels; **Select** (`V`) returns to moving
+   widgets. The drawing is a single per-screen layer — select it in the
+   Elements panel to **Clear** it. Painted pixels never block clicking
+   the widgets beneath them.
+8. Use the **Elements** panel (top of the right pane) to find, select,
    or **lock** widgets — handy when shapes overlap. A locked widget
    won't move and lets clicks fall through to whatever is beneath it.
-8. Open the **Export** section and pick a format:
+9. Open the **Export** section and pick a format:
    - **Snippet** — paste into an existing `view_port_draw_callback`.
    - **Scene** — the `.c` + `.h` pair drops into your app directory.
    - **XBM** — icons-only header.
@@ -207,6 +223,8 @@ shared CDN that lazy-loads marked + DOMPurify for this README modal.
   // and "scroll": true|false; the text widget also carries "scrollW" (clip px).
   // widgets may carry "locked": true — editor-only (frozen position +
   // clickthrough); locked widgets still export.
+  // the free-draw paint layer is a "bitmap" widget: { type:"bitmap",
+  // x:0, y:0, w:128, h:64, bits:"base64-1bpp" } — one per screen.
   "activeScreenId": "scr_main",
   "selection": []
 }
