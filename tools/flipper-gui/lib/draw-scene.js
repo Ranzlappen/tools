@@ -99,6 +99,10 @@ export function drawWidget(ctx, w, icons = [], opts = {}) {
     case "dot":
       ctx.fillRect(w.x, w.y, 1, 1);
       break;
+    case "bitmap":
+      // Free-draw paint layer — inline base64 XBM, drawn like an icon.
+      if (w.bits) renderXbm(ctx, w.x, w.y, w.w, w.h, b64ToBytes(w.bits), 1);
+      break;
     case "icon": {
       const icon = icons.find((i) => i.id === w.iconId);
       if (icon) {

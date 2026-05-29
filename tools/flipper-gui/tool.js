@@ -192,7 +192,7 @@ function decodeState(b64url) {
 
 const ALLOWED_WIDGET_TYPES = new Set([
   "text", "box", "frame", "line", "dot", "icon",
-  "button", "progress", "menu", "toggle",
+  "button", "progress", "menu", "toggle", "bitmap",
 ]);
 
 function validateState(p) {
@@ -278,6 +278,12 @@ function sanitizeWidget(w) {
       break;
     case "icon":
       base.iconId = String(w.iconId || "").slice(0, 40);
+      break;
+    case "bitmap":
+      // Free-draw paint layer: a full-canvas 128×64 monochrome bitmap.
+      base.w = clampInt(w.w, 1, 128);
+      base.h = clampInt(w.h, 1, 64);
+      base.bits = (typeof w.bits === "string") ? w.bits.slice(0, 4096) : "";
       break;
     case "button":
       base.w = clampInt(w.w, 6, 128);
@@ -449,6 +455,8 @@ function widgetBbox(w) {
       const icon = state.icons.find((i) => i.id === w.iconId);
       return { x: w.x, y: w.y, w: icon ? icon.w : 8, h: icon ? icon.h : 8 };
     }
+    case "bitmap":
+      return { x: w.x, y: w.y, w: w.w, h: w.h };
     case "toggle": {
       const fontKey = w.font || "secondary";
       const f = getFont(fontKey);
@@ -490,6 +498,7 @@ function elementLabel(w) {
   else if (w.type === "button" || w.type === "toggle") detail = w.label || "";
   else if (w.type === "icon") detail = state.icons.find((i) => i.id === w.iconId)?.name || "(none)";
   else if (w.type === "menu") detail = `${w.items?.length || 0} items`;
+  else if (w.type === "bitmap") return "free draw";
   else detail = `${w.x},${w.y}`;
   return detail ? `${w.type} · ${detail}` : w.type;
 }
@@ -665,6 +674,10 @@ function addWidget(type, atX = 8, atY = 8) {
       break;
     case "toggle":
       w.label = "Enable"; w.state = false; w.font = "secondary"; w.scroll = false; break;
+    case "bitmap":
+      // Paint layers are normally created via ensurePaintLayer(); keep a
+      // safe default so the switch stays total.
+      w.x = 0; w.y = 0; w.w = 128; w.h = 64; w.bits = ""; break;
   }
   return placeWidget(w);
 }
@@ -733,9 +746,72 @@ function moveSelectionBy(dx, dy) {
   scheduleRender();
 }
 
+// ── Drawing tools (free-draw pencil / eraser) ──────────────────────
+// Tool mode is UI-only state, deliberately NOT part of the document so it
+// never leaks into saved JSON or the share URL.
+
+let currentTool = "select";   // "select" | "pencil" | "eraser"
+let brushSize = 1;            // 1..3 px square brush
+let strokeBuf = null;         // Uint8Array(128*64) live during a paint stroke
+
+function setTool(name) {
+  if (!["select", "pencil", "eraser"].includes(name)) return;
+  currentTool = name;
+  $$("[data-tool]").forEach((b) => b.classList.toggle("is-active", b.dataset.tool === name));
+  // Drawing tools paint pixels, not widgets — drop the selection so its
+  // handles don't sit on top of the canvas while you draw.
+  if (name !== "select") {
+    state.selection = [];
+    renderOverlay();
+    renderInspector();
+  }
+  if (canvas) canvas.style.cursor = name === "select" ? "crosshair" : "cell";
+}
+
+/* The active screen's paint layer (a full-canvas bitmap widget), or null. */
+function paintLayer() {
+  const sc = activeScreen();
+  return sc ? sc.widgets.find((w) => w.type === "bitmap") || null : null;
+}
+
+/* Return the paint layer, creating an empty full-canvas one on top if the
+   active screen has none yet. */
+function ensurePaintLayer() {
+  let layer = paintLayer();
+  if (layer) return layer;
+  layer = { id: genWidgetId(), type: "bitmap", x: 0, y: 0, w: 128, h: 64, bits: "" };
+  activeScreen().widgets.push(layer);
+  return layer;
+}
+
+/* Stamp a brushSize×brushSize block (clamped to the canvas) into strokeBuf. */
+function stampPx(cx, cy, on) {
+  const half = (brushSize - 1) >> 1;
+  for (let dy = 0; dy < brushSize; dy++) {
+    for (let dx = 0; dx < brushSize; dx++) {
+      const x = cx - half + dx, y = cy - half + dy;
+      if (x >= 0 && x < 128 && y >= 0 && y < 64) strokeBuf[y * 128 + x] = on ? 1 : 0;
+    }
+  }
+}
+
+/* Bresenham between two samples so a fast drag leaves no gaps. */
+function strokeLine(x0, y0, x1, y1, on) {
+  let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+  let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  for (;;) {
+    stampPx(x0, y0, on);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x0 += sx; }
+    if (e2 <= dx) { err += dx; y0 += sy; }
+  }
+}
+
 // ── Pointer interactions ───────────────────────────────────────────
 
-let drag = null; // {kind: "create"|"move", widgetId?, type?, startX, startY, origPos[]}
+let drag = null; // {kind: "create"|"move"|"draw", widgetId?, type?, startX, startY, origPos[]}
 
 function pointerToCanvas(ev) {
   const rect = stageInner.getBoundingClientRect();
@@ -753,6 +829,10 @@ function hitTestAt(x, y) {
   for (let i = sc.widgets.length - 1; i >= 0; i--) {
     const w = sc.widgets[i];
     if (w.locked) continue;
+    // The full-canvas paint layer never intercepts clicks — it's edited
+    // with the pencil/eraser tools and managed via the elements list, so
+    // it doesn't block selecting widgets drawn beneath it.
+    if (w.type === "bitmap") continue;
     const bb = widgetBbox(w);
     if (x >= bb.x && x < bb.x + bb.w && y >= bb.y && y < bb.y + bb.h) return w;
   }
@@ -760,10 +840,30 @@ function hitTestAt(x, y) {
 }
 
 function wireCanvasPointer() {
+  // Repack the live stroke buffer into the paint layer's base64 XBM.
+  const commitStroke = (layer) => { layer.bits = bytesToB64(packXbm(strokeBuf, 128, 64)); };
+
   canvas.addEventListener("pointerdown", (ev) => {
     ev.preventDefault();
     canvas.setPointerCapture(ev.pointerId);
     const p = pointerToCanvas(ev);
+
+    if (currentTool === "pencil" || currentTool === "eraser") {
+      // Snapshot before the layer may be auto-created, so undoing the
+      // first stroke removes the layer entirely rather than leaving an
+      // empty one behind.
+      const pre = snapshot();
+      const layer = ensurePaintLayer();
+      strokeBuf = layer.bits ? unpackXbm(b64ToBytes(layer.bits), 128, 64) : new Uint8Array(128 * 64);
+      const on = currentTool === "pencil";
+      drag = { kind: "draw", layerId: layer.id, lastX: p.x, lastY: p.y, on, preSnapshot: pre, changed: true };
+      stampPx(p.x, p.y, on);
+      commitStroke(layer);
+      renderCanvas();
+      setStatus(`(${p.x}, ${p.y})`);
+      return;
+    }
+
     const hit = hitTestAt(p.x, p.y);
     if (hit) {
       if (ev.shiftKey) {
@@ -788,6 +888,18 @@ function wireCanvasPointer() {
   canvas.addEventListener("pointermove", (ev) => {
     if (!drag) return;
     const p = pointerToCanvas(ev);
+
+    if (drag.kind === "draw") {
+      if (p.x !== drag.lastX || p.y !== drag.lastY) drag.changed = true;
+      strokeLine(drag.lastX, drag.lastY, p.x, p.y, drag.on);
+      drag.lastX = p.x; drag.lastY = p.y;
+      const layer = findWidget(drag.layerId)?.widget;
+      if (layer) commitStroke(layer);
+      renderCanvas();
+      setStatus(`(${p.x}, ${p.y})`);
+      return;
+    }
+
     const dx = p.x - drag.startX;
     const dy = p.y - drag.startY;
     if (dx !== 0 || dy !== 0) drag.moved = true;
@@ -806,20 +918,40 @@ function wireCanvasPointer() {
     renderOverlay();
     setStatus(`(${p.x}, ${p.y})`);
   });
-  canvas.addEventListener("pointerup", () => {
-    if (drag) {
-      // Commit the pre-drag snapshot as a single undo entry, only if
-      // the drag actually moved something.
-      if (drag.moved && drag.preSnapshot) {
-        undoStack.push(drag.preSnapshot);
-        if (undoStack.length > UNDO_MAX) undoStack.shift();
-        redoStack = [];
-      }
-      drag = null;
-      scheduleRender();
+  const endDraw = () => {
+    // One undo entry per stroke (pointerdown→up), mirroring the move drag.
+    if (drag.changed && drag.preSnapshot) {
+      undoStack.push(drag.preSnapshot);
+      if (undoStack.length > UNDO_MAX) undoStack.shift();
+      redoStack = [];
     }
+    // Drop a fully-erased layer so an empty drawing doesn't linger.
+    const found = findWidget(drag.layerId);
+    if (found && strokeBuf && !strokeBuf.some((v) => v)) {
+      found.screen.widgets = found.screen.widgets.filter((w) => w.id !== drag.layerId);
+    }
+    strokeBuf = null;
+    drag = null;
+    scheduleRender();
+  };
+
+  canvas.addEventListener("pointerup", () => {
+    if (!drag) return;
+    if (drag.kind === "draw") { endDraw(); return; }
+    // Commit the pre-drag snapshot as a single undo entry, only if
+    // the drag actually moved something.
+    if (drag.moved && drag.preSnapshot) {
+      undoStack.push(drag.preSnapshot);
+      if (undoStack.length > UNDO_MAX) undoStack.shift();
+      redoStack = [];
+    }
+    drag = null;
+    scheduleRender();
   });
-  canvas.addEventListener("pointercancel", () => { drag = null; });
+  canvas.addEventListener("pointercancel", () => {
+    if (drag && drag.kind === "draw") { endDraw(); return; }
+    drag = null;
+  });
 }
 
 function wirePaletteDrag() {
@@ -933,6 +1065,21 @@ function renderInspector() {
     case "icon": {
       const opts = state.icons.map((i) => i.id);
       root.appendChild(selectField("Icon", opts, w.iconId, (v) => updateWidget(w.id, { iconId: v }), (id) => state.icons.find((i) => i.id === id)?.name || id));
+      break;
+    }
+    case "bitmap": {
+      const note = document.createElement("div");
+      note.className = "fg-inspector__empty";
+      note.style.cssText = "text-align:left;";
+      note.innerHTML = "Free-draw paint layer. Use the <strong>Pencil</strong> and <strong>Eraser</strong> tools above the canvas to edit it.";
+      root.appendChild(note);
+      const clear = document.createElement("button");
+      clear.type = "button";
+      clear.className = "fg-pal-btn";
+      clear.textContent = "Clear drawing";
+      clear.style.cursor = "pointer";
+      clear.addEventListener("click", () => deleteWidget(w.id));
+      root.appendChild(clear);
       break;
     }
     case "button":
@@ -1687,6 +1834,12 @@ function boot() {
   wirePaletteDrag();
   wireCanvasPointer();
 
+  // Drawing tools (select / pencil / eraser) + brush size.
+  $$("[data-tool]").forEach((b) => b.addEventListener("click", () => setTool(b.dataset.tool)));
+  $("#fg-brush-size").addEventListener("change", (e) => {
+    brushSize = clampInt(e.target.value, 1, 3);
+  });
+
   // App fields
   $("#fg-app-name").addEventListener("input", (e) => {
     pushUndo();
@@ -1867,6 +2020,14 @@ function boot() {
       e.preventDefault();
       for (const id of state.selection) duplicateWidget(id);
       return;
+    }
+    // Tool shortcuts (no modifier): V select, P pencil, E eraser, Esc select.
+    if (!meta) {
+      const k = e.key.toLowerCase();
+      if (k === "v") { e.preventDefault(); setTool("select"); return; }
+      if (k === "p") { e.preventDefault(); setTool("pencil"); return; }
+      if (k === "e") { e.preventDefault(); setTool("eraser"); return; }
+      if (e.key === "Escape" && currentTool !== "select") { e.preventDefault(); setTool("select"); return; }
     }
     const step = e.shiftKey ? 8 : 1;
     if (e.key === "ArrowLeft")  { e.preventDefault(); moveSelectionBy(-step, 0); }

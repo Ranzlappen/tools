@@ -256,6 +256,40 @@
     .fg-toolrow input[type="range"] { width: 100px; }
     .fg-toolrow label { display: inline-flex; align-items: center; gap: 4px; }
 
+    .fg-tools {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .fg-tool-btn {
+      padding: 5px 9px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+      transition: background var(--transition-fast), border-color var(--transition-fast);
+    }
+    .fg-tool-btn:hover { background: rgba(255,255,255,0.06); border-color: var(--c-accent-border); }
+    .fg-tool-btn.is-active {
+      background: var(--c-accent-soft, rgba(255,200,0,0.12));
+      border-color: var(--c-accent);
+      color: var(--c-accent);
+    }
+    .fg-brush { display: inline-flex; align-items: center; gap: 4px; }
+    .fg-brush select {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text);
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+      padding: 3px 4px;
+    }
+
     /* ── Inspector / Export pane ────────────────────────────────── */
     .fg-inspector {
       display: flex;
@@ -806,6 +840,19 @@
             </div>
 
             <div class="fg-toolrow">
+              <div class="fg-tools" role="group" aria-label="Drawing tools">
+                <button type="button" class="fg-tool-btn is-active" data-tool="select" title="Select / move (V)">Select</button>
+                <button type="button" class="fg-tool-btn" data-tool="pencil" title="Free draw (P)">Pencil</button>
+                <button type="button" class="fg-tool-btn" data-tool="eraser" title="Erase free draw (E)">Eraser</button>
+                <label class="fg-brush">
+                  Brush
+                  <select id="fg-brush-size" aria-label="Brush size">
+                    <option value="1">1px</option>
+                    <option value="2">2px</option>
+                    <option value="3">3px</option>
+                  </select>
+                </label>
+              </div>
               <label>
                 Zoom
                 <input type="range" id="fg-zoom" min="2" max="8" step="1" value="4" />
