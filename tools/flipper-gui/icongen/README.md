@@ -8,12 +8,18 @@ lazily by the browser. You only run this when the glyph set changes.
 ## What it generates
 
 `generate-icons.mjs` rasterizes every glyph defined in `icons.svg.mjs`
-at **8, 16, 32 and 64 px** and packs each through the *same* 1-bit pipeline
+at **16, 32 and 64 px** and packs each through the *same* 1-bit pipeline
 the tool uses for uploaded images (`../lib/xbm.js`:
 `imageDataToBits → packXbm → bytesToB64`). Library icons are therefore
 byte-identical in format to user uploads and flow through the existing
 icon export path (C `icons.h`, scene embedding, PNG/JS bundle) with no
 special-casing.
+
+The **8 px** tier is the exception: rasterizing a 24×24 SVG down to 8×8
+yields an illegible blob, so those bitmaps are **hand-drawn** in
+`icons-8px.mjs` (one 8×8 grid per icon). `generate-icons.mjs` uses that art
+for size 8 instead of rasterizing; the standalone `build-8px.mjs` applies it
+on its own (see below).
 
 Output shape (`lib/icons/library.js`):
 
@@ -72,16 +78,17 @@ node icongen/generate-icons.mjs
 The script prints a per-category icon count and writes
 `../lib/icons/library.js`. Commit the regenerated module.
 
-### Without a browser (8×8 only)
+### Editing the 8×8 art (no browser needed)
 
-Where Chromium can't be installed, `downsample-8.mjs` adds the **8×8** size
-headlessly by 2×2 box-downsampling the already-committed 16×16 bitmaps through
-`../lib/xbm.js` (no browser, no network, deterministic):
+The 8 px bitmaps live in `icons-8px.mjs` as plain `'#'`/`.` grids — edit them
+by eye. To repack just that tier into `../lib/icons/library.js` (headless, no
+browser, deterministic):
 
 ```sh
-node icongen/downsample-8.mjs
+node icongen/build-8px.mjs
 ```
 
-It rewrites `../lib/icons/library.js` in place with a `"8"` entry first in each
-icon's `sizes`. Prefer the full `generate-icons.mjs` (SVG-accurate at every
-size) when a browser is available; both emit the same file shape.
+It rewrites every icon's `sizes["8"]` from the art and leaves the
+SVG-rendered 16/32/64 tiers untouched, so you don't need Chromium to tweak the
+small icons. `build-8px.mjs` errors if any library icon is missing art. The
+full `generate-icons.mjs` uses the same art for size 8, so both stay in sync.

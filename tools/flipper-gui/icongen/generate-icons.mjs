@@ -27,6 +27,7 @@ import { createRequire } from "node:module";
 
 import { ICONS, CATEGORIES, VIEWBOX } from "./icons.svg.mjs";
 import { imageDataToBits, packXbm, bytesToB64 } from "../lib/xbm.js";
+import { pack8 } from "./icons-8px.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
@@ -80,6 +81,9 @@ async function main() {
   for (const icon of ICONS) {
     const sizes = {};
     for (const size of SIZES) {
+      // 8px is hand-drawn (icons-8px.mjs) — rasterizing the SVG that small is
+      // illegible. Every other tier comes from the SVG raster.
+      if (size === 8) { sizes[8] = pack8(icon.name); continue; }
       const pixels = await rasterize(page, icon.inner, size);
       sizes[size] = packForSize(pixels, size, icon.dither);
     }
