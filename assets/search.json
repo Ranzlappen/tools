@@ -1,0 +1,80 @@
+[
+  {
+    "title": "JSON Formatter",
+    "url": "/tools/json-formatter/",
+    "description": "Pretty-print, minify, and validate JSON — entirely in the browser.",
+    "group": "Tools"
+  },
+  {
+    "title": "Color Picker",
+    "url": "/tools/color-picker/",
+    "description": "Pick, convert between formats, and check WCAG contrast in real time.",
+    "group": "Tools"
+  },
+  {
+    "title": "Regex Tester & Builder",
+    "url": "/tools/regex/",
+    "description": "Live match highlighting with a guided pattern generator beside it.",
+    "group": "Tools"
+  },
+  {
+    "title": "Markdown Preview",
+    "url": "/tools/markdown/",
+    "description": "Live GFM preview, or import HTML/CSV/JSON/DOCX/XLSX/PDF/PPTX and convert to Markdown.",
+    "group": "Tools"
+  },
+  {
+    "title": "Multi-Encoder",
+    "url": "/tools/encoder/",
+    "description": "Convert text between Base64, Hex, URL, Binary, and ASCII fluidly.",
+    "group": "Tools"
+  },
+  {
+    "title": "JWT Decoder",
+    "url": "/tools/jwt/",
+    "description": "Inspect headers, payload, and signature locally — nothing leaves the page.",
+    "group": "Tools"
+  },
+  {
+    "title": "Video Studio",
+    "url": "/tools/video/",
+    "description": "Reverse, boomerang, trim, and re-encode video — all in the browser, powered by ffmpeg.wasm.",
+    "group": "Tools"
+  },
+  {
+    "title": "UUID & Hash Generator",
+    "url": "/tools/uuid-hash/",
+    "description": "UUID v4/v7 plus MD5, SHA-1, SHA-256, and SHA-512 hashes on demand.",
+    "group": "Tools"
+  },
+  {
+    "title": "QR & Barcode Generator",
+    "url": "/tools/qr-barcode/",
+    "description": "Every 1D & 2D symbology, full design control, ECC levels, multi-format export.",
+    "group": "Tools"
+  },
+  {
+    "title": "OG Image Studio",
+    "url": "/tools/og-studio/",
+    "description": "Compose 1200×630 social cards via the edge — title, subtitle, theme, instant preview.",
+    "group": "Tools"
+  },
+  {
+    "title": "Flipper GUI Studio",
+    "url": "/tools/flipper-gui/",
+    "description": "Drag-and-drop visual editor for Flipper Zero / Momentum apps. Multi-screen, button transitions, exports as C.",
+    "group": "Tools"
+  },
+  {
+    "title": "Metadata Studio",
+    "url": "/tools/metadata-studio/",
+    "description": "Inspect, edit, strip, and extend metadata in any file — EXIF, ID3, PDF info, Office props, ZIP entries.",
+    "group": "Tools"
+  },
+  {
+    "title": "MIUI Theme Studio",
+    "url": "/tools/miui-theme-studio/",
+    "description": "Build & edit MIUI / HyperOS themes for the Xiaomi 14T Pro — wallpapers, icons, fonts, boot animation, system colors. Exports a ready-to-install .mtz.",
+    "group": "Tools"
+  }
+]

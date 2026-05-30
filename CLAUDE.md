@@ -53,19 +53,24 @@ mobile URL bars collapse. Respect `prefers-reduced-motion` and
 
 1. Add a card to the grid in `index.html`. Match existing card markup.
 2. Create `tools/<slug>/index.html` with the tool itself. Re-import
-   `/assets/css/style.css` for visual consistency.
-3. Keep each tool self-contained — no shared state, no shared JS unless it
+   `/assets/css/style.css` for visual consistency. Copy the shared
+   header, footer, and end-of-body script block from any existing page
+   (they are byte-identical across all pages — see **Header & footer**).
+3. Add a matching entry to `assets/search.json`
+   (`{title, url:"/tools/<slug>/", description, group:"Tools"}`) or the
+   on-site search won't find the new tool.
+4. Keep each tool self-contained — no shared state, no shared JS unless it
    genuinely belongs in `assets/js/`.
-4. Client-only? Stays on Pages. Needs a server / build step? Plan for
+5. Client-only? Stays on Pages. Needs a server / build step? Plan for
    Vercel and document the routing.
-5. Write `tools/<slug>/README.md` using the template in
+6. Write `tools/<slug>/README.md` using the template in
    `tools/json-formatter/README.md` (User guide + Developer guide).
    This is **mandatory** — the in-app info modal expects it.
-6. Wire the info modal into the tool's `<header>` — add a
+7. Wire the info modal into the tool's `<header>` — add a
    `<button class="info-btn" data-info-button>` next to `.tool-title__text`
    and include `<script type="module" src="../../assets/js/info-modal.js">`.
    The modal fetches `./README.md` by default.
-7. Smoke-test the tool at a 360 px viewport before shipping. If
+8. Smoke-test the tool at a 360 px viewport before shipping. If
    anything clips the right edge, the fix is almost always
    `minmax(0, 1fr)` on the offending grid track or a `.scroll-x`
    wrapper on wide content — not a custom per-tool media query.
