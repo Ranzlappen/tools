@@ -45,8 +45,9 @@ authentication, all handled by yt-dlp locally.
 2. Pick a preset, or tweak the options to taste.
 3. For a private playlist, choose a cookie source under
    **Private / sign-in cookies**.
-4. Click **Copy** and run the command in your terminal. (Install yt-dlp +
-   ffmpeg first — see the snippets at the bottom of the tool.)
+4. Click **Copy** and run the command in your terminal. (Install yt-dlp,
+   ffmpeg, and a JavaScript runtime like Deno first — see the snippets at the
+   bottom of the tool.)
 
 ### Sign in with Google (optional)
 
@@ -203,6 +204,11 @@ just shows a setup hint.
 
 - It **generates a command** — it does not download. yt-dlp and ffmpeg must
   be installed locally (ffmpeg is required for MP3 extraction).
+- Recent yt-dlp needs a **JavaScript runtime** (Deno by default) to extract
+  from YouTube; without one you'll see a *“No supported JavaScript runtime”*
+  warning and some formats may be missing or fail. Install Deno (it's in the
+  per-platform snippets) and yt-dlp auto-detects it — or pass
+  `--js-runtimes node` to use Node instead.
 - Quoting targets POSIX shells (bash/zsh, Termux, macOS). On Windows
   `cmd.exe`, swap single quotes for double quotes if a path misbehaves;
   PowerShell generally accepts the single-quoted form.

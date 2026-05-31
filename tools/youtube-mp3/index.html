@@ -381,16 +381,19 @@
           <div class="panel__head">
             <span class="panel__title">Don't have yt-dlp yet?</span>
           </div>
-          <p class="panel__sub">yt-dlp needs <strong>ffmpeg</strong> to extract MP3. Pick your platform:</p>
+          <p class="panel__sub">yt-dlp needs <strong>ffmpeg</strong> (to make MP3) and, for YouTube now, a
+            <strong>JavaScript runtime</strong> like <strong>Deno</strong>. These snippets install all three:</p>
           <dl class="ytm-install">
-            <dt>Windows (winget)</dt><dd>winget install yt-dlp.yt-dlp &amp;&amp; winget install Gyan.FFmpeg</dd>
-            <dt>Windows / cross-platform (scoop)</dt><dd>scoop install yt-dlp ffmpeg</dd>
-            <dt>macOS (Homebrew)</dt><dd>brew install yt-dlp ffmpeg</dd>
-            <dt>Linux (pipx + apt)</dt><dd>sudo apt install ffmpeg pipx &amp;&amp; pipx install yt-dlp</dd>
-            <dt>Android (Termux)</dt><dd>pkg install python ffmpeg &amp;&amp; pip install -U yt-dlp</dd>
+            <dt>Windows (winget)</dt><dd>winget install yt-dlp.yt-dlp Gyan.FFmpeg DenoLand.Deno</dd>
+            <dt>Windows / cross-platform (scoop)</dt><dd>scoop install yt-dlp ffmpeg deno</dd>
+            <dt>macOS (Homebrew)</dt><dd>brew install yt-dlp ffmpeg deno</dd>
+            <dt>Linux (pipx + apt)</dt><dd>sudo apt install ffmpeg pipx &amp;&amp; pipx install yt-dlp &amp;&amp; curl -fsSL https://deno.land/install.sh | sh</dd>
+            <dt>Android (Termux)</dt><dd>pkg install python ffmpeg deno &amp;&amp; pip install -U yt-dlp</dd>
           </dl>
-          <p class="ytm-note">On Android, <code>--cookies-from-browser</code> can't read system Chrome — export a
-            <code>cookies.txt</code> and choose the “From cookies.txt” option above.</p>
+          <p class="ytm-note">Seeing <em>“No supported JavaScript runtime could be found”</em>? Install Deno
+            (included above) — yt-dlp auto-detects it. Downloads still work without it, but some
+            formats may be missing or fail. On Android, <code>--cookies-from-browser</code> can't read
+            system Chrome — export a <code>cookies.txt</code> and choose the “From cookies.txt” option above.</p>
         </section>
 
       </div>
