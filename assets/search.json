@@ -76,5 +76,17 @@
     "url": "/tools/miui-theme-studio/",
     "description": "Build & edit MIUI / HyperOS themes for the Xiaomi 14T Pro — wallpapers, icons, fonts, boot animation, system colors. Exports a ready-to-install .mtz.",
     "group": "Tools"
+  },
+  {
+    "title": "YouTube MP3 Studio",
+    "url": "/tools/youtube-mp3/",
+    "description": "Build a yt-dlp command for max-quality MP3 — single videos, full playlists, even private ones via local cookies.",
+    "group": "Tools"
+  },
+  {
+    "title": "Cookies.txt Converter",
+    "url": "/tools/cookies-txt/",
+    "description": "Convert a browser cookie export into a yt-dlp-ready Netscape cookies.txt — entirely in the browser.",
+    "group": "Tools"
   }
 ]

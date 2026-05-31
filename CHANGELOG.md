@@ -6,6 +6,26 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+### Added
+- **YouTube MP3 Studio (`tools/youtube-mp3/`).** A client-side builder for
+  `yt-dlp` commands: max-quality MP3 (up to 320 kbps / VBR), M4A/Opus/best,
+  embedded thumbnail/metadata/chapters, SponsorBlock removal, single-video or
+  full-playlist scope with an item range, output templates, parallel
+  fragments, and private-playlist auth via `--cookies-from-browser` (desktop)
+  or `--cookies cookies.txt` (Android/Termux). Presets, one-click copy, and
+  per-platform install snippets (incl. Termux). A hosted in-browser ripper
+  isn't viable (CORS/signature deciphering) or safe for private playlists
+  (cookies must stay local), so the tool generates the exact command to run
+  locally instead. Pure vanilla JS — no deps, no backend; stays on Pages.
+- **Cookies.txt Converter (`tools/cookies-txt/`).** Companion tool that turns
+  a browser cookie export (extension JSON or a raw `Cookie:` header) into a
+  `yt-dlp`-ready Netscape `cookies.txt` — `#HttpOnly_` prefixes,
+  include-subdomains from `hostOnly`, session cookies as expiry `0`, optional
+  domain filter, and validation (counts, expired, login-cookie presence).
+  Copy or download in one click. 100% in-page; it converts cookies you export
+  yourself and never harvests or uploads them. Cross-linked with the MP3
+  Studio.
+
 ### Security
 - **OG Studio prototype-pollution hardening.** CodeQL flagged
   `applyPartial()` in `tools/og-studio/tool.js` as "Remote property
