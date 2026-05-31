@@ -17,6 +17,13 @@ All notable changes to **tools** are recorded here. Format follows
   isn't viable (CORS/signature deciphering) or safe for private playlists
   (cookies must stay local), so the tool generates the exact command to run
   locally instead. Pure vanilla JS — no deps, no backend; stays on Pages.
+  Also includes an **optional, read-only "Sign in with Google"** flow
+  (`yt-oauth.js`): it lists your **Liked videos** or any playlist via the
+  YouTube Data API and emits a `urls.txt` + `-a urls.txt` command so those
+  videos download **without cookies** (the list is private but the videos are
+  public). The OAuth token stays in memory only; nothing leaves the page
+  unless you sign in. Needs a one-time Google Cloud OAuth client (`CLIENT_ID`
+  in `yt-oauth.js`); blank by default, and the tool works without it.
 - **Cookies.txt Converter (`tools/cookies-txt/`).** Companion tool that turns
   a browser cookie export (extension JSON or a raw `Cookie:` header) into a
   `yt-dlp`-ready Netscape `cookies.txt` — `#HttpOnly_` prefixes,

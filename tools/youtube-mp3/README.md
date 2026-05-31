@@ -32,6 +32,8 @@ authentication, all handled by yt-dlp locally.
 - **Output template** — a sensible default per scope, fully editable.
 - **Private / sign-in cookies** — `--cookies-from-browser` (desktop) or
   `--cookies cookies.txt` (Android / anywhere). Cookies stay on your machine.
+- **Sign in with Google (optional)** — pull your **Liked videos** or any of
+  your playlists without exporting cookies. See the section below.
 - **Presets** — *Max-quality MP3*, *Whole playlist → MP3*, *Private playlist*.
 - **Parallel fragments** for faster downloads.
 - **Copy** the finished command in one click; **install snippets** for every
@@ -45,6 +47,39 @@ authentication, all handled by yt-dlp locally.
    **Private / sign-in cookies**.
 4. Click **Copy** and run the command in your terminal. (Install yt-dlp +
    ffmpeg first — see the snippets at the bottom of the tool.)
+
+### Sign in with Google (optional)
+
+Your **Liked videos** list is private, so yt-dlp normally needs your sign-in
+cookies to read it — painful on a phone with stock Chrome. But the *videos
+inside* the list are public, so there's a cleaner route: sign in **read-only**,
+let the tool list the video IDs via the YouTube Data API, and download them
+**without any cookies**.
+
+1. Click **Sign in with Google** and approve read-only access. The access token
+   lives in this page's memory only — it is never stored or sent anywhere but
+   Google's own API.
+2. Pick **👍 Liked videos** or any of your playlists, then **Load videos**.
+3. Click **urls.txt** to save the URL list, and **Copy** the command. Run both
+   in the same folder:
+
+   ```
+   yt-dlp -a urls.txt -x --audio-format mp3 --audio-quality 320K \
+     -f bestaudio/best --embed-thumbnail --embed-metadata -o '%(title)s.%(ext)s'
+   ```
+
+No `--cookies` needed. Age-restricted or members-only items are the exception —
+those still need real cookies; combine the **Private / sign-in cookies** option
+with the loaded list for them.
+
+**Limitations of the sign-in flow**
+
+- In **Testing mode** (the default for a personal Google Cloud project),
+  consent **expires every ~7 days**, so you'll re-sign-in roughly weekly until
+  the app is verified. There's also a 100-user cap before verification.
+- The access token lasts about an hour — fine, since we fetch immediately.
+- Private/deleted entries in a list can't be downloaded cookie-free and are
+  skipped (the status line reports how many).
 
 ### Examples
 
@@ -68,11 +103,16 @@ yt-dlp -x --audio-format mp3 --audio-quality 320K -f bestaudio/best \
 
 ### Privacy
 
-The page never contacts YouTube or any server — it only builds a string from
-your inputs. The URL you paste is not fetched, stored, or logged. Your
-cookies are read by yt-dlp **on your own machine** (the browser or a
-`cookies.txt` you supply); they never touch this site. (The in-app help modal
-you may have opened to read this is the only network request the page makes.)
+By default the page contacts no server — it only builds a string from your
+inputs. The URL you paste is not fetched, stored, or logged. Your cookies are
+read by yt-dlp **on your own machine** (the browser or a `cookies.txt` you
+supply); they never touch this site.
+
+The **one exception is the optional "Sign in with Google"**: if you use it, the
+page talks to Google's identity and YouTube Data APIs (read-only) to list your
+playlists. The OAuth access token is held in memory for the session only —
+never written to storage, never sent anywhere but Google. Don't sign in and
+nothing leaves the page.
 
 ## Legal & responsible use
 
@@ -97,8 +137,13 @@ your browser). See the site
   `<style>` block (prefix `ytm-`).
 - `tool.js` — `buildTokens()` assembles a typed token list, `shq()`
   shell-quotes values, `render()` paints both the copy string
-  (`dataset.command`) and the highlighted HTML. Presets and visibility live
-  alongside.
+  (`dataset.command`) and the highlighted HTML. Presets, visibility, and the
+  optional account flow (sign-in → populate playlists → load videos →
+  `urls.txt`) live alongside. When a list is loaded, the command targets
+  `-a urls.txt` instead of the single URL.
+- `yt-oauth.js` — the *only* networked module. Wraps Google Identity Services
+  (OAuth token flow, no secret) and a few read-only YouTube Data API v3 calls.
+  Holds the `CLIENT_ID` constant and keeps the access token in memory.
 
 ### Key DOM hooks
 
@@ -113,12 +158,35 @@ your browser). See the site
 | `#yt-auth` / `#yt-browser` / `#yt-cookiefile` | Cookie source.        |
 | `#yt-output`        | `-o` filename template.                           |
 | `#yt-command`       | `<pre>` output; `dataset.command` holds raw text. |
-| `[data-action]`     | `paste` / `clear` / `copy`.                       |
+| `#yt-account` / `#yt-signin` / `#yt-playlist` / `#yt-load` | Optional account panel. |
+| `#yt-using` / `#yt-download-urls` | "Using N videos" note + `urls.txt` download. |
+| `[data-action]`     | `paste` / `clear` / `copy` / `yt-signin` / `yt-signout` / `yt-load` / `yt-download-urls` / `yt-clear-list`. |
 
 ### Dependencies
 
-Vanilla JS only — no libraries, no CDN, no backend. String building plus the
-Clipboard API.
+Vanilla JS only — no libraries, no bundler, no backend. String building plus
+the Clipboard API. The optional account flow lazy-loads Google Identity
+Services (`accounts.google.com/gsi/client`) on first use and calls the YouTube
+Data API v3 (`www.googleapis.com`) read-only; both load only if you sign in.
+
+### Owner setup (for the sign-in flow)
+
+The Google sign-in needs a one-time OAuth client in **your** Google account; the
+client ID is then pasted into `CLIENT_ID` in `yt-oauth.js` (it is a public
+identifier — safe to commit; the authorized-origins list locks it to this
+domain). If `CLIENT_ID` is left blank the tool still works — the Sign-in button
+just shows a setup hint.
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → new project →
+   enable **YouTube Data API v3**.
+2. **OAuth consent screen** (External): add scope
+   `.../auth/youtube.readonly`, then add the Google accounts that may sign in
+   as **Test users**. (Testing mode needs no verification but expires consent
+   every ~7 days; full verification lifts that and the 100-user cap.)
+3. **Credentials → Create OAuth client ID → Web application**. Under
+   **Authorized JavaScript origins** add `https://tools.ranzlappen.com` (and
+   `http://localhost:8000` for local testing).
+4. Paste the client ID into `CLIENT_ID` in `yt-oauth.js`.
 
 ### Extending
 
