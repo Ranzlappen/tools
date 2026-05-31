@@ -74,6 +74,20 @@ cookies are read by yt-dlp **on your own machine** (the browser or a
 `cookies.txt` you supply); they never touch this site. (The in-app help modal
 you may have opened to read this is the only network request the page makes.)
 
+## Legal & responsible use
+
+This tool only **builds a `yt-dlp` command** — it downloads nothing itself and
+uploads nothing. You are solely responsible for how you use the command. Only
+download content you own, created, or are licensed or permitted to use.
+Downloading from YouTube may violate its
+[Terms of Service](https://www.youtube.com/t/terms), and copying copyrighted
+material without permission may be unlawful where you live. This is **not legal
+advice**.
+
+On first visit the tool asks you to acknowledge this once (stored locally in
+your browser). See the site
+[disclaimer](https://ranzlappen.com/disclaimer/) for the full terms.
+
 ## Developer guide
 
 ### File layout

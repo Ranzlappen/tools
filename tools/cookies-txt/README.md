@@ -73,6 +73,18 @@ stored, or logged. Still, treat the result as a secret: a `cookies.txt` is a
 live key to your account. (The in-app help modal is the only network request
 the page makes.)
 
+## Legal & responsible use
+
+This tool only **converts a cookie export you paste in** — everything stays in
+your browser and nothing is uploaded. Only export and use cookies for accounts
+you own, and keep the resulting `cookies.txt` secret: it grants access to your
+logged-in session. Using cookies to reach content must still respect copyright
+and each platform's Terms of Service. This is **not legal advice**.
+
+On first visit the tool asks you to acknowledge this once (stored locally in
+your browser). See the site
+[disclaimer](https://ranzlappen.com/disclaimer/) for the full terms.
+
 ## Developer guide
 
 ### File layout

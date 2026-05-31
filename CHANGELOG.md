@@ -26,6 +26,15 @@ All notable changes to **tools** are recorded here. Format follows
   yourself and never harvests or uploads them. Cross-linked with the MP3
   Studio.
 
+### Changed
+- **Disclaimer hardening on the download-helper tools.** YouTube MP3 Studio
+  and Cookies.txt Converter now show a one-time "I understand" acknowledgement
+  gate before use — a native `<dialog>` whose acceptance is stored locally and
+  versioned (re-prompts on a material wording change; Esc / backdrop-click
+  can't bypass it). Also tightened the inline responsible-use banners and added
+  a *Legal & responsible use* section to each tool's README. New shared,
+  attribute-driven `assets/js/disclaimer-gate.js` (vanilla, no deps).
+
 ### Security
 - **OG Studio prototype-pollution hardening.** CodeQL flagged
   `applyPartial()` in `tools/og-studio/tool.js` as "Remote property

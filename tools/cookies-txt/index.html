@@ -138,7 +138,7 @@
 
         <div class="banner banner--warn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-          <span><strong>Cookies are as sensitive as your password.</strong> Conversion happens entirely in this page — nothing is uploaded. Never share a <code>cookies.txt</code>; anyone with it can use your logged-in session.</span>
+          <span><strong>Cookies are as sensitive as your password.</strong> Conversion happens entirely in this page — nothing is uploaded. Only convert cookies for accounts you own, never share a <code>cookies.txt</code> (anyone with it can use your logged-in session), and respect each platform's Terms when you use it.</span>
         </div>
 
         <div class="banner banner--info">
@@ -260,12 +260,35 @@
 
   </div>
 
+  <dialog class="disclaimer-modal" data-disclaimer-gate
+          data-storage-key="tools:cookies-txt:disclaimer" data-version="1"
+          aria-labelledby="ck-disclaimer-title">
+    <div class="disclaimer-modal__body">
+      <div class="disclaimer-modal__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+      </div>
+      <h2 id="ck-disclaimer-title">Before you use this</h2>
+      <p>This tool only <strong>converts a cookie export you paste in</strong> — everything stays in your browser and nothing is uploaded.</p>
+      <p>Only export and use cookies for accounts you own, and keep the resulting <code>cookies.txt</code> secret — it grants access to your session. Using cookies to access content must still respect copyright and each platform's Terms of Service. This is not legal advice.</p>
+      <p>See the <a href="https://ranzlappen.com/disclaimer/" target="_blank" rel="noopener noreferrer">site disclaimer</a> for more.</p>
+      <label class="disclaimer-modal__ack">
+        <input type="checkbox" data-disclaimer-checkbox />
+        <span>I understand — these are my own cookies and I'll keep the file private.</span>
+      </label>
+      <div class="disclaimer-modal__actions">
+        <a class="disclaimer-modal__decline" data-disclaimer-decline href="../../">Leave</a>
+        <button type="button" class="btn" data-disclaimer-accept disabled>I understand — continue</button>
+      </div>
+    </div>
+  </dialog>
+
 
   <script defer src="/assets/js/partials.js"></script>
   <script defer src="/assets/js/cookie-consent.js"></script>
   <script defer src="/assets/js/search.js"></script>
   <script type="module" src="/assets/js/main.js"></script>
   <script type="module" src="../../assets/js/info-modal.js"></script>
+  <script type="module" src="../../assets/js/disclaimer-gate.js"></script>
   <script type="module" src="./tool.js"></script>
 </body>
 </html>
