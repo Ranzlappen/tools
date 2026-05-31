@@ -85,6 +85,29 @@
     }
     .ytm-install dd { margin: 0.25rem 0 0; color: var(--c-text); overflow-wrap: anywhere; }
     .ytm-hidden { display: none; }
+    .ytm-optional {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--c-text-faint);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-pill, 999px);
+      padding: 0.1rem 0.5rem;
+      margin-left: var(--space-xs);
+      vertical-align: middle;
+    }
+    .ytm-end { display: flex; align-items: flex-end; }
+    .ytm-end .btn { width: 100%; }
+    .ytm-g { width: 18px; height: 18px; flex: none; }
+    .ytm-link {
+      background: none;
+      border: 0;
+      padding: 0;
+      font: inherit;
+      color: var(--c-accent);
+      cursor: pointer;
+      text-decoration: underline;
+    }
   </style>
 </head>
 
@@ -172,6 +195,36 @@
             <button type="button" class="chip" data-preset="playlist">≣ Whole playlist → MP3</button>
             <button type="button" class="chip" data-preset="private">🔒 Private playlist</button>
           </div>
+        </section>
+
+        <section class="panel stack-md" id="yt-account">
+          <div class="panel__head">
+            <span class="panel__title">Or load from your YouTube account <span class="ytm-optional">optional</span></span>
+          </div>
+          <p class="panel__sub">Sign in (read-only) to pull your <strong>Liked videos</strong> or any of
+            your playlists. The list is private, but its videos are public — so they download
+            <strong>without cookies</strong>. Signing in contacts Google; the access token stays in
+            this page's memory and is never stored or sent anywhere else.</p>
+
+          <div class="btn-row">
+            <button type="button" class="btn" id="yt-signin" data-action="yt-signin">
+              <svg class="ytm-g" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              Sign in with Google
+            </button>
+            <button type="button" class="btn btn--ghost ytm-hidden" id="yt-signout" data-action="yt-signout">Sign out</button>
+          </div>
+
+          <div class="ytm-grid ytm-hidden" id="yt-account-pick">
+            <div class="ytm-field">
+              <label class="field-label" for="yt-playlist">Playlist</label>
+              <select id="yt-playlist" class="input input--single"></select>
+            </div>
+            <div class="ytm-field ytm-end">
+              <button type="button" class="btn" id="yt-load" data-action="yt-load">Load videos</button>
+            </div>
+          </div>
+
+          <p class="ytm-note" id="yt-account-status" role="status" aria-live="polite"></p>
         </section>
 
         <section class="panel stack-md" id="yt-options">
@@ -278,12 +331,17 @@
           <div class="panel__head">
             <span class="panel__title">Your command</span>
             <div class="btn-row">
+              <button type="button" class="btn btn--ghost ytm-hidden" data-action="yt-download-urls" id="yt-download-urls">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                urls.txt
+              </button>
               <button type="button" class="btn" data-action="copy" id="yt-copy">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 Copy
               </button>
             </div>
           </div>
+          <p class="ytm-note ytm-hidden" id="yt-using"></p>
           <div class="scroll-x"><pre class="ytm-cmd" id="yt-command"></pre></div>
           <p class="ytm-note">Paste this into your terminal. Need cookies for a private playlist? Use the
             <a href="/tools/cookies-txt/">Cookies.txt Converter</a> to make a <code>cookies.txt</code>.</p>
@@ -379,7 +437,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
       </div>
       <h2 id="ytm-disclaimer-title">Before you use this</h2>
-      <p>This tool only <strong>builds a <code>yt-dlp</code> command</strong> — it downloads nothing here and uploads nothing. You are solely responsible for how you use the command.</p>
+      <p>This tool only <strong>builds a <code>yt-dlp</code> command</strong> — it downloads nothing here. Nothing leaves the page unless you use the optional <strong>Sign in with Google</strong>, which reads your playlists from Google's API (read-only). You are solely responsible for how you use the command.</p>
       <p>Only download content you own, created, or are licensed or permitted to use. Downloading from YouTube may violate its Terms of Service, and copying copyrighted material without permission may be unlawful where you live. This is not legal advice.</p>
       <p>See the <a href="https://ranzlappen.com/disclaimer/" target="_blank" rel="noopener noreferrer">site disclaimer</a> for more.</p>
       <label class="disclaimer-modal__ack">

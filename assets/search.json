@@ -80,7 +80,7 @@
   {
     "title": "YouTube MP3 Studio",
     "url": "/tools/youtube-mp3/",
-    "description": "Build a yt-dlp command for max-quality MP3 — single videos, full playlists, even private ones via local cookies.",
+    "description": "Build a yt-dlp command for max-quality MP3 — videos, playlists, even private ones. Sign in to grab your Liked videos and playlists cookie-free.",
     "group": "Tools"
   },
   {
