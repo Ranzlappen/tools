@@ -291,8 +291,11 @@ async function doLoad() {
     }
     loaded = { videos, title };
     const extra = skipped ? ` · ${skipped} unavailable skipped` : "";
-    status(`Loaded ${videos.length} video${videos.length === 1 ? "" : "s"} from “${title}”${extra}.`);
+    status(`Loaded ${videos.length} video${videos.length === 1 ? "" : "s"} from “${title}”${extra}. Your command is below — download urls.txt and copy it.`);
     render();
+    // The command + urls.txt button live further down the page; bring them
+    // into view so the result isn't hidden below the Options panel.
+    els.command.closest(".panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
     status(errorText(err), "error");
   }
