@@ -123,11 +123,13 @@ export async function listMyPlaylists() {
 }
 
 // Every downloadable video in a playlist. Private/deleted entries can't be
-// fetched cookie-free, so we skip them and report the count.
-// Returns { videos: [{ id, title }], skipped }.
+// fetched cookie-free, so we set them aside. YouTube only returns a generic
+// "Private video" / "Deleted video" label for those (the real title is gone),
+// but the 11-char video id survives — enough to look up via an archive.
+// Returns { videos: [{ id, title }], skipped: [{ id, reason, position }] }.
 export async function listItems(playlistId, onProgress) {
   const videos = [];
-  let skipped = 0;
+  const skipped = [];
   let pageToken = "";
   do {
     const data = await api(
@@ -140,13 +142,17 @@ export async function listItems(playlistId, onProgress) {
       const priv = it.status?.privacyStatus;
       const title = it.snippet?.title || "";
       if (!id || priv === "private" || title === "Deleted video" || title === "Private video") {
-        skipped++;
+        skipped.push({
+          id: id || null,
+          reason: title || (priv === "private" ? "Private video" : "Unavailable"),
+          position: it.snippet?.position ?? null,
+        });
         continue;
       }
       videos.push({ id, title });
     }
     pageToken = data.nextPageToken || "";
-    onProgress?.(videos.length, skipped);
+    onProgress?.(videos.length, skipped.length);
   } while (pageToken && videos.length < 5000);
   return { videos, skipped };
 }

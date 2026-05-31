@@ -79,7 +79,9 @@ with the loaded list for them.
   the app is verified. There's also a 100-user cap before verification.
 - The access token lasts about an hour — fine, since we fetch immediately.
 - Private/deleted entries in a list can't be downloaded cookie-free and are
-  skipped (the status line reports how many).
+  skipped (the status line reports how many). Expand **Skipped videos** to see
+  their IDs or download `skipped.txt`; YouTube no longer exposes their titles,
+  but the IDs can be looked up via an archive such as filmot.com.
 
 ### Examples
 

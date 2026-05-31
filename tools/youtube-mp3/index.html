@@ -108,6 +108,24 @@
       cursor: pointer;
       text-decoration: underline;
     }
+    .ytm-skipped { margin-top: var(--space-xs); }
+    .ytm-skipped summary {
+      cursor: pointer;
+      color: var(--c-text-faint);
+      font-size: 0.82rem;
+    }
+    .ytm-skipped a { color: var(--c-accent); }
+    .ytm-skipped-list {
+      margin: var(--space-sm) 0 0;
+      padding-left: 1.4rem;
+      max-height: 220px;
+      overflow-y: auto;
+      font-family: var(--f-mono);
+      font-size: 0.78rem;
+      line-height: 1.7;
+    }
+    .ytm-skipped-list li { overflow-wrap: anywhere; }
+    .ytm-skipped-list .reason { color: var(--c-text-faint); }
   </style>
 </head>
 
@@ -225,6 +243,18 @@
           </div>
 
           <p class="ytm-note" id="yt-account-status" role="status" aria-live="polite"></p>
+
+          <details class="ytm-skipped ytm-hidden" id="yt-skipped">
+            <summary id="yt-skipped-summary">Skipped videos</summary>
+            <p class="ytm-note">These were private or deleted after you saved them, so they can't be
+              downloaded. YouTube no longer exposes their titles — only the IDs survive. Try a
+              metadata archive like <a href="https://filmot.com" target="_blank" rel="noopener noreferrer">filmot.com</a>
+              to recover what a deleted one used to be.</p>
+            <div class="btn-row">
+              <button type="button" class="btn btn--ghost" data-action="yt-download-skipped">Download skipped.txt</button>
+            </div>
+            <ol class="ytm-skipped-list" id="yt-skipped-list"></ol>
+          </details>
         </section>
 
         <section class="panel stack-md" id="yt-options">

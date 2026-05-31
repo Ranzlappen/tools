@@ -37,11 +37,15 @@ const els = {
   accountStatus: $("yt-account-status"),
   using: $("yt-using"),
   downloadUrls: $("yt-download-urls"),
+  skipped: $("yt-skipped"),
+  skippedSummary: $("yt-skipped-summary"),
+  skippedList: $("yt-skipped-list"),
 };
 
 // Videos loaded from a signed-in playlist. When non-empty the command targets
-// a `urls.txt` batch file instead of the single URL field.
-let loaded = { videos: [], title: "" };
+// a `urls.txt` batch file instead of the single URL field. `skipped` holds the
+// private/deleted entries we couldn't include.
+let loaded = { videos: [], title: "", skipped: [] };
 
 const TEMPLATE_SINGLE = "%(title)s.%(ext)s";
 const TEMPLATE_PLAYLIST = "%(playlist_title)s/%(playlist_index)02d - %(title)s.%(ext)s";
@@ -284,13 +288,15 @@ async function doLoad() {
   try {
     const { videos, skipped } = await yt.listItems(id, (n) => status(`Loading videos… ${n} so far`));
     if (!videos.length) {
-      loaded = { videos: [], title: "" };
+      loaded = { videos: [], title: "", skipped };
+      renderSkipped();
       status("No downloadable videos in that playlist.", "error");
       render();
       return;
     }
-    loaded = { videos, title };
-    const extra = skipped ? ` · ${skipped} unavailable skipped` : "";
+    loaded = { videos, title, skipped };
+    renderSkipped();
+    const extra = skipped.length ? ` · ${skipped.length} unavailable skipped` : "";
     status(`Loaded ${videos.length} video${videos.length === 1 ? "" : "s"} from “${title}”${extra}. Your command is below — download urls.txt and copy it.`);
     render();
     // The command + urls.txt button live further down the page; bring them
@@ -301,20 +307,44 @@ async function doLoad() {
   }
 }
 
-function downloadUrls() {
-  if (!loaded.videos.length) return;
-  const blob = new Blob([urlsText()], { type: "text/plain" });
+function download(name, text) {
+  const blob = new Blob([text], { type: "text/plain" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "urls.txt";
+  a.download = name;
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+// Paint the collapsible list of private/deleted entries we couldn't include.
+function renderSkipped() {
+  const items = loaded.skipped;
+  els.skipped.classList.toggle("ytm-hidden", !items.length);
+  if (!items.length) { els.skipped.open = false; return; }
+  els.skippedSummary.textContent = `Skipped videos (${items.length})`;
+  els.skippedList.innerHTML = items
+    .map((s) => {
+      const reason = `<span class="reason"> — ${escapeHtml(s.reason)}</span>`;
+      if (!s.id) return `<li>(no video id)${reason}</li>`;
+      const url = `https://www.youtube.com/watch?v=${s.id}`;
+      return `<li><a href="${url}" target="_blank" rel="noopener noreferrer">${s.id}</a>${reason}</li>`;
+    })
+    .join("");
+}
+
+function downloadSkipped() {
+  if (!loaded.skipped.length) return;
+  const lines = loaded.skipped.map((s) =>
+    s.id ? `https://www.youtube.com/watch?v=${s.id}\t${s.reason}` : `(no id)\t${s.reason}`
+  );
+  download("skipped.txt", lines.join("\n") + "\n");
+}
+
 function clearList() {
-  loaded = { videos: [], title: "" };
+  loaded = { videos: [], title: "", skipped: [] };
+  renderSkipped();
   status(yt.signedIn() ? "Pick a playlist, then “Load videos”." : "");
   render();
 }
@@ -384,7 +414,9 @@ document.addEventListener("click", async (ev) => {
   } else if (action === "yt-load") {
     await doLoad();
   } else if (action === "yt-download-urls") {
-    downloadUrls();
+    if (loaded.videos.length) download("urls.txt", urlsText());
+  } else if (action === "yt-download-skipped") {
+    downloadSkipped();
   } else if (action === "yt-clear-list") {
     clearList();
   }
