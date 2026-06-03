@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Color Picker · tools · ranzlappen</title>
+  <meta name="description" content="Pick, convert between HEX, RGB, HSL, OKLCH, HSV — and check WCAG contrast." />
+  <meta name="theme-color" content="#0b1210" />
+  <meta name="color-scheme" content="dark light" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Color Picker · tools · ranzlappen" />
+  <meta property="og:description" content="Pick, convert between HEX, RGB, HSL, OKLCH, HSV — and check WCAG contrast." />
+  <meta property="og:url" content="https://tools.ranzlappen.com/color-picker/" />
+  <meta property="og:site_name" content="ranzlappen tools" />
+  <meta property="og:image" content="https://tools.ranzlappen.com/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="ranzlappen tools — Small tools, sharp edges." />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Color Picker · tools · ranzlappen" />
+  <meta name="twitter:description" content="Pick, convert between HEX, RGB, HSL, OKLCH, HSV — and check WCAG contrast." />
+  <meta name="twitter:image" content="https://tools.ranzlappen.com/assets/og.png" />
+
+
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem("tools:theme") === "light")
+          document.documentElement.setAttribute("data-theme", "light");
+        if (localStorage.getItem("tools:headerSticky") === "off")
+          document.documentElement.setAttribute("data-header-sticky", "off");
+        var CC_KEY = "tools:cookie_consent", CC_VER = 1, CC_EXP = 365;
+        var d = JSON.parse(localStorage.getItem(CC_KEY));
+        if (d && d.version === CC_VER && (Date.now() - d.timestamp) < CC_EXP * 86400000) {
+          window.__cookieConsent = { functional: !!d.functional, resolved: true };
+          if (d.functional) document.documentElement.classList.add("consent-functional");
+        } else { window.__cookieConsent = { functional: false, resolved: false }; }
+      } catch (e) { window.__cookieConsent = { functional: false, resolved: false }; }
+    })();
+  </script>
+
+  <link rel="icon" type="image/png" href="/assets/icon.png" />
+  <link rel="apple-touch-icon" href="/assets/icon.png" />
+
+  <link rel="stylesheet" href="/assets/css/style.css" />
+  <link rel="stylesheet" href="/assets/css/cookie-consent.css" />
+  <link rel="stylesheet" href="/assets/css/backdrops.css" />
+  <link rel="stylesheet" href="/assets/css/tool.css" />
+</head>
+
+<body>
+
+  <div id="backdrop" aria-hidden="true">
+    <div class="grid-bg__sky"></div>
+    <div class="grid-bg__plane"></div>
+    <div class="grid-bg__scan"></div>
+    <div class="grid-bg__spot"></div>
+  </div>
+
+  <div class="page">
+
+
+    <main class="tool-main">
+      <div class="shell">
+
+        <section class="tool-header">
+          <a href="/" class="tool-header__back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            All tools
+          </a>
+          <div class="tool-title">
+            <div class="tool-title__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="19" cy="13" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="10" cy="20" r="2.5"/><path d="M12 2a10 10 0 1 0 0 20 4 4 0 0 0 0-8 2 2 0 0 1 0-4 4 4 0 0 0 0-8z"/></svg>
+            </div>
+            <div class="tool-title__text">
+              <h1>Color Picker</h1>
+              <p>Pick a color, see every format, check WCAG contrast against any partner.</p>
+            </div>
+            <button type="button" class="info-btn" data-info-button aria-label="About this tool" title="About this tool">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <section class="panel stack-lg">
+          <div class="panel__head">
+            <span class="panel__title">Foreground color</span>
+            <div class="btn-row">
+              <input type="color" id="fg-input" value="#4ade80" class="input input--single" style="width: 56px; padding: 0; height: 36px; cursor: pointer;" aria-label="Foreground color"/>
+              <input type="text" id="fg-text" class="input input--single input--mono" style="max-width: 140px;" value="#4ade80" aria-label="Foreground color hex" />
+            </div>
+          </div>
+
+          <div class="color-grid">
+            <div id="fg-preview" class="color-preview" style="background: #4ade80;"></div>
+            <div class="color-formats" id="fg-formats"></div>
+          </div>
+        </section>
+
+        <section class="panel stack-md" style="margin-top: var(--space-lg);">
+          <div class="panel__head">
+            <span class="panel__title">Contrast check</span>
+            <input type="color" id="bg-input" value="#0b1210" class="input input--single" style="width: 56px; padding: 0; height: 36px; cursor: pointer;" aria-label="Background color"/>
+          </div>
+
+          <div class="contrast-row">
+            <div>
+              <div id="contrast-preview" style="
+                padding: var(--space-lg);
+                border-radius: var(--border-radius-lg);
+                border: 1px solid var(--c-border);
+                background: #0b1210;
+                color: #4ade80;
+                font-family: var(--f-body);
+              ">
+                <div style="font-size: 1.6rem; font-weight: 600;">Large text</div>
+                <div style="font-size: 0.95rem; margin-top: 0.5rem;">Body text at 16 pixels.</div>
+              </div>
+            </div>
+            <div>
+              <div class="contrast-ratio" id="contrast-ratio">—</div>
+              <div class="contrast-badges" id="contrast-badges"></div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+
+  </div>
+
+
+  <script defer src="/assets/js/partials.js"></script>
+  <script defer src="/assets/js/cookie-consent.js"></script>
+  <script defer src="/assets/js/search.js"></script>
+  <script type="module" src="/assets/js/main.js"></script>
+  <script type="module" src="/assets/js/info-modal.js"></script>
+  <script type="module" src="./tool.js"></script>
+</body>
+</html>

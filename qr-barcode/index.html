@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QR &amp; Barcode Generator · tools · ranzlappen</title>
+  <meta name="description" content="Generate QR codes, 2D matrix codes, and 1D barcodes with full design control, error-correction options, content presets, and multi-format export — entirely in the browser." />
+  <meta name="theme-color" content="#0b1210" />
+  <meta name="color-scheme" content="dark light" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="QR &amp; Barcode Generator · tools · ranzlappen" />
+  <meta property="og:description" content="Generate QR codes, 2D matrix codes, and 1D barcodes with full design control and multi-format export." />
+  <meta property="og:url" content="https://tools.ranzlappen.com/qr-barcode/" />
+  <meta property="og:site_name" content="ranzlappen tools" />
+  <meta property="og:image" content="https://tools.ranzlappen.com/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="ranzlappen tools — Small tools, sharp edges." />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="QR &amp; Barcode Generator · tools · ranzlappen" />
+  <meta name="twitter:description" content="Generate QR codes, 2D matrix codes, and 1D barcodes with full design control and multi-format export." />
+  <meta name="twitter:image" content="https://tools.ranzlappen.com/assets/og.png" />
+
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem("tools:theme") === "light")
+          document.documentElement.setAttribute("data-theme", "light");
+        if (localStorage.getItem("tools:headerSticky") === "off")
+          document.documentElement.setAttribute("data-header-sticky", "off");
+        var CC_KEY = "tools:cookie_consent", CC_VER = 1, CC_EXP = 365;
+        var d = JSON.parse(localStorage.getItem(CC_KEY));
+        if (d && d.version === CC_VER && (Date.now() - d.timestamp) < CC_EXP * 86400000) {
+          window.__cookieConsent = { functional: !!d.functional, resolved: true };
+          if (d.functional) document.documentElement.classList.add("consent-functional");
+        } else { window.__cookieConsent = { functional: false, resolved: false }; }
+      } catch (e) { window.__cookieConsent = { functional: false, resolved: false }; }
+    })();
+  </script>
+
+  <link rel="icon" type="image/png" href="/assets/icon.png" />
+  <link rel="apple-touch-icon" href="/assets/icon.png" />
+
+  <link rel="stylesheet" href="/assets/css/style.css" />
+  <link rel="stylesheet" href="/assets/css/cookie-consent.css" />
+  <link rel="stylesheet" href="/assets/css/backdrops.css" />
+  <link rel="stylesheet" href="/assets/css/tool.css" />
+
+  <!-- bwip-js — every 1D/2D barcode symbology (~100). UMD global: bwipjs. -->
+  <script
+    defer
+    src="https://cdn.jsdelivr.net/npm/bwip-js@4.5.1/dist/bwip-js-min.js"
+    integrity="sha384-dq+q79ChfpjqVAKSnJQTHOKU7UnrQWyGu44+Cl6xngUgnJ9kEUsjS3U/vRF420By"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  ></script>
+  <!-- qr-code-styling — fancy QR rendering (gradients, dot shapes, logos). UMD global: QRCodeStyling. -->
+  <script
+    defer
+    src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.6.0-rc.1/lib/qr-code-styling.js"
+    integrity="sha384-50pczvCB0no/P1Foou0eD0Bul/9JKfIgx04I0bMpay6npYYwWTUgQxlGS5T7yKmn"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  ></script>
+  <!-- jsPDF — PDF export. UMD global: jspdf. -->
+  <script
+    defer
+    src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"
+    integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  ></script>
+
+  <style>
+    /* Page-specific styles — kept here because they're only used by this tool. */
+    .qr-preview-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: var(--space-lg);
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: var(--border-radius);
+      border: 1px solid var(--c-border-light);
+      min-height: 280px;
+    }
+    [data-theme="light"] .qr-preview-wrap { background: #ffffff; }
+    .qr-preview-wrap > * { max-width: 100%; height: auto; }
+    .qr-preview-wrap canvas, .qr-preview-wrap svg {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    .preset-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 4px;
+      border-radius: var(--border-radius);
+      background: rgba(0, 0, 0, 0.16);
+      border: 1px solid var(--c-border-light);
+    }
+    [data-theme="light"] .preset-tabs { background: rgba(0, 0, 0, 0.04); }
+    .preset-tab {
+      flex: 1 1 auto;
+      min-width: 70px;
+      padding: 0.4rem 0.6rem;
+      font-family: var(--f-body);
+      font-size: 0.78rem;
+      border-radius: var(--border-radius-sm);
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--c-text-muted);
+      cursor: pointer;
+      text-align: center;
+      transition: all var(--transition-fast);
+    }
+    .preset-tab:hover { color: var(--c-text); }
+    .preset-tab[aria-pressed="true"] {
+      color: var(--c-accent);
+      background: var(--c-accent-bg);
+      border-color: var(--c-accent-border);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-md);
+    }
+    .form-grid .full { grid-column: 1 / -1; }
+    @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+
+    .swatch-input {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: var(--space-sm);
+      align-items: center;
+    }
+    .swatch-input input[type="color"] {
+      width: 44px;
+      height: 38px;
+      padding: 0;
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .info-line {
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+      color: var(--c-text-faint);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .symbology-search {
+      width: 100%;
+    }
+    .symbology-select {
+      width: 100%;
+      font-family: var(--f-mono);
+    }
+    .symbology-select optgroup {
+      font-family: var(--f-body);
+      font-style: normal;
+      font-weight: 600;
+      color: var(--c-text-muted);
+    }
+
+    .range-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--space-sm);
+      align-items: center;
+    }
+    .range-row .val {
+      font-family: var(--f-mono);
+      font-size: 0.78rem;
+      color: var(--c-accent);
+      min-width: 3em;
+      text-align: right;
+    }
+    input[type="range"] { width: 100%; accent-color: var(--c-accent); }
+
+    /* Multi-control row that must wrap on narrow viewports — used for the
+       gradient toggle and the logo overlay. Native color & file inputs
+       have wide UA defaults on mobile, so without flex-wrap they push
+       past the panel edge and get clipped by body { overflow-x: clip }. */
+    .inline-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+      min-width: 0;
+    }
+    label.inline-row { cursor: pointer; }
+    .inline-row > input[type="color"] {
+      width: 44px;
+      height: 38px;
+      padding: 0;
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      background: transparent;
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+    .inline-row > input[type="file"] {
+      flex: 1 1 12rem;
+      min-width: 0;
+      max-width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="backdrop" aria-hidden="true">
+    <div class="grid-bg__sky"></div>
+    <div class="grid-bg__plane"></div>
+    <div class="grid-bg__scan"></div>
+    <div class="grid-bg__spot"></div>
+  </div>
+
+  <div class="page">
+
+
+    <main class="tool-main">
+      <div class="shell">
+
+        <section class="tool-header">
+          <a href="/" class="tool-header__back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            All tools
+          </a>
+          <div class="tool-title">
+            <div class="tool-title__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z"/></svg>
+            </div>
+            <div class="tool-title__text">
+              <h1>QR &amp; Barcode Generator</h1>
+              <p>Every 1D &amp; 2D symbology, with full design + error-correction control. Runs entirely in the browser.</p>
+            </div>
+            <button type="button" class="info-btn" data-info-button aria-label="About this tool" title="About this tool">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <div id="lib-error" class="banner banner--error is-hidden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          <span id="lib-error-text">Loading rendering libraries…</span>
+        </div>
+
+        <!-- ===== Panel 1: symbology ===== -->
+        <section class="panel stack-md">
+          <div class="panel__head">
+            <span class="panel__title">Symbology</span>
+            <span class="panel__sub muted"><span id="sym-badge"></span></span>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label for="sym-search" class="field-label">Filter</label>
+              <input id="sym-search" type="text" class="input input--single symbology-search" placeholder="Type to filter (qr, ean, code 128…)…" autocomplete="off" />
+            </div>
+            <div>
+              <label for="sym-select" class="field-label">Choose</label>
+              <select id="sym-select" class="input input--single symbology-select"></select>
+            </div>
+          </div>
+
+          <p id="sym-description" class="panel__sub muted tiny" style="margin: 0;"></p>
+        </section>
+
+        <!-- ===== Panel 2: content ===== -->
+        <section class="panel stack-md" style="margin-top: var(--space-lg);">
+          <div class="panel__head">
+            <span class="panel__title">Content</span>
+            <span id="content-hint" class="panel__sub muted tiny"></span>
+          </div>
+
+          <div id="preset-tabs" class="preset-tabs" role="tablist" aria-label="Content preset"></div>
+
+          <div id="preset-fields"></div>
+
+          <div>
+            <label for="payload" class="field-label">Encoded payload</label>
+            <textarea id="payload" class="textarea" spellcheck="false" style="min-height: 80px;"></textarea>
+          </div>
+        </section>
+
+        <!-- ===== Panel 3: redundancy / ECC ===== -->
+        <section class="panel stack-md" style="margin-top: var(--space-lg);">
+          <div class="panel__head">
+            <span class="panel__title">Redundancy &amp; size</span>
+            <span class="panel__sub muted tiny">Error correction and physical sizing</span>
+          </div>
+
+          <div id="ecc-controls" class="form-grid"></div>
+
+          <div class="form-grid">
+            <div>
+              <label for="mod-size" class="field-label">Module / bar size (px)</label>
+              <div class="range-row">
+                <input id="mod-size" type="range" min="2" max="20" step="1" value="8" />
+                <span class="val" id="mod-size-val">8</span>
+              </div>
+            </div>
+            <div>
+              <label for="quiet-zone" class="field-label">Quiet zone (modules)</label>
+              <div class="range-row">
+                <input id="quiet-zone" type="range" min="0" max="20" step="1" value="4" />
+                <span class="val" id="quiet-zone-val">4</span>
+              </div>
+            </div>
+            <div id="hri-wrap">
+              <label class="field-label" style="display: flex; align-items: center; gap: var(--space-sm); cursor: pointer;">
+                <input id="hri-on" type="checkbox" checked /> Show human-readable text (HRI)
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Panel 4: design (QR-only) ===== -->
+        <section class="panel stack-md" id="design-panel" style="margin-top: var(--space-lg);">
+          <div class="panel__head">
+            <span class="panel__title">Design</span>
+            <span class="panel__sub muted tiny">QR styling: colours, module &amp; eye shapes, logo</span>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label class="field-label">Foreground</label>
+              <div class="swatch-input">
+                <input id="fg-color" type="color" value="#0b1210" />
+                <input id="fg-hex" type="text" class="input input--single input--mono" value="#0b1210" />
+              </div>
+            </div>
+            <div>
+              <label class="field-label">Background</label>
+              <div class="swatch-input">
+                <input id="bg-color" type="color" value="#ffffff" />
+                <input id="bg-hex" type="text" class="input input--single input--mono" value="#ffffff" />
+              </div>
+            </div>
+            <div>
+              <label for="dots-style" class="field-label">Module shape</label>
+              <select id="dots-style" class="input input--single">
+                <option value="square">Square</option>
+                <option value="dots">Dots</option>
+                <option value="rounded">Rounded</option>
+                <option value="extra-rounded">Extra rounded</option>
+                <option value="classy">Classy</option>
+                <option value="classy-rounded">Classy rounded</option>
+              </select>
+            </div>
+            <div>
+              <label for="eye-style" class="field-label">Eye (corner) outer</label>
+              <select id="eye-style" class="input input--single">
+                <option value="square">Square</option>
+                <option value="extra-rounded">Extra rounded</option>
+                <option value="dot">Dot</option>
+              </select>
+            </div>
+            <div>
+              <label for="eye-inner-style" class="field-label">Eye (corner) inner</label>
+              <select id="eye-inner-style" class="input input--single">
+                <option value="square">Square</option>
+                <option value="dot">Dot</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label">Gradient</label>
+              <label class="inline-row">
+                <input id="grad-on" type="checkbox" />
+                <input id="grad-stop" type="color" value="#22c55e" />
+                <span class="muted tiny">second stop (linear)</span>
+              </label>
+            </div>
+            <div class="full">
+              <label for="logo-file" class="field-label">Logo overlay (PNG / SVG; auto-bumps ECC to Q)</label>
+              <div class="inline-row">
+                <input id="logo-file" type="file" accept="image/*" />
+                <button type="button" class="btn btn--ghost" data-action="logo-clear">Clear</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Panel 5: preview ===== -->
+        <section class="panel stack-md" style="margin-top: var(--space-lg);">
+          <div class="panel__head">
+            <span class="panel__title">Preview</span>
+            <span id="preview-info" class="info-line"></span>
+          </div>
+          <div id="preview" class="qr-preview-wrap" aria-live="polite"></div>
+        </section>
+
+        <!-- ===== Panel 6: export ===== -->
+        <section class="panel stack-md" style="margin-top: var(--space-lg);">
+          <div class="panel__head">
+            <span class="panel__title">Export</span>
+            <span class="panel__sub muted tiny">Vector, raster, PDF, clipboard, share</span>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn btn--primary" data-export="svg">Download SVG</button>
+            <button type="button" class="btn" data-export="png-1">PNG 1×</button>
+            <button type="button" class="btn" data-export="png-2">PNG 2×</button>
+            <button type="button" class="btn" data-export="png-4">PNG 4×</button>
+            <button type="button" class="btn" data-export="jpg">Download JPG</button>
+            <button type="button" class="btn" data-export="pdf">Download PDF</button>
+            <button type="button" class="btn" data-export="copy">Copy PNG</button>
+            <button type="button" class="btn" data-export="share">Share…</button>
+          </div>
+          <p class="muted tiny" style="margin: 0;">
+            Filename is <code>&lt;symbology&gt;-&lt;content-stub&gt;.&lt;ext&gt;</code>. PDF uses jsPDF; clipboard uses
+            the async Clipboard API; sharing uses the Web Share API on supported browsers.
+          </p>
+        </section>
+
+      </div>
+    </main>
+
+
+  </div>
+
+  <script defer src="/assets/js/partials.js"></script>
+  <script defer src="/assets/js/cookie-consent.js"></script>
+  <script defer src="/assets/js/search.js"></script>
+  <script type="module" src="/assets/js/main.js"></script>
+  <script type="module" src="/assets/js/info-modal.js"></script>
+  <script type="module" src="./tool.js"></script>
+</body>
+</html>

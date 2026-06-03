@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OG Image Studio · tools · ranzlappen</title>
+  <meta name="description" content="Compose 1200×630 social cards via the edge API. Title, subtitle, theme — live preview, copy URL, download PNG." />
+  <meta name="theme-color" content="#0b1210" />
+  <meta name="color-scheme" content="dark light" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="OG Image Studio · tools · ranzlappen" />
+  <meta property="og:description" content="Compose 1200×630 social cards via the edge API. Title, subtitle, theme — live preview, copy URL, download PNG." />
+  <meta property="og:url" content="https://tools.ranzlappen.com/og-studio/" />
+  <meta property="og:site_name" content="ranzlappen tools" />
+  <meta property="og:image" content="https://tools.ranzlappen.com/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="ranzlappen tools — Small tools, sharp edges." />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="OG Image Studio · tools · ranzlappen" />
+  <meta name="twitter:description" content="Compose 1200×630 social cards via the edge API. Title, subtitle, theme — live preview, copy URL, download PNG." />
+  <meta name="twitter:image" content="https://tools.ranzlappen.com/assets/og.png" />
+
+
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem("tools:theme") === "light")
+          document.documentElement.setAttribute("data-theme", "light");
+        if (localStorage.getItem("tools:headerSticky") === "off")
+          document.documentElement.setAttribute("data-header-sticky", "off");
+        var CC_KEY = "tools:cookie_consent", CC_VER = 1, CC_EXP = 365;
+        var d = JSON.parse(localStorage.getItem(CC_KEY));
+        if (d && d.version === CC_VER && (Date.now() - d.timestamp) < CC_EXP * 86400000) {
+          window.__cookieConsent = { functional: !!d.functional, resolved: true };
+          if (d.functional) document.documentElement.classList.add("consent-functional");
+        } else { window.__cookieConsent = { functional: false, resolved: false }; }
+      } catch (e) { window.__cookieConsent = { functional: false, resolved: false }; }
+    })();
+  </script>
+
+  <link rel="icon" type="image/png" href="/assets/icon.png" />
+  <link rel="apple-touch-icon" href="/assets/icon.png" />
+
+  <link rel="stylesheet" href="/assets/css/style.css" />
+  <link rel="stylesheet" href="/assets/css/cookie-consent.css" />
+  <link rel="stylesheet" href="/assets/css/backdrops.css" />
+  <link rel="stylesheet" href="/assets/css/tool.css" />
+
+  <style>
+    /* Page-local: preview frame + URL echo. Kept inline (no new CSS file)
+       so the tool ships as two files like its siblings. */
+    .og-preview-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: var(--og-aspect, 1200 / 630);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.18);
+      border: 1px solid var(--c-border);
+    }
+    [data-theme="light"] .og-preview-frame { background: rgba(0, 0, 0, 0.04); }
+    .og-preview-frame img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .og-preview-frame::before {
+      content: "loading preview…";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--f-mono);
+      font-size: 0.75rem;
+      color: var(--c-text-faint);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    .og-url-echo {
+      display: block;
+      font-family: var(--f-mono);
+      font-size: 0.75rem;
+      color: var(--c-text-muted);
+      background: rgba(0, 0, 0, 0.18);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      padding: var(--space-sm) var(--space-md);
+      word-break: break-all;
+      overflow-wrap: anywhere;
+    }
+    [data-theme="light"] .og-url-echo { background: rgba(255, 255, 255, 0.7); }
+    .og-counter {
+      float: right;
+      font-family: var(--f-mono);
+      font-size: 0.65rem;
+      color: var(--c-text-faint);
+      letter-spacing: 0.08em;
+    }
+    .og-counter.is-warn { color: var(--c-warning); }
+
+    .og-presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+      align-items: center;
+    }
+    .og-presets .field-label {
+      margin: 0 var(--space-xs) 0 0;
+      font-family: var(--f-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      color: var(--c-text-muted);
+    }
+
+    details.og-section {
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      background: rgba(0, 0, 0, 0.12);
+      margin-bottom: var(--space-md);
+    }
+    [data-theme="light"] details.og-section { background: rgba(255, 255, 255, 0.5); }
+    details.og-section > summary {
+      cursor: pointer;
+      padding: var(--space-sm) var(--space-md);
+      font-weight: 600;
+      font-size: 0.9rem;
+      list-style: none;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+    }
+    details.og-section > summary::-webkit-details-marker { display: none; }
+    details.og-section > summary::after {
+      content: "+";
+      font-family: var(--f-mono);
+      color: var(--c-text-muted);
+      transition: transform 0.15s ease;
+    }
+    details.og-section[open] > summary::after { content: "−"; }
+    .og-section__body {
+      padding: 0 var(--space-md) var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .og-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: var(--space-sm);
+    }
+    .og-grid > div { min-width: 0; }
+
+    fieldset.og-fieldset {
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      padding: var(--space-sm) var(--space-md) var(--space-md);
+      margin: 0;
+    }
+    fieldset.og-fieldset > legend {
+      font-family: var(--f-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--c-text-muted);
+      padding: 0 var(--space-xs);
+    }
+    .og-row-checkbox {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+      font-size: 0.85rem;
+    }
+
+    .og-hex {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    .og-hex input[type="color"] {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      background: transparent;
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+    .og-hex input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      font-family: var(--f-mono);
+      font-size: 0.78rem;
+    }
+    .og-hex button {
+      flex: 0 0 auto;
+      padding: 4px 8px;
+      font-size: 0.7rem;
+      background: transparent;
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text-muted);
+      cursor: pointer;
+      font-family: var(--f-mono);
+    }
+    .og-hex button:hover { color: var(--c-text); }
+
+    .og-stepper {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    .og-stepper input[type="number"] { width: 64px; }
+    .og-stepper button {
+      padding: 4px 10px;
+      background: transparent;
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text);
+      cursor: pointer;
+      font-family: var(--f-mono);
+    }
+
+    .is-collapsed { display: none !important; }
+
+    @media (max-width: 640px) {
+      details.og-section:not([data-keep-open]) { /* details default-collapsed */ }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="backdrop" aria-hidden="true">
+    <div class="grid-bg__sky"></div>
+    <div class="grid-bg__plane"></div>
+    <div class="grid-bg__scan"></div>
+    <div class="grid-bg__spot"></div>
+  </div>
+
+  <div class="page">
+
+
+    <main class="tool-main">
+      <div class="shell">
+
+        <section class="tool-header">
+          <a href="/" class="tool-header__back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            All tools
+          </a>
+          <div class="tool-title">
+            <div class="tool-title__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m3 17 5-5 4 4 3-3 6 6"/></svg>
+            </div>
+            <div class="tool-title__text">
+              <h1>OG Image Studio</h1>
+              <p>Compose 1200×630 social cards via the edge API. Live preview, copy URL, download PNG.</p>
+            </div>
+            <button type="button" class="info-btn" data-info-button aria-label="About this tool" title="About this tool">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <div class="banner banner--info">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          <span>Renders live via <code>api.tools.ranzlappen.com</code>. Preview &amp; download require this page to be served from <code>tools.ranzlappen.com</code> (CORS-restricted) — anywhere else, the image URL still works in a browser tab.</span>
+        </div>
+
+        <section class="panel stack-md">
+          <div class="panel__head">
+            <span class="panel__title">Compose</span>
+            <div class="btn-row">
+              <button type="button" class="btn btn--ghost" data-action="sample">Sample</button>
+              <button type="button" class="btn btn--ghost" data-action="reset">Reset</button>
+            </div>
+          </div>
+
+          <div class="og-presets" role="group" aria-label="Presets">
+            <span class="field-label">Preset</span>
+            <button type="button" class="chip" data-preset="tools-default">tools-default</button>
+            <button type="button" class="chip" data-preset="hero">hero</button>
+            <button type="button" class="chip" data-preset="minimal">minimal</button>
+            <button type="button" class="chip" data-preset="twitter-banner">twitter-banner</button>
+            <button type="button" class="chip" data-preset="square-post">square-post</button>
+          </div>
+
+          <details class="og-section" open data-section="content">
+            <summary>Content</summary>
+            <div class="og-section__body">
+              <div>
+                <label class="field-label" for="og-title">
+                  Title
+                  <span class="og-counter" id="og-title-count">0 / 80</span>
+                </label>
+                <input id="og-title" class="input input--single" maxlength="80" spellcheck="false" placeholder="Small tools, sharp edges." />
+              </div>
+              <div>
+                <label class="field-label" for="og-subtitle">
+                  Subtitle
+                  <span class="og-counter" id="og-subtitle-count">0 / 120</span>
+                </label>
+                <input id="og-subtitle" class="input input--single" maxlength="120" spellcheck="false" placeholder="A one-line tagline." />
+              </div>
+
+              <fieldset class="og-fieldset">
+                <legend>Brand chip</legend>
+                <div class="og-grid">
+                  <div>
+                    <label class="field-label" for="og-brand-icon">Icon (1–2 chars)</label>
+                    <input id="og-brand-icon" class="input" maxlength="2" />
+                  </div>
+                  <div>
+                    <label class="field-label" for="og-brand-name">Name</label>
+                    <input id="og-brand-name" class="input" maxlength="24" />
+                  </div>
+                  <div>
+                    <label class="field-label" for="og-brand-sub">Sub</label>
+                    <input id="og-brand-sub" class="input" maxlength="24" />
+                  </div>
+                </div>
+                <label class="og-row-checkbox" style="margin-top: var(--space-sm);">
+                  <input type="checkbox" id="og-brand-show" /> Show brand chip
+                </label>
+              </fieldset>
+
+              <fieldset class="og-fieldset">
+                <legend>Eyebrow</legend>
+                <div>
+                  <label class="field-label" for="og-eyebrow-text">Text</label>
+                  <input id="og-eyebrow-text" class="input" maxlength="32" />
+                </div>
+                <label class="og-row-checkbox" style="margin-top: var(--space-sm);">
+                  <input type="checkbox" id="og-eyebrow-show" /> Show eyebrow
+                </label>
+              </fieldset>
+
+              <fieldset class="og-fieldset">
+                <legend>URL pill</legend>
+                <div>
+                  <label class="field-label" for="og-url-text">Text</label>
+                  <input id="og-url-text" class="input" maxlength="48" />
+                </div>
+                <label class="og-row-checkbox" style="margin-top: var(--space-sm);">
+                  <input type="checkbox" id="og-url-show" /> Show URL pill
+                </label>
+              </fieldset>
+
+              <label class="og-row-checkbox">
+                <input type="checkbox" id="og-divider" /> Show divider line under headline
+              </label>
+            </div>
+          </details>
+
+          <details class="og-section" open data-section="layout">
+            <summary>Layout & size</summary>
+            <div class="og-section__body">
+              <div>
+                <label class="field-label">Layout</label>
+                <div class="chips" role="group" aria-label="Layout">
+                  <button type="button" class="chip" data-layout="classic">classic</button>
+                  <button type="button" class="chip" data-layout="centered">centered</button>
+                  <button type="button" class="chip" data-layout="hero">hero</button>
+                  <button type="button" class="chip" data-layout="minimal">minimal</button>
+                  <button type="button" class="chip" data-layout="split">split</button>
+                </div>
+              </div>
+              <div>
+                <label class="field-label">Size</label>
+                <div class="chips" role="group" aria-label="Size">
+                  <button type="button" class="chip" data-size="og">og · 1200×630</button>
+                  <button type="button" class="chip" data-size="twitter">twitter · 1200×675</button>
+                  <button type="button" class="chip" data-size="linkedin">linkedin · 1200×627</button>
+                  <button type="button" class="chip" data-size="square">square · 1080×1080</button>
+                  <button type="button" class="chip" data-size="custom">custom</button>
+                </div>
+              </div>
+              <div id="og-custom-size" class="og-grid is-collapsed">
+                <div>
+                  <label class="field-label" for="og-custom-w">Width (600–2400)</label>
+                  <input id="og-custom-w" class="input" type="number" min="600" max="2400" step="10" />
+                </div>
+                <div>
+                  <label class="field-label" for="og-custom-h">Height (600–2400)</label>
+                  <input id="og-custom-h" class="input" type="number" min="600" max="2400" step="10" />
+                </div>
+              </div>
+              <div>
+                <label class="field-label">Headline font</label>
+                <div class="chips" role="group" aria-label="Headline font">
+                  <button type="button" class="chip" data-font="sans">sans</button>
+                  <button type="button" class="chip" data-font="serif">serif</button>
+                  <button type="button" class="chip" data-font="mono">mono</button>
+                </div>
+              </div>
+              <div>
+                <label class="field-label" for="og-accent-word">Accent word index (−1 = none, 0 = first word)</label>
+                <div class="og-stepper">
+                  <button type="button" data-step="-1" aria-label="Decrement">−</button>
+                  <input id="og-accent-word" class="input" type="number" min="-1" max="20" step="1" />
+                  <button type="button" data-step="1" aria-label="Increment">+</button>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details class="og-section" open data-section="colour">
+            <summary>Colour</summary>
+            <div class="og-section__body">
+              <div>
+                <label class="field-label">Palette</label>
+                <div class="chips" role="group" aria-label="Palette">
+                  <button type="button" class="chip" data-palette="green">green</button>
+                  <button type="button" class="chip" data-palette="slate">slate</button>
+                  <button type="button" class="chip" data-palette="amber">amber</button>
+                  <button type="button" class="chip" data-palette="violet">violet</button>
+                  <button type="button" class="chip" data-palette="rose">rose</button>
+                  <button type="button" class="chip" data-palette="mono">mono</button>
+                </div>
+              </div>
+              <div>
+                <label class="field-label">Image theme</label>
+                <div class="chips" role="group" aria-label="Image theme">
+                  <button type="button" class="chip" data-theme="dark">dark</button>
+                  <button type="button" class="chip" data-theme="light">light</button>
+                </div>
+              </div>
+              <fieldset class="og-fieldset">
+                <legend>HEX overrides (blank = palette default)</legend>
+                <div class="og-grid">
+                  <div>
+                    <label class="field-label" for="og-color-bg">bg</label>
+                    <div class="og-hex">
+                      <input type="color" data-hex-color="bg" />
+                      <input id="og-color-bg" type="text" data-hex-text="bg" placeholder="#000000" maxlength="9" />
+                      <button type="button" data-hex-clear="bg">×</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="field-label" for="og-color-text">text</label>
+                    <div class="og-hex">
+                      <input type="color" data-hex-color="text" />
+                      <input id="og-color-text" type="text" data-hex-text="text" placeholder="#ffffff" maxlength="9" />
+                      <button type="button" data-hex-clear="text">×</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="field-label" for="og-color-muted">muted</label>
+                    <div class="og-hex">
+                      <input type="color" data-hex-color="muted" />
+                      <input id="og-color-muted" type="text" data-hex-text="muted" placeholder="#7e948a" maxlength="9" />
+                      <button type="button" data-hex-clear="muted">×</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="field-label" for="og-color-accent">accent</label>
+                    <div class="og-hex">
+                      <input type="color" data-hex-color="accent" />
+                      <input id="og-color-accent" type="text" data-hex-text="accent" placeholder="#4ade80" maxlength="9" />
+                      <button type="button" data-hex-clear="accent">×</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="field-label" for="og-color-accent2">accent2</label>
+                    <div class="og-hex">
+                      <input type="color" data-hex-color="accent2" />
+                      <input id="og-color-accent2" type="text" data-hex-text="accent2" placeholder="#a7f3d0" maxlength="9" />
+                      <button type="button" data-hex-clear="accent2">×</button>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+          </details>
+
+          <details class="og-section" open data-section="background">
+            <summary>Background</summary>
+            <div class="og-section__body">
+              <div>
+                <label class="field-label">Style</label>
+                <div class="chips" role="group" aria-label="Background style">
+                  <button type="button" class="chip" data-bg="blobs">blobs</button>
+                  <button type="button" class="chip" data-bg="linear">linear</button>
+                  <button type="button" class="chip" data-bg="solid">solid</button>
+                  <button type="button" class="chip" data-bg="dots">dots</button>
+                  <button type="button" class="chip" data-bg="noise">noise</button>
+                </div>
+              </div>
+              <div id="og-bg-angle" class="is-collapsed">
+                <label class="field-label" for="og-bg-angle-input">
+                  Angle (linear gradient) — <span id="og-bg-angle-val">135</span>°
+                </label>
+                <input id="og-bg-angle-input" type="range" min="0" max="359" step="1" />
+              </div>
+            </div>
+          </details>
+
+          <div class="btn-row">
+            <button type="button" class="btn" data-action="copy-url">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+              Copy URL
+            </button>
+            <button type="button" class="btn btn--ghost" data-action="download">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+              Download PNG
+            </button>
+          </div>
+
+          <div>
+            <label class="field-label">Canonical URL</label>
+            <code id="og-url-echo" class="og-url-echo">—</code>
+          </div>
+
+          <div id="og-status" class="banner banner--info is-hidden" role="status" aria-live="polite">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <span id="og-status-text"></span>
+          </div>
+        </section>
+
+        <section class="panel" style="margin-top: var(--space-lg);">
+          <div class="panel__head">
+            <span class="panel__title">Preview · <span id="og-preview-label">1200×630</span></span>
+          </div>
+          <div class="og-preview-frame" id="og-preview-frame">
+            <img id="og-preview" alt="Open Graph image preview" width="1200" height="630" loading="eager" decoding="async" />
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+
+  </div>
+
+
+  <script defer src="/assets/js/partials.js"></script>
+  <script defer src="/assets/js/cookie-consent.js"></script>
+  <script defer src="/assets/js/search.js"></script>
+  <script type="module" src="/assets/js/main.js"></script>
+  <script type="module" src="/assets/js/info-modal.js"></script>
+  <script type="module" src="./tool.js"></script>
+</body>
+</html>

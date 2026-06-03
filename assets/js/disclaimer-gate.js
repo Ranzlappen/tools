@@ -7,7 +7,7 @@
        …
        <input type="checkbox" data-disclaimer-checkbox />
        <button data-disclaimer-accept disabled>…</button>
-       <a data-disclaimer-decline href="../../">…</a>
+       <a data-disclaimer-decline href="/">…</a>
      </dialog>
 
    Acceptance is persisted in localStorage (versioned, wrapped in try/catch like

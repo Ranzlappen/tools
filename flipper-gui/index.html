@@ -1,0 +1,955 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flipper GUI Studio · tools · ranzlappen</title>
+  <meta name="description" content="Visual GUI designer for Flipper Zero / Momentum apps. Drag-and-drop widgets, wire buttons, export drop-in C code." />
+  <meta name="theme-color" content="#0b1210" />
+  <meta name="color-scheme" content="dark light" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Flipper GUI Studio · tools · ranzlappen" />
+  <meta property="og:description" content="Visual GUI designer for Flipper Zero / Momentum apps. Drag-and-drop widgets, wire buttons, export drop-in C code." />
+  <meta property="og:url" content="https://tools.ranzlappen.com/flipper-gui/" />
+  <meta property="og:site_name" content="ranzlappen tools" />
+  <meta property="og:image" content="https://tools.ranzlappen.com/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="ranzlappen tools — Small tools, sharp edges." />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Flipper GUI Studio · tools · ranzlappen" />
+  <meta name="twitter:description" content="Visual GUI designer for Flipper Zero / Momentum apps. Drag-and-drop widgets, wire buttons, export drop-in C code." />
+  <meta name="twitter:image" content="https://tools.ranzlappen.com/assets/og.png" />
+
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem("tools:theme") === "light")
+          document.documentElement.setAttribute("data-theme", "light");
+        if (localStorage.getItem("tools:headerSticky") === "off")
+          document.documentElement.setAttribute("data-header-sticky", "off");
+        var CC_KEY = "tools:cookie_consent", CC_VER = 1, CC_EXP = 365;
+        var d = JSON.parse(localStorage.getItem(CC_KEY));
+        if (d && d.version === CC_VER && (Date.now() - d.timestamp) < CC_EXP * 86400000) {
+          window.__cookieConsent = { functional: !!d.functional, resolved: true };
+          if (d.functional) document.documentElement.classList.add("consent-functional");
+        } else { window.__cookieConsent = { functional: false, resolved: false }; }
+      } catch (e) { window.__cookieConsent = { functional: false, resolved: false }; }
+    })();
+  </script>
+
+  <link rel="icon" type="image/png" href="/assets/icon.png" />
+  <link rel="apple-touch-icon" href="/assets/icon.png" />
+
+  <link rel="stylesheet" href="/assets/css/style.css" />
+  <link rel="stylesheet" href="/assets/css/cookie-consent.css" />
+  <link rel="stylesheet" href="/assets/css/backdrops.css" />
+  <link rel="stylesheet" href="/assets/css/tool.css" />
+
+  <style>
+    /* ── Editor shell ───────────────────────────────────────────── */
+    .fg-editor {
+      display: grid;
+      grid-template-columns: 200px 1fr 320px;
+      gap: var(--space-md);
+      align-items: start;
+    }
+    @media (max-width: 1080px) {
+      .fg-editor { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .fg-pane {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      padding: var(--space-md);
+      border-radius: var(--border-radius-lg);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.005) 100%),
+        rgba(var(--c-bg-rgb), 0.88);
+      border: 1px solid var(--c-border);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.03) inset,
+        0 12px 32px -16px var(--c-card-shadow);
+    }
+
+    .fg-pane__title {
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--c-text-faint);
+      margin: 0 0 var(--space-xs);
+    }
+
+    /* ── Palette ────────────────────────────────────────────────── */
+    .fg-palette { display: flex; flex-direction: column; gap: var(--space-sm); }
+    .fg-palette__group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .fg-pal-btn {
+      flex: 1 1 calc(50% - 3px);
+      padding: 8px 6px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text);
+      cursor: grab;
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+      text-align: center;
+      transition: background var(--transition-fast), border-color var(--transition-fast);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .fg-pal-btn:hover { background: rgba(255,255,255,0.06); border-color: var(--c-accent-border); }
+    .fg-pal-btn:active { cursor: grabbing; }
+    .fg-pal-btn[data-dragging="true"] { opacity: 0.4; }
+
+    /* ── Canvas pane ────────────────────────────────────────────── */
+    .fg-canvas-pane { gap: var(--space-md); }
+
+    .fg-tabs {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      padding-bottom: var(--space-xs);
+      border-bottom: 1px solid var(--c-border);
+    }
+    .fg-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-bottom: none;
+      border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0;
+      color: var(--c-text-muted);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.78rem;
+    }
+    .fg-tab[aria-selected="true"] {
+      background: var(--c-accent-bg);
+      border-color: var(--c-accent-border);
+      color: var(--c-accent);
+    }
+    .fg-tab__name {
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .fg-tab__close {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      opacity: 0.5;
+      padding: 0 2px;
+      font-family: inherit;
+    }
+    .fg-tab__close:hover { opacity: 1; }
+    .fg-tab--add {
+      padding: 6px 10px;
+      background: transparent;
+      border: 1px dashed var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text-faint);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.78rem;
+    }
+    .fg-tab--add:hover { color: var(--c-text); border-color: var(--c-accent-border); }
+
+    .fg-stage {
+      position: relative;
+      display: flex;
+      /* `safe` keeps the canvas centred when it fits, but falls back to
+         start alignment when zoomed past the viewport so the top/left
+         overflow stays scroll-reachable (plain `center` traps it). */
+      align-items: safe center;
+      justify-content: safe center;
+      padding: var(--space-md);
+      background: rgba(0,0,0,0.32);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius);
+      min-height: 280px;
+      overflow: auto;
+      /* Foreground, theme-matched scrollbars (Firefox). */
+      scrollbar-width: thin;
+      scrollbar-color: var(--c-accent) transparent;
+    }
+    [data-theme="light"] .fg-stage { background: rgba(0,0,0,0.06); }
+    /* Foreground, theme-matched scrollbars (WebKit/Chromium). */
+    .fg-stage::-webkit-scrollbar { width: 10px; height: 10px; }
+    .fg-stage::-webkit-scrollbar-track { background: transparent; }
+    .fg-stage::-webkit-scrollbar-thumb {
+      background: var(--c-accent);
+      border-radius: 6px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    .fg-stage::-webkit-scrollbar-thumb:hover { background: var(--c-accent-border, var(--c-accent)); }
+    .fg-stage::-webkit-scrollbar-corner { background: transparent; }
+
+    .fg-stage__inner {
+      position: relative;
+      /* Native 128×64 scaled via CSS var --fg-zoom (default 4) */
+      width: calc(128px * var(--fg-zoom, 4));
+      height: calc(64px * var(--fg-zoom, 4));
+      flex-shrink: 0;
+    }
+
+    .fg-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      background: #f0f0d0; /* Flipper LCD off-pixel tint */
+      box-shadow: 0 0 0 1px var(--c-border), 0 0 24px rgba(255, 200, 0, 0.1);
+      cursor: crosshair;
+      touch-action: none;
+    }
+    [data-theme="light"] .fg-canvas { background: #fcfcd8; }
+
+    /* Selection / drag overlay sits above canvas */
+    .fg-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .fg-handle {
+      position: absolute;
+      border: 1.5px dashed #4ade80;
+      background: rgba(74,222,128,0.08);
+      pointer-events: none;
+      cursor: move;
+      box-sizing: border-box;
+    }
+    .fg-handle__label {
+      position: absolute;
+      top: -18px;
+      left: 0;
+      padding: 1px 4px;
+      background: #4ade80;
+      color: #061a0d;
+      font-family: var(--f-mono);
+      font-size: 9px;
+      font-weight: 600;
+      border-radius: 2px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .fg-ghost {
+      position: absolute;
+      border: 1px dashed var(--c-accent);
+      background: rgba(74,222,128,0.18);
+      pointer-events: none;
+      box-sizing: border-box;
+    }
+
+    .fg-stage__hint {
+      position: absolute;
+      bottom: 6px;
+      right: 8px;
+      font-family: var(--f-mono);
+      font-size: 0.62rem;
+      color: var(--c-text-faint);
+      pointer-events: none;
+    }
+
+    .fg-toolrow {
+      display: flex;
+      gap: var(--space-sm);
+      align-items: center;
+      flex-wrap: wrap;
+      font-family: var(--f-mono);
+      font-size: 0.75rem;
+      color: var(--c-text-muted);
+    }
+    .fg-toolrow input[type="range"] { width: 100px; }
+    .fg-toolrow label { display: inline-flex; align-items: center; gap: 4px; }
+
+    .fg-tools {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .fg-tool-btn {
+      padding: 5px 9px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+      transition: background var(--transition-fast), border-color var(--transition-fast);
+    }
+    .fg-tool-btn:hover { background: rgba(255,255,255,0.06); border-color: var(--c-accent-border); }
+    .fg-tool-btn.is-active {
+      background: var(--c-accent-soft, rgba(255,200,0,0.12));
+      border-color: var(--c-accent);
+      color: var(--c-accent);
+    }
+    .fg-brush { display: inline-flex; align-items: center; gap: 4px; }
+    .fg-brush select {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text);
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+      padding: 3px 4px;
+    }
+
+    /* ── Inspector / Export pane ────────────────────────────────── */
+    .fg-inspector {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    .fg-inspector__empty {
+      padding: var(--space-md);
+      text-align: center;
+      color: var(--c-text-faint);
+      font-family: var(--f-mono);
+      font-size: 0.78rem;
+      border: 1px dashed var(--c-border);
+      border-radius: var(--border-radius);
+    }
+    .fg-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .fg-field__row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 6px;
+    }
+    .fg-field label {
+      font-family: var(--f-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--c-text-faint);
+    }
+    .fg-field input[type="text"],
+    .fg-field input[type="number"],
+    .fg-field select,
+    .fg-field textarea {
+      width: 100%;
+      padding: 6px 8px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text);
+      font-family: var(--f-mono);
+      font-size: 0.82rem;
+      box-sizing: border-box;
+    }
+    .fg-field textarea { resize: vertical; min-height: 48px; }
+    .fg-field input:focus,
+    .fg-field select:focus,
+    .fg-field textarea:focus {
+      outline: none;
+      border-color: var(--c-accent);
+    }
+
+    .fg-chiprow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .fg-chip {
+      padding: 4px 8px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text-muted);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+    }
+    .fg-chip[aria-pressed="true"] {
+      background: var(--c-accent-bg);
+      border-color: var(--c-accent-border);
+      color: var(--c-accent);
+    }
+    .fg-chip:hover { color: var(--c-text); }
+
+    .fg-btn-danger {
+      padding: 6px 10px;
+      background: transparent;
+      border: 1px solid #ef4444;
+      border-radius: var(--border-radius-sm);
+      color: #ef4444;
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+    }
+    .fg-btn-danger:hover { background: rgba(239,68,68,0.1); }
+
+    /* Icons sub-panel inside palette */
+    .fg-icons {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .fg-icon-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      font-family: var(--f-mono);
+      font-size: 0.7rem;
+    }
+    .fg-icon-row canvas {
+      width: 32px; height: 32px;
+      image-rendering: pixelated;
+      background: #f0f0d0;
+      flex-shrink: 0;
+    }
+    .fg-icon-row__name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .fg-icon-row__del {
+      background: none;
+      border: none;
+      color: var(--c-text-faint);
+      cursor: pointer;
+      padding: 0 4px;
+    }
+    .fg-icon-row__del:hover { color: #ef4444; }
+
+    /* Elements (layers) list */
+    .fg-elements {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .fg-el-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: var(--border-radius-sm);
+    }
+    .fg-el-row.is-selected { background: rgba(74,222,128,0.14); }
+    .fg-el-lock { flex-shrink: 0; cursor: pointer; }
+    .fg-el-label {
+      flex: 1;
+      min-width: 0;
+      text-align: left;
+      background: none;
+      border: none;
+      color: var(--c-text);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.7rem;
+      padding: 4px 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .fg-el-label:hover { color: var(--c-accent); }
+    .fg-el-row.is-locked .fg-el-label { color: var(--c-text-faint); font-style: italic; }
+    .fg-el-empty { color: var(--c-text-faint); font-size: 0.7rem; padding: 4px 6px; }
+
+    /* Icon picker dialog */
+    .fg-icon-picker {
+      width: min(560px, 92vw);
+      max-height: 82vh;
+      padding: 0;
+      color: var(--c-text);
+      background: rgb(var(--c-bg-rgb));
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-lg);
+      box-shadow: 0 24px 64px -24px var(--c-card-shadow);
+    }
+    .fg-icon-picker::backdrop { background: rgba(0,0,0,0.55); }
+    .fg-pick-head { display:flex; align-items:center; justify-content:space-between; padding: var(--space-sm) var(--space-md); border-bottom:1px solid var(--c-border); }
+    .fg-pick-close { background:none; border:none; color:var(--c-text-faint); font-size:1.4rem; line-height:1; cursor:pointer; }
+    .fg-pick-close:hover { color:var(--c-text); }
+    .fg-pick-controls { display:flex; gap:var(--space-sm); align-items:center; padding: var(--space-sm) var(--space-md) 0; }
+    .fg-pick-search { flex:1; min-width:0; }
+    .fg-pick-sizes { display:flex; gap:2px; flex-shrink:0; }
+    .fg-pick-sizes button, .fg-pick-cat {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text-muted);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.7rem;
+      padding: 4px 8px;
+    }
+    .fg-pick-sizes button[aria-pressed="true"], .fg-pick-cat[aria-pressed="true"] {
+      background: var(--c-accent-bg);
+      border-color: var(--c-accent-border);
+      color: var(--c-accent);
+    }
+    .fg-pick-cats { display:flex; flex-wrap:wrap; gap:4px; padding: var(--space-sm) var(--space-md); }
+    .fg-pick-grid {
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+      gap: var(--space-sm);
+      padding: 0 var(--space-md) var(--space-md);
+      overflow-y: auto;
+      max-height: 50vh;
+    }
+    .fg-pick-tile {
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      padding: 6px;
+      cursor: pointer;
+      min-width: 0;
+    }
+    .fg-pick-tile:hover { border-color: var(--c-accent-border); background: var(--c-accent-bg); }
+    .fg-pick-tile canvas { image-rendering: pixelated; background:#f0f0d0; flex-shrink:0; }
+    .fg-pick-tile__cap { font-family:var(--f-mono); font-size:0.6rem; color:var(--c-text-faint); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .fg-pick-sep { grid-column:1/-1; font-family:var(--f-mono); font-size:0.68rem; color:var(--c-text-faint); border-top:1px solid var(--c-border); padding-top:var(--space-sm); margin-top:4px; }
+    .fg-pick-empty { grid-column:1/-1; color:var(--c-text-faint); font-size:0.75rem; text-align:center; padding:var(--space-md); }
+
+    /* Export panel */
+    .fg-export-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: var(--space-sm);
+    }
+    .fg-export-tabs button {
+      flex: 1;
+      padding: 5px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text-muted);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.7rem;
+    }
+    .fg-export-tabs button[aria-pressed="true"] {
+      background: var(--c-accent-bg);
+      border-color: var(--c-accent-border);
+      color: var(--c-accent);
+    }
+    .fg-export-out {
+      position: relative;
+      max-height: 360px;
+      overflow: auto;
+      background: rgba(0,0,0,0.32);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      padding: var(--space-sm);
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+      line-height: 1.5;
+      white-space: pre;
+      color: var(--c-text);
+    }
+    [data-theme="light"] .fg-export-out { background: rgba(0,0,0,0.06); }
+    .fg-export-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .fg-export-actions button {
+      flex: 1;
+      padding: 6px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+    }
+    .fg-export-actions button:hover { background: rgba(255,255,255,0.06); }
+
+    .fg-bundle-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: var(--space-sm);
+      padding-top: var(--space-sm);
+      border-top: 1px solid var(--c-border);
+    }
+    .fg-bundle-targets { display: flex; gap: 2px; flex-shrink: 0; }
+    .fg-bundle-targets button {
+      padding: 5px 9px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text-muted);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.7rem;
+    }
+    .fg-bundle-targets button[aria-pressed="true"] {
+      background: var(--c-accent-bg);
+      border-color: var(--c-accent-border);
+      color: var(--c-accent);
+    }
+    .fg-bundle-row [data-action="download-bundle"] {
+      flex: 1;
+      padding: 6px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      color: var(--c-text);
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+    }
+    .fg-bundle-row [data-action="download-bundle"]:hover { background: rgba(255,255,255,0.06); }
+    .fg-bundle-hint { margin-top: 6px; font-size: 0.66rem; color: var(--c-text-faint); line-height: 1.4; }
+    .fg-app-derived { margin-top: 8px; font-family: var(--f-mono); font-size: 0.68rem; color: var(--c-text-faint); line-height: 1.5; }
+    .fg-app-derived code { color: var(--c-text-muted); }
+    .fg-vbadge { display: inline-block; margin-top: 4px; padding: 1px 6px; border-radius: 4px; font-size: 0.66rem; }
+    .fg-vbadge--ok { color: #22c55e; background: rgba(34,197,94,0.12); }
+    .fg-vbadge--bad { color: #ef4444; background: rgba(239,68,68,0.12); }
+    .fg-req { display: inline-flex; align-items: center; gap: 3px; font-family: var(--f-mono); font-size: 0.7rem; margin-right: 6px; }
+
+    .fg-section {
+      border: 1px solid var(--c-border);
+      border-radius: var(--border-radius-sm);
+      padding: var(--space-sm);
+    }
+    .fg-section summary {
+      cursor: pointer;
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--c-text-faint);
+      margin-bottom: var(--space-xs);
+    }
+    .fg-section[open] summary { color: var(--c-text); }
+    .fg-section__body { display: flex; flex-direction: column; gap: var(--space-sm); padding-top: var(--space-xs); }
+
+    .is-hidden { display: none !important; }
+
+    @media (max-width: 1080px) {
+      .fg-stage { min-height: 200px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="backdrop" aria-hidden="true">
+    <div class="grid-bg__sky"></div>
+    <div class="grid-bg__plane"></div>
+    <div class="grid-bg__scan"></div>
+    <div class="grid-bg__spot"></div>
+  </div>
+
+  <div class="page">
+
+
+    <main class="tool-main">
+      <div class="shell">
+
+        <section class="tool-header">
+          <a href="/" class="tool-header__back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            All tools
+          </a>
+          <div class="tool-title">
+            <div class="tool-title__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M7 10v4M10 10v4M13 10v4M16 10v4"/></svg>
+            </div>
+            <div class="tool-title__text">
+              <h1>Flipper GUI Studio</h1>
+              <p>Drag-and-drop visual editor for Flipper Zero / Momentum app GUIs. Multi-screen, button transitions, export as C.</p>
+            </div>
+            <button type="button" class="info-btn" data-info-button aria-label="About this tool" title="About this tool">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <div class="fg-editor">
+
+          <!-- LEFT PANE: Palette + icons -->
+          <aside class="fg-pane fg-palette" aria-label="Widget palette">
+            <h2 class="fg-pane__title">Palette</h2>
+
+            <details class="fg-section" open>
+              <summary>Primitives</summary>
+              <div class="fg-section__body">
+                <div class="fg-palette__group">
+                  <button type="button" class="fg-pal-btn" data-add="text">Text</button>
+                  <button type="button" class="fg-pal-btn" data-add="box">Box</button>
+                  <button type="button" class="fg-pal-btn" data-add="frame">Frame</button>
+                  <button type="button" class="fg-pal-btn" data-add="line">Line</button>
+                  <button type="button" class="fg-pal-btn" data-add="dot">Dot</button>
+                  <button type="button" class="fg-pal-btn" data-add="icon">Icon</button>
+                </div>
+              </div>
+            </details>
+
+            <details class="fg-section" open>
+              <summary>Interactive</summary>
+              <div class="fg-section__body">
+                <div class="fg-palette__group">
+                  <button type="button" class="fg-pal-btn" data-add="button">Button</button>
+                </div>
+              </div>
+            </details>
+
+            <details class="fg-section" open>
+              <summary>Composite</summary>
+              <div class="fg-section__body">
+                <div class="fg-palette__group">
+                  <button type="button" class="fg-pal-btn" data-add="progress">Progress</button>
+                  <button type="button" class="fg-pal-btn" data-add="menu">Menu</button>
+                  <button type="button" class="fg-pal-btn" data-add="toggle">Toggle</button>
+                </div>
+              </div>
+            </details>
+
+            <details class="fg-section">
+              <summary>Icons / XBM</summary>
+              <div class="fg-section__body">
+                <input type="file" id="fg-icon-upload" accept="image/*" class="is-hidden" />
+                <button type="button" class="fg-pal-btn" data-action="browse-icons">Browse library</button>
+                <button type="button" class="fg-pal-btn" data-action="upload-icon">+ Upload image</button>
+                <div id="fg-icon-list" class="fg-icons"></div>
+              </div>
+            </details>
+
+            <details class="fg-section">
+              <summary>App settings</summary>
+              <div class="fg-section__body">
+                <div class="fg-field">
+                  <label for="fg-app-name">App name</label>
+                  <input type="text" id="fg-app-name" maxlength="40" placeholder="my_app" />
+                </div>
+                <div class="fg-field">
+                  <label for="fg-app-namespace">Namespace (snake_case prefix)</label>
+                  <input type="text" id="fg-app-namespace" maxlength="40" placeholder="my_app" />
+                </div>
+                <div class="fg-field">
+                  <label for="fg-app-category">Category</label>
+                  <select id="fg-app-category">
+                    <option>Examples</option><option>Tools</option><option>Games</option>
+                    <option>Media</option><option>NFC</option><option>Sub-GHz</option>
+                    <option>Infrared</option><option>GPIO</option><option>Bluetooth</option>
+                    <option>USB</option><option>Misc</option>
+                  </select>
+                </div>
+                <div class="fg-field">
+                  <label for="fg-app-stack">Stack size (KB)</label>
+                  <input type="number" id="fg-app-stack" min="1" max="8" step="1" value="2" />
+                </div>
+                <div class="fg-field">
+                  <label>Requires (SDK modules)</label>
+                  <div class="fg-chiprow" style="flex-wrap:wrap;">
+                    <label class="fg-req"><input type="checkbox" data-require="gui" checked disabled /> gui</label>
+                    <label class="fg-req"><input type="checkbox" data-require="storage" /> storage</label>
+                    <label class="fg-req"><input type="checkbox" data-require="notification" /> notification</label>
+                    <label class="fg-req"><input type="checkbox" data-require="dialogs" /> dialogs</label>
+                    <label class="fg-req"><input type="checkbox" data-require="subghz" /> subghz</label>
+                    <label class="fg-req"><input type="checkbox" data-require="infrared" /> infrared</label>
+                  </div>
+                </div>
+                <div class="fg-field">
+                  <label for="fg-app-version">Version</label>
+                  <input type="text" id="fg-app-version" maxlength="16" placeholder="1.0" />
+                </div>
+                <div class="fg-field">
+                  <label for="fg-app-author">Author</label>
+                  <input type="text" id="fg-app-author" maxlength="60" placeholder="you" />
+                </div>
+                <div class="fg-field">
+                  <label for="fg-app-desc">Description</label>
+                  <input type="text" id="fg-app-desc" maxlength="200" placeholder="What it does" />
+                </div>
+                <div class="fg-field">
+                  <label for="fg-app-weburl">Web URL</label>
+                  <input type="text" id="fg-app-weburl" maxlength="200" placeholder="https://…" />
+                </div>
+                <div class="fg-field">
+                  <label>Launcher icon (10×10)</label>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                    <canvas id="fg-app-icon-canvas" width="30" height="30" style="image-rendering:pixelated;background:#f0f0d0;border:1px solid #333;"></canvas>
+                    <button type="button" class="fg-pal-btn" data-action="app-icon">Set…</button>
+                    <button type="button" class="fg-pal-btn" data-action="app-icon-reset">Default</button>
+                  </div>
+                  <input type="file" id="fg-app-icon-upload" accept="image/*" hidden />
+                </div>
+                <div class="fg-field">
+                  <label>Icon embedding</label>
+                  <div class="fg-bundle-targets" role="group" aria-label="Icon embedding mode">
+                    <button type="button" data-icon-mode="png" aria-pressed="true">Inline XBM</button>
+                    <button type="button" data-icon-mode="assets" aria-pressed="false">images/ assets</button>
+                  </div>
+                </div>
+                <div id="fg-app-derived" class="fg-app-derived"></div>
+              </div>
+            </details>
+
+            <details class="fg-section">
+              <summary>Actions</summary>
+              <div class="fg-section__body">
+                <button type="button" class="fg-pal-btn" data-action="reset">Reset all</button>
+                <button type="button" class="fg-pal-btn" data-action="sample">Load sample</button>
+                <button type="button" class="fg-pal-btn" data-action="copy-share">Copy share URL</button>
+              </div>
+            </details>
+          </aside>
+
+          <!-- CENTER PANE: Tabs + canvas + tool row -->
+          <section class="fg-pane fg-canvas-pane" aria-label="Editor canvas">
+            <div class="fg-tabs" id="fg-tabs" role="tablist" aria-label="Screens">
+              <!-- Tabs injected by JS -->
+            </div>
+
+            <div class="fg-stage" id="fg-stage">
+              <div class="fg-stage__inner" id="fg-stage-inner">
+                <canvas
+                  id="fg-canvas"
+                  class="fg-canvas"
+                  width="128"
+                  height="64"
+                  aria-label="128 by 64 pixel design surface"
+                ></canvas>
+                <div class="fg-overlay" id="fg-overlay" aria-hidden="true"></div>
+              </div>
+              <div class="fg-stage__hint">128×64 · arrows nudge · shift = 8px · del = remove</div>
+            </div>
+
+            <div class="fg-toolrow">
+              <div class="fg-tools" role="group" aria-label="Drawing tools">
+                <button type="button" class="fg-tool-btn is-active" data-tool="select" title="Select / move (V)">Select</button>
+                <button type="button" class="fg-tool-btn" data-tool="pencil" title="Free draw (P)">Pencil</button>
+                <button type="button" class="fg-tool-btn" data-tool="eraser" title="Erase free draw (E)">Eraser</button>
+                <button type="button" class="fg-tool-btn" data-tool="hand" title="Pan canvas (H)">Hand</button>
+                <label class="fg-brush">
+                  Brush
+                  <select id="fg-brush-size" aria-label="Brush size">
+                    <option value="1">1px</option>
+                    <option value="2">2px</option>
+                    <option value="3">3px</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Zoom
+                <input type="range" id="fg-zoom" min="2" max="8" step="1" value="4" />
+                <span id="fg-zoom-val">4×</span>
+              </label>
+              <label>
+                <input type="checkbox" id="fg-grid" />
+                Grid
+              </label>
+              <span style="margin-left:auto;">
+                <span id="fg-status">—</span>
+              </span>
+            </div>
+          </section>
+
+          <!-- RIGHT PANE: Elements + Inspector + Export -->
+          <aside class="fg-pane" aria-label="Elements, inspector and export">
+            <details class="fg-section" id="fg-elements-panel" open>
+              <summary>Elements</summary>
+              <div class="fg-section__body">
+                <ul id="fg-elements" class="fg-elements"></ul>
+              </div>
+            </details>
+
+            <h2 class="fg-pane__title" style="margin-top: var(--space-md);">Inspector</h2>
+            <div id="fg-inspector" class="fg-inspector">
+              <div class="fg-inspector__empty">No selection.<br>Click a widget on the canvas, or add one from the palette.</div>
+            </div>
+
+            <h2 class="fg-pane__title" style="margin-top: var(--space-md);">Export</h2>
+            <details class="fg-section" id="fg-export-panel">
+              <summary>Generated code</summary>
+              <div class="fg-section__body">
+                <div class="fg-export-tabs" role="tablist" aria-label="Export format">
+                  <button type="button" data-export-tab="snippet" aria-pressed="true">Snippet</button>
+                  <button type="button" data-export-tab="scene" aria-pressed="false">Scene</button>
+                  <button type="button" data-export-tab="xbm" aria-pressed="false">XBM</button>
+                  <button type="button" data-export-tab="json" aria-pressed="false">JSON</button>
+                </div>
+                <div id="fg-export-filename" style="font-family:var(--f-mono);font-size:0.7rem;color:var(--c-text-faint);margin-bottom:4px;">—</div>
+                <pre id="fg-export-out" class="fg-export-out">Loading…</pre>
+                <div class="fg-export-actions">
+                  <button type="button" data-action="copy-export">Copy</button>
+                  <button type="button" data-action="download-export">Download</button>
+                </div>
+                <div id="fg-export-extra" class="is-hidden" style="margin-top:var(--space-sm);">
+                  <div id="fg-export-extra-filename" style="font-family:var(--f-mono);font-size:0.7rem;color:var(--c-text-faint);margin-bottom:4px;">—</div>
+                  <pre id="fg-export-extra-out" class="fg-export-out"></pre>
+                  <div class="fg-export-actions">
+                    <button type="button" data-action="copy-export-extra">Copy</button>
+                    <button type="button" data-action="download-export-extra">Download</button>
+                  </div>
+                </div>
+                <div class="fg-bundle-row">
+                  <div class="fg-bundle-targets" role="group" aria-label="Bundle target">
+                    <button type="button" data-bundle-target="c" aria-pressed="true">C app</button>
+                    <button type="button" data-bundle-target="js" aria-pressed="false">Preview</button>
+                  </div>
+                  <button type="button" data-action="download-bundle">Download bundle (.zip)</button>
+                </div>
+                <div class="fg-bundle-hint">C app = build-ready Momentum folder (unzip into <code>C-Apps/</code>, run <code>ufbt</code>). Preview = browser canvas only, not deployable.</div>
+              </div>
+            </details>
+
+            <details class="fg-section">
+              <summary>Load JSON</summary>
+              <div class="fg-section__body">
+                <textarea id="fg-load-json" rows="4" placeholder='{"v":1,"app":{...},"screens":[...]}'></textarea>
+                <button type="button" class="fg-pal-btn" data-action="load-json">Load</button>
+              </div>
+            </details>
+          </aside>
+
+        </div>
+
+      </div>
+    </main>
+
+
+  </div>
+
+  <script defer src="/assets/js/partials.js"></script>
+  <script defer src="/assets/js/cookie-consent.js"></script>
+  <script defer src="/assets/js/search.js"></script>
+  <script type="module" src="/assets/js/main.js"></script>
+  <script type="module" src="/assets/js/info-modal.js"></script>
+  <script type="module" src="./tool.js"></script>
+</body>
+</html>
