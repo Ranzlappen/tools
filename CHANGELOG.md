@@ -6,6 +6,15 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+### Added
+- **Installable PWA (offline-capable).** Added a root `site.webmanifest`
+  (standalone display, brand colors), a hand-written dependency-free service
+  worker (`sw.js`) that precaches the app shell and serves an `offline.html`
+  fallback for un-cached navigations, and `assets/icon-192.png` /
+  `assets/icon-512.png` install icons (rendered from `favicons/tools.svg`).
+  Every real page links the manifest + apple-mobile-web-app meta tags;
+  `main.js` registers the service worker on `load`. No build step, no Workbox.
+
 ### Changed
 - **Flattened tool URLs: `/tools/<slug>/` → `/<slug>/`.** The redundant
   `tools/` path segment is gone; every tool now lives at the repo root

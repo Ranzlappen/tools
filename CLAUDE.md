@@ -65,6 +65,31 @@ module, so it injects before `main.js` wires the control IDs. Edit the
 chrome once here; every page inherits it. The footer is kept in visual
 parity with `Ranzlappen/website`'s footer.
 
+## PWA (installable + offline)
+
+Mirrors `Ranzlappen/website`'s manifest-based PWA, then goes further to be
+genuinely installable and offline-capable — still **no build step, no
+Workbox**. Pieces:
+
+- `site.webmanifest` (root) — `display: standalone`, brand colors, icons
+  (`favicons/tools.svg` as `any`, plus `assets/icon-192.png` /
+  `assets/icon-512.png`, the latter doubling as `maskable`). The PNG install
+  icons are rendered from `tools.svg`; a deliberate <50 KB binary exception
+  (see **Don'ts**).
+- `sw.js` (root) — hand-written, dependency-free. Precaches a generic app
+  shell (`PRECACHE_URLS`); cache-first for static assets, network-first for
+  navigations with an `offline.html` fallback; cross-origin (`/api`, CDNs) and
+  non-GET pass straight through. **Bump `CACHE_VERSION` (`tools-v1` →
+  `tools-v2`, …) whenever shell CSS/JS changes** so the activate sweep evicts
+  stale caches. Tool pages aren't precached — the runtime cache captures each
+  on first visit.
+- `main.js` registers `/sw.js` on `load` (feature-detected, errors swallowed),
+  so it never touches first paint. The manifest is a low-priority link tag —
+  neither counts against the first-paint budget.
+- Every **real** page carries `<link rel="manifest">` + apple-mobile-web-app
+  meta tags in its (still per-file) `<head>`; the noindex redirect stubs under
+  `tools/` do not. Pages copied from an existing one inherit the manifest line.
+
 ## Adding a new tool
 
 1. Add a card to the grid in `index.html` (`href="./<slug>/"`). Match

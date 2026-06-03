@@ -528,4 +528,15 @@
   // -------------------------------------------------------
   var y = document.getElementById('footer-year');
   if (y) y.textContent = new Date().getFullYear();
+
+  // -------------------------------------------------------
+  // Service worker (offline + installability). Progressive
+  // enhancement — absence changes nothing. Registers on load
+  // so it never contends with first-paint resources.
+  // -------------------------------------------------------
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').catch(function () {});
+    });
+  }
 })();
