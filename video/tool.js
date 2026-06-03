@@ -196,12 +196,12 @@ async function loadFFmpeg() {
 // Parse via the URL constructor inside try/catch — this is the pattern
 // CodeQL's js/xss-through-dom query recognizes as a URL-scheme sanitizer
 // for .src / .href sinks.
+// Only ever hand a `blob:` URL to a DOM sink (img/video/audio `src`,
+// anchor `href`). The anchored scheme test is recognised by static
+// analysers (e.g. CodeQL js/xss-through-dom) as a sanitizing barrier,
+// so the returned value is treated as untainted.
 function safeBlobUrl(url) {
-  try {
-    return new URL(url).protocol === "blob:" ? url : "";
-  } catch (_) {
-    return "";
-  }
+  return typeof url === "string" && /^blob:[^"'<>\\\s]*$/i.test(url) ? url : "";
 }
 
 // ─── file probe via <video preload="metadata"> ─────────────────────────
