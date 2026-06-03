@@ -126,6 +126,14 @@ Files present:
   `dependency-review.yml`, `repo-sanitation.yml`, `vercel-deploy.yml`.
 - Assets: `assets/og.png` (1200×630 hero card) + `assets/og.svg`
   (source).
+- Icons: `site.webmanifest` + `icons/` set (`favicon.ico`,
+  `favicon-16x16/32x32.png`, `apple-touch-icon.png`,
+  `icon-192/512.png`, `icon-maskable-192/512.png`) from the shared
+  "icon universe" wrench-emblem master; every page head links them via
+  absolute `/icons/...` paths. The header brand mark in `partials.js`
+  reuses `assets/icon.png` (a 64px downscale of the same master). Footer
+  project favicons are 48px PNG downscales of each brand master in
+  `assets/favicons/` (no more green SVGs).
 
 ## Performance budget
 
