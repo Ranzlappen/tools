@@ -30,21 +30,27 @@ tool subpage.
 │   ├── css/tool.css            # shared per-tool layout
 │   └── js/
 │       ├── main.js             # theme + backdrop toggle, persistence
+│       ├── partials.js         # injects the shared header/footer + modals
 │       ├── backdrop-shader.js  # WebGL plasma (lazy)
 │       └── backdrop-particles.js # canvas constellation (lazy)
-├── tools/                      # tool subpages (client-only unless noted)
-│   ├── json-formatter/
-│   ├── color-picker/
-│   ├── regex/
-│   ├── markdown/
-│   ├── encoder/
-│   ├── jwt/
-│   ├── uuid-hash/
-│   ├── qr-barcode/
-│   ├── video/
-│   ├── og-studio/             # calls the /api/og edge function
-│   ├── metadata-studio/
-│   └── flipper-gui/           # incl. fontgen/ + icongen/ dev tools
+│                               # tools live at the repo root as /<slug>/
+│                               # (client-only unless noted):
+├── json-formatter/
+├── color-picker/
+├── regex/
+├── markdown/
+├── encoder/
+├── jwt/
+├── uuid-hash/
+├── qr-barcode/
+├── video/
+├── og-studio/                  # calls the /api/og edge function
+├── metadata-studio/
+├── miui-theme-studio/
+├── flipper-gui/                # incl. fontgen/ + icongen/ dev tools
+├── youtube-mp3/
+├── cookies-txt/
+├── tools/                      # redirect stubs: /tools/<slug>/ → /<slug>/
 ├── api/                        # Vercel serverless functions
 │   ├── health.js
 │   └── README.md

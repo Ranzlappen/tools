@@ -17,7 +17,10 @@ first-paint budget is unaffected.
 ## Hosting
 
 - **GitHub Pages** — `tools.ranzlappen.com`, static (dashboard + every
-  current tool subpage). Custom domain via `CNAME`.
+  current tool subpage). Custom domain via `CNAME`. Tools live at the root,
+  `tools.ranzlappen.com/<slug>/` (no `/tools/` segment). The old
+  `/tools/<slug>/` paths survive as tiny no-index redirect stubs under
+  `tools/` that bounce to the flat URL.
 - **Vercel** — `api.tools.ranzlappen.com`, serverless functions for tools
   that need a backend. Scaffold exists (`api/`, `vercel.json`,
   `.vercelignore`); no tool depends on it yet.
@@ -49,26 +52,43 @@ The plane uses `lvh` (large-viewport height) so it doesn't reshape when
 mobile URL bars collapse. Respect `prefers-reduced-motion` and
 `prefers-reduced-transparency` everywhere.
 
+## Header & footer
+
+One source of truth: `assets/js/partials.js` holds the canonical site
+header (brand `tools.ranzlappen`, the ranzlappen.com button, search/theme/
+pin controls) and footer (links, project favicons, support, social,
+cookie/storage controls), and injects them into `.page` (header first,
+footer last) plus the search/storage modals at `<body>` end. Pages ship a
+bare `<div class="page"><main>…</main></div>` — **no inline header/footer**.
+`partials.js` is a `defer` classic script listed *before* the `main.js`
+module, so it injects before `main.js` wires the control IDs. Edit the
+chrome once here; every page inherits it. The footer is kept in visual
+parity with `Ranzlappen/website`'s footer.
+
 ## Adding a new tool
 
-1. Add a card to the grid in `index.html`. Match existing card markup.
-2. Create `tools/<slug>/index.html` with the tool itself. Re-import
-   `/assets/css/style.css` for visual consistency. Copy the shared
-   header, footer, and end-of-body script block from any existing page
-   (they are byte-identical across all pages — see **Header & footer**).
+1. Add a card to the grid in `index.html` (`href="./<slug>/"`). Match
+   existing card markup.
+2. Create `<slug>/index.html` at the repo root (URL becomes
+   `tools.ranzlappen.com/<slug>/`). Re-import `/assets/css/style.css` for
+   visual consistency. The shared site header and footer are **injected at
+   runtime** by `assets/js/partials.js` — do **not** inline them (see
+   **Header & footer**); just reuse the `<div class="page">` wrapper and the
+   end-of-body script block from any existing page. Use absolute
+   `/assets/...` paths so refs stay depth-independent.
 3. Add a matching entry to `assets/search.json`
-   (`{title, url:"/tools/<slug>/", description, group:"Tools"}`) or the
+   (`{title, url:"/<slug>/", description, group:"Tools"}`) or the
    on-site search won't find the new tool.
 4. Keep each tool self-contained — no shared state, no shared JS unless it
    genuinely belongs in `assets/js/`.
 5. Client-only? Stays on Pages. Needs a server / build step? Plan for
    Vercel and document the routing.
-6. Write `tools/<slug>/README.md` using the template in
-   `tools/json-formatter/README.md` (User guide + Developer guide).
+6. Write `<slug>/README.md` using the template in
+   `json-formatter/README.md` (User guide + Developer guide).
    This is **mandatory** — the in-app info modal expects it.
 7. Wire the info modal into the tool's `<header>` — add a
    `<button class="info-btn" data-info-button>` next to `.tool-title__text`
-   and include `<script type="module" src="../../assets/js/info-modal.js">`.
+   and include `<script type="module" src="/assets/js/info-modal.js">`.
    The modal fetches `./README.md` by default.
 8. Smoke-test the tool at a 360 px viewport before shipping. If
    anything clips the right edge, the fix is almost always
@@ -77,7 +97,7 @@ mobile URL bars collapse. Respect `prefers-reduced-motion` and
 
 ## Tool documentation
 
-Every tool ships with a `tools/<slug>/README.md` rendered by
+Every tool ships with a `<slug>/README.md` rendered by
 `assets/js/info-modal.js` (marked + DOMPurify, lazy-loaded with SRI).
 Keep the markdown plain GFM — no raw HTML, no remote images, no inline
 scripts. Sections expected: *What it does* · *User guide* (features, how

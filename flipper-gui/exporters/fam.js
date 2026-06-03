@@ -40,7 +40,7 @@ export function appMeta(state) {
     description: a.description || "Built with Flipper GUI Studio.",
     author: a.author || "Flipper GUI Studio",
     version: a.version || "1.0",
-    weburl: a.weburl || "https://tools.ranzlappen.com/tools/flipper-gui/",
+    weburl: a.weburl || "https://tools.ranzlappen.com/flipper-gui/",
     iconMode: a.iconMode === "assets" ? "assets" : "png",
   };
 }

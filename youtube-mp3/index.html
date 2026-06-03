@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YouTube MP3 Studio · tools · ranzlappen</title>
+  <meta name="description" content="Build a yt-dlp command for max-quality MP3 — single videos, full playlists, even private playlists via local cookies. Runs entirely in your browser." />
+  <meta name="theme-color" content="#0b1210" />
+  <meta name="color-scheme" content="dark light" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="YouTube MP3 Studio · tools · ranzlappen" />
+  <meta property="og:description" content="Build a yt-dlp command for max-quality MP3 — single videos, full playlists, even private playlists via local cookies. Runs entirely in your browser." />
+  <meta property="og:url" content="https://tools.ranzlappen.com/youtube-mp3/" />
+  <meta property="og:site_name" content="ranzlappen tools" />
+  <meta property="og:image" content="https://tools.ranzlappen.com/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="ranzlappen tools — Small tools, sharp edges." />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="YouTube MP3 Studio · tools · ranzlappen" />
+  <meta name="twitter:description" content="Build a yt-dlp command for max-quality MP3 — single videos, full playlists, even private playlists via local cookies. Runs entirely in your browser." />
+  <meta name="twitter:image" content="https://tools.ranzlappen.com/assets/og.png" />
+
+
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem("tools:theme") === "light")
+          document.documentElement.setAttribute("data-theme", "light");
+        if (localStorage.getItem("tools:headerSticky") === "off")
+          document.documentElement.setAttribute("data-header-sticky", "off");
+        var CC_KEY = "tools:cookie_consent", CC_VER = 1, CC_EXP = 365;
+        var d = JSON.parse(localStorage.getItem(CC_KEY));
+        if (d && d.version === CC_VER && (Date.now() - d.timestamp) < CC_EXP * 86400000) {
+          window.__cookieConsent = { functional: !!d.functional, resolved: true };
+          if (d.functional) document.documentElement.classList.add("consent-functional");
+        } else { window.__cookieConsent = { functional: false, resolved: false }; }
+      } catch (e) { window.__cookieConsent = { functional: false, resolved: false }; }
+    })();
+  </script>
+
+  <link rel="icon" type="image/png" href="/assets/icon.png" />
+  <link rel="apple-touch-icon" href="/assets/icon.png" />
+
+  <link rel="stylesheet" href="/assets/css/style.css" />
+  <link rel="stylesheet" href="/assets/css/cookie-consent.css" />
+  <link rel="stylesheet" href="/assets/css/backdrops.css" />
+  <link rel="stylesheet" href="/assets/css/tool.css" />
+
+  <style>
+    /* YouTube MP3 Studio — scoped layout */
+    .ytm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+      gap: var(--space-md);
+      min-width: 0;
+    }
+    .ytm-field { min-width: 0; }
+    .ytm-field .input { width: 100%; }
+    .ytm-cmd {
+      font-family: var(--f-mono);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--c-text);
+      white-space: pre;
+      margin: 0;
+    }
+    .ytm-cmd .tok-flag { color: var(--c-accent); }
+    .ytm-cmd .tok-str { color: var(--c-warning); }
+    .ytm-note {
+      font-size: 0.78rem;
+      color: var(--c-text-faint);
+      margin-top: var(--space-xs);
+    }
+    .ytm-note a { color: var(--c-accent); }
+    .ytm-install { font-family: var(--f-mono); font-size: 0.8rem; }
+    .ytm-install dt {
+      color: var(--c-text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.68rem;
+      margin-top: var(--space-sm);
+    }
+    .ytm-install dd { margin: 0.25rem 0 0; color: var(--c-text); overflow-wrap: anywhere; }
+    .ytm-hidden { display: none; }
+    .ytm-optional {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--c-text-faint);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-pill, 999px);
+      padding: 0.1rem 0.5rem;
+      margin-left: var(--space-xs);
+      vertical-align: middle;
+    }
+    .ytm-end { display: flex; align-items: flex-end; }
+    .ytm-end .btn { width: 100%; }
+    .ytm-g { width: 18px; height: 18px; flex: none; }
+    .ytm-link {
+      background: none;
+      border: 0;
+      padding: 0;
+      font: inherit;
+      color: var(--c-accent);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="backdrop" aria-hidden="true">
+    <div class="grid-bg__sky"></div>
+    <div class="grid-bg__plane"></div>
+    <div class="grid-bg__scan"></div>
+    <div class="grid-bg__spot"></div>
+  </div>
+
+  <div class="page">
+
+
+    <main class="tool-main">
+      <div class="shell stack-lg">
+
+        <section class="tool-header">
+          <a href="/" class="tool-header__back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            All tools
+          </a>
+          <div class="tool-title">
+            <div class="tool-title__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </div>
+            <div class="tool-title__text">
+              <h1>YouTube MP3 Studio</h1>
+              <p>Build the exact <code>yt-dlp</code> command for max-quality MP3 — videos, full playlists, even private ones.</p>
+            </div>
+            <button type="button" class="info-btn" data-info-button aria-label="About this tool" title="About this tool">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <div class="banner banner--warn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+          <span><strong>This builds a command — it downloads nothing here.</strong> You run the generated <code>yt-dlp</code> command on your own machine and are solely responsible for how you use it. Only download content you own or are licensed to use; downloading may violate YouTube's Terms of Service and copyright law. This is not legal advice.</span>
+        </div>
+
+        <section class="panel stack-md">
+          <div class="panel__head">
+            <span class="panel__title">Video or playlist URL</span>
+            <div class="btn-row">
+              <button type="button" class="btn btn--ghost" data-action="paste">Paste</button>
+              <button type="button" class="btn btn--ghost" data-action="clear">Clear</button>
+            </div>
+          </div>
+          <input id="yt-url" class="input input--single input--mono" type="text" spellcheck="false" autocomplete="off"
+                 placeholder="https://www.youtube.com/watch?v=…  or  …/playlist?list=…" />
+          <div class="chips" id="yt-presets" role="group" aria-label="Presets">
+            <button type="button" class="chip" data-preset="mp3">★ Max-quality MP3</button>
+            <button type="button" class="chip" data-preset="playlist">≣ Whole playlist → MP3</button>
+            <button type="button" class="chip" data-preset="private">🔒 Private playlist</button>
+          </div>
+        </section>
+
+        <section class="panel stack-md" id="yt-account">
+          <div class="panel__head">
+            <span class="panel__title">Or load from your YouTube account <span class="ytm-optional">optional</span></span>
+          </div>
+          <p class="panel__sub">Sign in (read-only) to pull your <strong>Liked videos</strong> or any of
+            your playlists. The list is private, but its videos are public — so they download
+            <strong>without cookies</strong>. Signing in contacts Google; the access token stays in
+            this page's memory and is never stored or sent anywhere else.</p>
+
+          <div class="btn-row">
+            <button type="button" class="btn" id="yt-signin" data-action="yt-signin">
+              <svg class="ytm-g" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              Sign in with Google
+            </button>
+            <button type="button" class="btn btn--ghost ytm-hidden" id="yt-signout" data-action="yt-signout">Sign out</button>
+          </div>
+
+          <div class="ytm-grid ytm-hidden" id="yt-account-pick">
+            <div class="ytm-field">
+              <label class="field-label" for="yt-playlist">Playlist</label>
+              <select id="yt-playlist" class="input input--single"></select>
+            </div>
+            <div class="ytm-field ytm-end">
+              <button type="button" class="btn" id="yt-load" data-action="yt-load">Load videos</button>
+            </div>
+          </div>
+
+          <p class="ytm-note" id="yt-account-status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="panel stack-md" id="yt-options">
+          <div class="panel__head">
+            <span class="panel__title">Options</span>
+          </div>
+
+          <div class="ytm-grid">
+            <div class="ytm-field">
+              <label class="field-label" for="yt-format">Audio format</label>
+              <select id="yt-format" class="input input--single">
+                <option value="mp3" selected>MP3</option>
+                <option value="m4a">M4A (AAC)</option>
+                <option value="opus">Opus</option>
+                <option value="best">Best (keep source)</option>
+              </select>
+            </div>
+            <div class="ytm-field" id="yt-quality-field">
+              <label class="field-label" for="yt-quality">MP3 quality</label>
+              <select id="yt-quality" class="input input--single">
+                <option value="320K" selected>320 kbps (max)</option>
+                <option value="256K">256 kbps</option>
+                <option value="192K">192 kbps</option>
+                <option value="128K">128 kbps</option>
+                <option value="0">V0 (best VBR)</option>
+                <option value="2">V2 (smaller VBR)</option>
+              </select>
+            </div>
+            <div class="ytm-field">
+              <label class="field-label" for="yt-concurrent">Parallel fragments</label>
+              <select id="yt-concurrent" class="input input--single">
+                <option value="1">1 (default)</option>
+                <option value="4" selected>4 (faster)</option>
+                <option value="8">8</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <span class="field-label">Embed into the file</span>
+            <div class="chips" id="yt-embed" role="group" aria-label="Embed options">
+              <button type="button" class="chip is-active" aria-pressed="true" data-flag="thumbnail">Thumbnail (cover art)</button>
+              <button type="button" class="chip is-active" aria-pressed="true" data-flag="metadata">Metadata (title/artist)</button>
+              <button type="button" class="chip" aria-pressed="false" data-flag="chapters">Chapters</button>
+              <button type="button" class="chip" aria-pressed="false" data-flag="sponsorblock">Remove SponsorBlock segments</button>
+              <button type="button" class="chip" aria-pressed="false" data-flag="restrict">ASCII-safe filenames</button>
+              <button type="button" class="chip" aria-pressed="false" data-flag="archive">Skip already-downloaded</button>
+            </div>
+          </div>
+
+          <div class="ytm-grid">
+            <div class="ytm-field">
+              <label class="field-label" for="yt-scope">Scope</label>
+              <select id="yt-scope" class="input input--single">
+                <option value="single" selected>Single video (--no-playlist)</option>
+                <option value="playlist">Whole playlist (--yes-playlist)</option>
+              </select>
+            </div>
+            <div class="ytm-field ytm-hidden" id="yt-items-field">
+              <label class="field-label" for="yt-items">Playlist items (optional)</label>
+              <input id="yt-items" class="input input--single input--mono" type="text" spellcheck="false"
+                     placeholder="e.g. 1-10  or  1,3,5-8" />
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label" for="yt-output">Output filename template (-o)</label>
+            <input id="yt-output" class="input input--single input--mono" type="text" spellcheck="false"
+                   value="%(title)s.%(ext)s" />
+          </div>
+
+          <div class="ytm-grid">
+            <div class="ytm-field">
+              <label class="field-label" for="yt-auth">Private / sign-in cookies</label>
+              <select id="yt-auth" class="input input--single">
+                <option value="none" selected>None (public videos)</option>
+                <option value="browser">From browser (desktop)</option>
+                <option value="file">From cookies.txt (Android/any)</option>
+              </select>
+            </div>
+            <div class="ytm-field ytm-hidden" id="yt-browser-field">
+              <label class="field-label" for="yt-browser">Browser</label>
+              <select id="yt-browser" class="input input--single">
+                <option value="chrome" selected>Chrome</option>
+                <option value="firefox">Firefox</option>
+                <option value="edge">Edge</option>
+                <option value="brave">Brave</option>
+                <option value="chromium">Chromium</option>
+                <option value="opera">Opera</option>
+                <option value="vivaldi">Vivaldi</option>
+                <option value="safari">Safari</option>
+              </select>
+            </div>
+            <div class="ytm-field ytm-hidden" id="yt-cookiefile-field">
+              <label class="field-label" for="yt-cookiefile">cookies.txt path</label>
+              <input id="yt-cookiefile" class="input input--single input--mono" type="text" spellcheck="false"
+                     value="cookies.txt" />
+            </div>
+          </div>
+          <p class="ytm-note" id="yt-auth-note"></p>
+        </section>
+
+        <section class="panel stack-md">
+          <div class="panel__head">
+            <span class="panel__title">Your command</span>
+            <div class="btn-row">
+              <button type="button" class="btn btn--ghost ytm-hidden" data-action="yt-download-urls" id="yt-download-urls">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                urls.txt
+              </button>
+              <button type="button" class="btn" data-action="copy" id="yt-copy">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
+            </div>
+          </div>
+          <p class="ytm-note ytm-hidden" id="yt-using"></p>
+          <div class="scroll-x"><pre class="ytm-cmd" id="yt-command"></pre></div>
+          <p class="ytm-note">Paste this into your terminal. Need cookies for a private playlist? Use the
+            <a href="/cookies-txt/">Cookies.txt Converter</a> to make a <code>cookies.txt</code>.</p>
+        </section>
+
+        <section class="panel stack-md">
+          <div class="panel__head">
+            <span class="panel__title">Don't have yt-dlp yet?</span>
+          </div>
+          <p class="panel__sub">yt-dlp needs <strong>ffmpeg</strong> to extract MP3. Pick your platform:</p>
+          <dl class="ytm-install">
+            <dt>Windows (winget)</dt><dd>winget install yt-dlp.yt-dlp &amp;&amp; winget install Gyan.FFmpeg</dd>
+            <dt>Windows / cross-platform (scoop)</dt><dd>scoop install yt-dlp ffmpeg</dd>
+            <dt>macOS (Homebrew)</dt><dd>brew install yt-dlp ffmpeg</dd>
+            <dt>Linux (pipx + apt)</dt><dd>sudo apt install ffmpeg &amp;&amp; pipx install yt-dlp</dd>
+            <dt>Android (Termux)</dt><dd>pkg install python ffmpeg &amp;&amp; pipx install yt-dlp</dd>
+          </dl>
+          <p class="ytm-note">On Android, <code>--cookies-from-browser</code> can't read system Chrome — export a
+            <code>cookies.txt</code> and choose the “From cookies.txt” option above.</p>
+        </section>
+
+      </div>
+    </main>
+
+
+  </div>
+
+  <dialog class="disclaimer-modal" data-disclaimer-gate
+          data-storage-key="tools:youtube-mp3:disclaimer" data-version="1"
+          aria-labelledby="ytm-disclaimer-title">
+    <div class="disclaimer-modal__body">
+      <div class="disclaimer-modal__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+      </div>
+      <h2 id="ytm-disclaimer-title">Before you use this</h2>
+      <p>This tool only <strong>builds a <code>yt-dlp</code> command</strong> — it downloads nothing here. Nothing leaves the page unless you use the optional <strong>Sign in with Google</strong>, which reads your playlists from Google's API (read-only). You are solely responsible for how you use the command.</p>
+      <p>Only download content you own, created, or are licensed or permitted to use. Downloading from YouTube may violate its Terms of Service, and copying copyrighted material without permission may be unlawful where you live. This is not legal advice.</p>
+      <p>See the <a href="https://ranzlappen.com/disclaimer/" target="_blank" rel="noopener noreferrer">site disclaimer</a> for more.</p>
+      <label class="disclaimer-modal__ack">
+        <input type="checkbox" data-disclaimer-checkbox />
+        <span>I understand, and will only use this for content I'm allowed to download.</span>
+      </label>
+      <div class="disclaimer-modal__actions">
+        <a class="disclaimer-modal__decline" data-disclaimer-decline href="/">Leave</a>
+        <button type="button" class="btn" data-disclaimer-accept disabled>I understand — continue</button>
+      </div>
+    </div>
+  </dialog>
+
+
+  <script defer src="/assets/js/partials.js"></script>
+  <script defer src="/assets/js/cookie-consent.js"></script>
+  <script defer src="/assets/js/search.js"></script>
+  <script type="module" src="/assets/js/main.js"></script>
+  <script type="module" src="/assets/js/info-modal.js"></script>
+  <script type="module" src="/assets/js/disclaimer-gate.js"></script>
+  <script type="module" src="./tool.js"></script>
+</body>
+</html>

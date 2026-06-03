@@ -1,4 +1,4 @@
-/* Info Modal — shared component used by every /tools/<slug>/ page.
+/* Info Modal — shared component used by every /<slug>/ page.
    Fetches the tool's README.md, renders it via marked + DOMPurify in a
    native <dialog>. Both deps are lazy-loaded on first open so the
    first-paint budget is unaffected. */

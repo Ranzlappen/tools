@@ -6,6 +6,28 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+### Changed
+- **Flattened tool URLs: `/tools/<slug>/` → `/<slug>/`.** The redundant
+  `tools/` path segment is gone; every tool now lives at the repo root
+  (`tools.ranzlappen.com/<slug>/`). Old paths survive as no-index
+  meta-refresh redirect stubs under `tools/` so bookmarks/links keep working.
+  Updated dashboard cards, `assets/search.json`, in-tool cross-links, and the
+  Flipper `.fam` export URL accordingly.
+- **Header & footer refactored to a single source of truth.** The inline,
+  per-page header/footer are removed; `assets/js/partials.js` now injects the
+  canonical header (brand standardized to `tools.ranzlappen` everywhere) and
+  footer into `.page` on every page. The footer was brought back into visual
+  parity with `Ranzlappen/website` (accent "Support My Work" button, copyright
+  separator, 🛡️/🍪 cookie controls).
+- The header's **ranzlappen.com link is now a button** and stays visible on
+  mobile (compact).
+
+### Fixed
+- **Unpinned header pin no longer scrolls away.** When the header was unpinned,
+  its solid-state `backdrop-filter` established a containing block that trapped
+  the `position: fixed` pin, dragging it off-screen after a few inches; the
+  filter is now dropped while unpinned so the pin stays viewport-fixed.
+
 ### Added
 - **YouTube MP3 Studio (`tools/youtube-mp3/`).** A client-side builder for
   `yt-dlp` commands: max-quality MP3 (up to 320 kbps / VBR), M4A/Opus/best,
