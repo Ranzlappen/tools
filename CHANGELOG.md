@@ -29,6 +29,18 @@ All notable changes to **tools** are recorded here. Format follows
   filter is now dropped while unpinned so the pin stays viewport-fixed.
 
 ### Added
+- **Video Studio expansion (`video/`).** A new default **Trim & convert** mode
+  (no longer forces a reverse), plus **output types** — MP4/WebM video, **GIF**
+  (single-pass `palettegen`/`paletteuse`), single **PNG frame**, **PNG
+  frame-sequence**, and **audio (m4a)**. New transforms: scale (1080/720/480),
+  centred crop (1:1/9:16/16:9), rotate (90°/180°), flip (H/V), colour presets
+  (warm/cool/vivid/grayscale/sepia), fade in/out, and output FPS. **Frame-perfect
+  editing**: a source-FPS field (auto-corrected from ffmpeg's input log) drives a
+  `frame A → B` trim readout, frame-snapped trim, and ◀/▶ one-frame nudge buttons.
+  The frame-sequence export renders a thumbnail gallery with per-frame download
+  and a lazy-loaded **Download all (.zip)** (`fflate`, with an individual-download
+  fallback). Filters use a hybrid model — mode/loop stay a labelled-pad graph,
+  everything else is a comma-joined linear segment.
 - **YouTube MP3 Studio (`tools/youtube-mp3/`).** A client-side builder for
   `yt-dlp` commands: max-quality MP3 (up to 320 kbps / VBR), M4A/Opus/best,
   embedded thumbnail/metadata/chapters, SponsorBlock removal, single-video or

@@ -38,7 +38,7 @@
   {
     "title": "Video Studio",
     "url": "/video/",
-    "description": "Reverse, boomerang, trim, and re-encode video — all in the browser, powered by ffmpeg.wasm.",
+    "description": "Trim, reverse, resize, crop, rotate, colour-grade and re-encode video — export video, GIF, PNG frames or audio, in the browser via ffmpeg.wasm.",
     "group": "Tools"
   },
   {
