@@ -63,13 +63,13 @@
         </nav>
 
         <nav class="footer-projects" aria-label="My projects">
-          <a href="https://ticked.ranzlappen.com" target="_blank" rel="noopener noreferrer" aria-label="Ticked" title="Ticked"><img src="/assets/favicons/ticked.png" alt="" width="24" height="24" loading="lazy"></a>
-          <a href="https://twitch-mood-radar.ranzlappen.com" target="_blank" rel="noopener noreferrer" aria-label="Twitch Mood Radar" title="Twitch Mood Radar"><img src="/assets/favicons/twitch-mood-radar.png" alt="" width="24" height="24" loading="lazy"></a>
-          <a href="https://tools.ranzlappen.com" target="_blank" rel="noopener noreferrer" aria-label="tools" title="tools"><img src="/assets/favicons/tools.png" alt="" width="24" height="24" loading="lazy"></a>
-          <a href="https://ranzlappen.com/polyvote/" target="_blank" rel="noopener noreferrer" aria-label="PolyVote" title="PolyVote"><img src="/assets/favicons/polyvote.png" alt="" width="24" height="24" loading="lazy"></a>
-          <a href="https://ranzlappen.com/references/spectrum/" target="_blank" rel="noopener noreferrer" aria-label="Spectrum" title="Spectrum"><img src="/assets/favicons/spectrum.png" alt="" width="24" height="24" loading="lazy"></a>
-          <a href="https://ranzlappen.com/references/electronics-fundamentals/" target="_blank" rel="noopener noreferrer" aria-label="Electronics Fundamentals" title="Electronics Fundamentals"><img src="/assets/favicons/electronics-fundamentals.png" alt="" width="24" height="24" loading="lazy"></a>
-          <a href="https://ranzlappen.com/references/cmd-cheat-sheet/" target="_blank" rel="noopener noreferrer" aria-label="CMD Cheat Sheet" title="CMD Cheat Sheet"><img src="/assets/favicons/cmd-cheat-sheet.png" alt="" width="24" height="24" loading="lazy"></a>
+          <a href="https://ticked.ranzlappen.com" target="_blank" rel="noopener noreferrer" aria-label="Ticked" title="Ticked"><img src="/assets/favicons/ticked.png?v=2" alt="" width="24" height="24" loading="lazy"></a>
+          <a href="https://twitch-mood-radar.ranzlappen.com" target="_blank" rel="noopener noreferrer" aria-label="Twitch Mood Radar" title="Twitch Mood Radar"><img src="/assets/favicons/twitch-mood-radar.png?v=2" alt="" width="24" height="24" loading="lazy"></a>
+          <a href="https://tools.ranzlappen.com" target="_blank" rel="noopener noreferrer" aria-label="tools" title="tools"><img src="/assets/favicons/tools.png?v=2" alt="" width="24" height="24" loading="lazy"></a>
+          <a href="https://ranzlappen.com/polyvote/" target="_blank" rel="noopener noreferrer" aria-label="PolyVote" title="PolyVote"><img src="/assets/favicons/polyvote.png?v=2" alt="" width="24" height="24" loading="lazy"></a>
+          <a href="https://ranzlappen.com/references/spectrum/" target="_blank" rel="noopener noreferrer" aria-label="Spectrum" title="Spectrum"><img src="/assets/favicons/spectrum.png?v=2" alt="" width="24" height="24" loading="lazy"></a>
+          <a href="https://ranzlappen.com/references/electronics-fundamentals/" target="_blank" rel="noopener noreferrer" aria-label="Electronics Fundamentals" title="Electronics Fundamentals"><img src="/assets/favicons/electronics-fundamentals.png?v=2" alt="" width="24" height="24" loading="lazy"></a>
+          <a href="https://ranzlappen.com/references/cmd-cheat-sheet/" target="_blank" rel="noopener noreferrer" aria-label="CMD Cheat Sheet" title="CMD Cheat Sheet"><img src="/assets/favicons/cmd-cheat-sheet.png?v=2" alt="" width="24" height="24" loading="lazy"></a>
         </nav>
 
         <div class="footer-support">
