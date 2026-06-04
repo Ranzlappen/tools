@@ -2,7 +2,7 @@
    No build step, no Workbox. Bump CACHE_VERSION to invalidate. */
 "use strict";
 
-const CACHE_VERSION = "tools-v4";
+const CACHE_VERSION = "tools-v5";
 const PRECACHE = CACHE_VERSION + "-precache";
 const RUNTIME = CACHE_VERSION + "-runtime";
 
