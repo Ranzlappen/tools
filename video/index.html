@@ -4,13 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Video Studio · tools · ranzlappen</title>
-  <meta name="description" content="Reverse, boomerang, trim, and re-encode video — runs entirely in your browser." />
+  <meta name="description" content="Trim, reverse, boomerang, resize, crop, rotate, colour-grade and re-encode video — export MP4/WebM/GIF, PNG frames or audio, entirely in your browser." />
   <meta name="theme-color" content="#0b1210" />
   <meta name="color-scheme" content="dark light" />
 
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Video Studio · tools · ranzlappen" />
-  <meta property="og:description" content="Reverse, boomerang, trim, and re-encode video — runs entirely in your browser." />
+  <meta property="og:description" content="Trim, reverse, boomerang, resize, crop, rotate, colour-grade and re-encode video — export MP4/WebM/GIF, PNG frames or audio, entirely in your browser." />
   <meta property="og:url" content="https://tools.ranzlappen.com/video/" />
   <meta property="og:site_name" content="ranzlappen tools" />
   <meta property="og:image" content="https://tools.ranzlappen.com/assets/og.png" />
@@ -20,7 +20,7 @@
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Video Studio · tools · ranzlappen" />
-  <meta name="twitter:description" content="Reverse, boomerang, trim, and re-encode video — runs entirely in your browser." />
+  <meta name="twitter:description" content="Trim, reverse, boomerang, resize, crop, rotate, colour-grade and re-encode video — export MP4/WebM/GIF, PNG frames or audio, entirely in your browser." />
   <meta name="twitter:image" content="https://tools.ranzlappen.com/assets/og.png" />
 
 
@@ -46,6 +46,10 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="tools" />
 
   <link rel="stylesheet" href="/assets/css/style.css" />
   <link rel="stylesheet" href="/assets/css/cookie-consent.css" />
@@ -79,7 +83,7 @@
             </div>
             <div class="tool-title__text">
               <h1>Video Studio</h1>
-              <p>Reverse, boomerang, trim, and re-encode video — all in the browser, powered by ffmpeg.wasm.</p>
+              <p>Trim, reverse, resize, crop, rotate, colour-grade and re-encode — export video, GIF, PNG frames or audio, all in the browser, powered by ffmpeg.wasm.</p>
             </div>
             <button type="button" class="info-btn" data-info-button aria-label="About this tool" title="About this tool">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>
@@ -112,6 +116,7 @@
             <div class="kv-row"><span class="k">Size</span><span class="v" id="m-size">—</span></div>
             <div class="kv-row"><span class="k">Duration</span><span class="v" id="m-dur">—</span></div>
             <div class="kv-row"><span class="k">Resolution</span><span class="v" id="m-res">—</span></div>
+            <div class="kv-row"><span class="k">Frame rate</span><span class="v" id="m-fps">—</span></div>
             <div class="kv-row"><span class="k">Type</span><span class="v" id="m-type">—</span></div>
           </div>
 
@@ -124,17 +129,30 @@
             <button type="button" class="btn btn--ghost btn--copy" data-action="reset-opts">Reset defaults</button>
           </div>
 
+          <span class="panel__sub">Transform</span>
           <div class="opt-grid">
-            <div class="opt">
+            <div class="opt" id="opt-mode-block">
               <span class="field-label">Mode</span>
               <div class="chips" role="radiogroup" aria-label="Mode">
-                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="mode" data-value="boomerang">Boomerang</button>
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="mode" data-value="trim">Trim &amp; convert</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="mode" data-value="boomerang">Boomerang</button>
                 <button type="button" class="chip" role="radio" aria-checked="false" data-opt="mode" data-value="reverse">Reverse only</button>
                 <button type="button" class="chip" role="radio" aria-checked="false" data-opt="mode" data-value="palindrome">Palindrome</button>
               </div>
             </div>
 
-            <div class="opt">
+            <div class="opt" id="opt-output-block">
+              <span class="field-label">Output type</span>
+              <div class="chips" role="radiogroup" aria-label="Output type">
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="output" data-value="video">Video</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="output" data-value="gif">GIF</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="output" data-value="frame">Frame · PNG</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="output" data-value="frames">Frames · PNG set</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="output" data-value="audio">Audio · m4a</button>
+              </div>
+            </div>
+
+            <div class="opt" id="opt-loops-block">
               <span class="field-label">Loop count</span>
               <div class="chips" role="radiogroup" aria-label="Loop count">
                 <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="loops" data-value="1">1×</button>
@@ -143,16 +161,7 @@
               </div>
             </div>
 
-            <div class="opt">
-              <span class="field-label">Audio</span>
-              <div class="chips" role="radiogroup" aria-label="Audio">
-                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="audio" data-value="drop">Drop</button>
-                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="audio" data-value="keep">Keep forward</button>
-                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="audio" data-value="reverse">Reverse with video</button>
-              </div>
-            </div>
-
-            <div class="opt">
+            <div class="opt" id="opt-speed-block">
               <span class="field-label">Speed</span>
               <select class="input input--single input--mono" id="opt-speed" aria-label="Speed">
                 <option value="0.25">0.25×</option>
@@ -166,8 +175,110 @@
                 <option value="4">4×</option>
               </select>
             </div>
+          </div>
 
-            <div class="opt">
+          <span class="panel__sub">Frame</span>
+          <div class="opt-grid">
+            <div class="opt" id="opt-scale-block">
+              <span class="field-label">Scale</span>
+              <div class="chips" role="radiogroup" aria-label="Scale">
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="scale" data-value="orig">Original</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="scale" data-value="1080">1080p</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="scale" data-value="720">720p</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="scale" data-value="480">480p</button>
+              </div>
+            </div>
+
+            <div class="opt" id="opt-crop-block">
+              <span class="field-label">Crop aspect</span>
+              <div class="chips" role="radiogroup" aria-label="Crop aspect">
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="crop" data-value="none">None</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="crop" data-value="1:1">1:1</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="crop" data-value="9:16">9:16</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="crop" data-value="16:9">16:9</button>
+              </div>
+            </div>
+
+            <div class="opt" id="opt-rotate-block">
+              <span class="field-label">Rotate</span>
+              <div class="chips" role="radiogroup" aria-label="Rotate">
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="rotate" data-value="none">None</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="rotate" data-value="cw">90° CW</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="rotate" data-value="ccw">90° CCW</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="rotate" data-value="180">180°</button>
+              </div>
+            </div>
+
+            <div class="opt" id="opt-flip-block">
+              <span class="field-label">Flip</span>
+              <div class="chips" role="radiogroup" aria-label="Flip">
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="flip" data-value="none">None</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="flip" data-value="h">Horizontal</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="flip" data-value="v">Vertical</button>
+              </div>
+            </div>
+          </div>
+
+          <span class="panel__sub">Look</span>
+          <div class="opt-grid">
+            <div class="opt" id="opt-color-block">
+              <span class="field-label">Colour preset</span>
+              <div class="chips" role="radiogroup" aria-label="Colour preset">
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="color" data-value="none">None</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="color" data-value="warm">Warm</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="color" data-value="cool">Cool</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="color" data-value="vivid">Vivid</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="color" data-value="gray">Grayscale</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="color" data-value="sepia">Sepia</button>
+              </div>
+            </div>
+
+            <div class="opt" id="opt-fps-block">
+              <span class="field-label">Output FPS</span>
+              <div class="chips" role="radiogroup" aria-label="Output frame rate">
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="fps" data-value="orig">Original</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="fps" data-value="15">15</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="fps" data-value="24">24</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="fps" data-value="30">30</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="fps" data-value="60">60</button>
+              </div>
+            </div>
+
+            <div class="opt" id="opt-frate-block">
+              <span class="field-label">Frame export rate</span>
+              <div class="chips" role="radiogroup" aria-label="Frame export rate">
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="frate" data-value="all">Every frame</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="frate" data-value="every2">Every 2nd</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="frate" data-value="every5">Every 5th</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="frate" data-value="1ps">1 / sec</button>
+              </div>
+            </div>
+
+            <div class="opt opt--full" id="opt-fade-block">
+              <div class="trim__row">
+                <span class="field-label">Fade (seconds)</span>
+                <span class="trim__hint" id="fade-hint">no fade</span>
+              </div>
+              <div class="trim__row">
+                <label class="trim__label" for="fade-in">In</label>
+                <input type="range" id="fade-in" min="0" max="3" step="0.1" value="0" aria-label="Fade in seconds" style="flex:1 1 120px" />
+                <label class="trim__label" for="fade-out">Out</label>
+                <input type="range" id="fade-out" min="0" max="3" step="0.1" value="0" aria-label="Fade out seconds" style="flex:1 1 120px" />
+              </div>
+            </div>
+          </div>
+
+          <span class="panel__sub">Encode</span>
+          <div class="opt-grid">
+            <div class="opt" id="opt-format-block">
+              <span class="field-label">Format</span>
+              <div class="chips" role="radiogroup" aria-label="Format">
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="format" data-value="mp4">mp4 · h264</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="format" data-value="webm">webm · vp9</button>
+              </div>
+            </div>
+
+            <div class="opt" id="opt-quality-block">
               <span class="field-label">Quality</span>
               <div class="chips" role="radiogroup" aria-label="Quality">
                 <button type="button" class="chip" role="radio" aria-checked="false" data-opt="quality" data-value="low">Low</button>
@@ -176,22 +287,42 @@
               </div>
             </div>
 
-            <div class="opt">
-              <span class="field-label">Format</span>
-              <div class="chips" role="radiogroup" aria-label="Format">
-                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="format" data-value="mp4">mp4 · h264</button>
-                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="format" data-value="webm">webm · vp9</button>
+            <div class="opt" id="opt-audio-block">
+              <span class="field-label">Audio</span>
+              <div class="chips" role="radiogroup" aria-label="Audio">
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="audio" data-value="drop">Drop</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="audio" data-value="keep">Keep forward</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="audio" data-value="reverse">Reverse with video</button>
               </div>
             </div>
 
-            <div class="opt opt--full">
+            <div class="opt" id="opt-fpssrc-block">
+              <span class="field-label">Source FPS</span>
+              <div class="trim__row">
+                <input type="number" id="fps-src" class="input input--single input--mono trim__num" min="1" max="240" step="0.001" value="30" aria-label="Source frames per second" />
+                <div class="chips" role="radiogroup" aria-label="Source FPS presets">
+                  <button type="button" class="chip" role="radio" aria-checked="false" data-opt="fpsSrcPick" data-value="23.976">23.976</button>
+                  <button type="button" class="chip" role="radio" aria-checked="false" data-opt="fpsSrcPick" data-value="24">24</button>
+                  <button type="button" class="chip" role="radio" aria-checked="false" data-opt="fpsSrcPick" data-value="25">25</button>
+                  <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="fpsSrcPick" data-value="30">30</button>
+                  <button type="button" class="chip" role="radio" aria-checked="false" data-opt="fpsSrcPick" data-value="50">50</button>
+                  <button type="button" class="chip" role="radio" aria-checked="false" data-opt="fpsSrcPick" data-value="60">60</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="opt opt--full" id="opt-trim-block">
               <span class="field-label">Trim</span>
               <div class="trim">
                 <div class="trim__row">
                   <label class="trim__label" for="trim-in">In</label>
-                  <input type="number" id="trim-in" class="input input--single input--mono trim__num" min="0" step="0.01" value="0" />
+                  <button type="button" class="chip" id="trim-in-prev" aria-label="Trim in: back one frame" title="−1 frame">◀</button>
+                  <input type="number" id="trim-in" class="input input--single input--mono trim__num" min="0" step="0.001" value="0" />
+                  <button type="button" class="chip" id="trim-in-next" aria-label="Trim in: forward one frame" title="+1 frame">▶</button>
                   <label class="trim__label" for="trim-out">Out</label>
-                  <input type="number" id="trim-out" class="input input--single input--mono trim__num" min="0" step="0.01" value="0" />
+                  <button type="button" class="chip" id="trim-out-prev" aria-label="Trim out: back one frame" title="−1 frame">◀</button>
+                  <input type="number" id="trim-out" class="input input--single input--mono trim__num" min="0" step="0.001" value="0" />
+                  <button type="button" class="chip" id="trim-out-next" aria-label="Trim out: forward one frame" title="+1 frame">▶</button>
                   <span class="trim__hint" id="trim-window">—</span>
                 </div>
                 <div class="trim__range">

@@ -5,6 +5,8 @@
 assets/
 tools/
 *.html
+site.webmanifest
+sw.js
 .github/
 .gitignore
 .nojekyll

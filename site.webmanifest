@@ -1,9 +1,10 @@
 {
-  "name": "tools.ranzlappen",
+  "name": "ranzlappen tools",
   "short_name": "tools",
-  "description": "A dashboard of fast, privacy-first browser utilities.",
+  "description": "A growing collection of small, focused web utilities by Ranzlappen.",
   "start_url": "/",
-  "display": "browser",
+  "scope": "/",
+  "display": "standalone",
   "background_color": "#0b1210",
   "theme_color": "#0b1210",
   "icons": [
