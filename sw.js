@@ -2,7 +2,7 @@
    No build step, no Workbox. Bump CACHE_VERSION to invalidate. */
 "use strict";
 
-const CACHE_VERSION = "tools-v1";
+const CACHE_VERSION = "tools-v2";
 const PRECACHE = CACHE_VERSION + "-precache";
 const RUNTIME = CACHE_VERSION + "-runtime";
 
@@ -18,9 +18,14 @@ const PRECACHE_URLS = [
   "/assets/css/cookie-consent.css",
   "/assets/js/main.js",
   "/assets/icon.png",
-  "/assets/icon-192.png",
-  "/assets/icon-512.png",
-  "/assets/favicons/tools.svg",
+  "/icons/favicon.ico",
+  "/icons/favicon-16x16.png",
+  "/icons/favicon-32x32.png",
+  "/icons/apple-touch-icon.png",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/icons/icon-maskable-192.png",
+  "/icons/icon-maskable-512.png",
   "/site.webmanifest",
   "/offline.html",
 ];

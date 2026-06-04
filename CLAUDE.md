@@ -71,18 +71,19 @@ Mirrors `Ranzlappen/website`'s manifest-based PWA, then goes further to be
 genuinely installable and offline-capable — still **no build step, no
 Workbox**. Pieces:
 
-- `site.webmanifest` (root) — `display: standalone`, brand colors, icons
-  (`favicons/tools.svg` as `any`, plus `assets/icon-192.png` /
-  `assets/icon-512.png`, the latter doubling as `maskable`). The PNG install
-  icons are rendered from `tools.svg`; a deliberate <50 KB binary exception
-  (see **Don'ts**).
+- `site.webmanifest` (root) — `display: standalone`, brand colors, and the
+  shared icon-universe PNGs from `/icons/` (`icon-192.png` / `icon-512.png`
+  as `any`, plus dedicated `icon-maskable-192.png` / `icon-maskable-512.png`).
+  See **Standards → Icons** for the full set; all install icons are downscales
+  of the wrench-emblem master.
 - `sw.js` (root) — hand-written, dependency-free. Precaches a generic app
-  shell (`PRECACHE_URLS`); cache-first for static assets, network-first for
-  navigations with an `offline.html` fallback; cross-origin (`/api`, CDNs) and
-  non-GET pass straight through. **Bump `CACHE_VERSION` (`tools-v1` →
-  `tools-v2`, …) whenever shell CSS/JS changes** so the activate sweep evicts
-  stale caches. Tool pages aren't precached — the runtime cache captures each
-  on first visit.
+  shell (`PRECACHE_URLS`, including the `/icons/` set + `assets/icon.png`
+  brand mark); cache-first for static assets, network-first for navigations
+  with an `offline.html` fallback; cross-origin (`/api`, CDNs) and non-GET
+  pass straight through. **Bump `CACHE_VERSION` (`tools-v1` → `tools-v2`, …)
+  whenever shell CSS/JS or precached icons change** so the activate sweep
+  evicts stale caches. Tool pages aren't precached — the runtime cache
+  captures each on first visit.
 - `main.js` registers `/sw.js` on `load` (feature-detected, errors swallowed),
   so it never touches first paint. The manifest is a low-priority link tag —
   neither counts against the first-paint budget.
@@ -151,6 +152,14 @@ Files present:
   `dependency-review.yml`, `repo-sanitation.yml`, `vercel-deploy.yml`.
 - Assets: `assets/og.png` (1200×630 hero card) + `assets/og.svg`
   (source).
+- Icons: `site.webmanifest` + `icons/` set (`favicon.ico`,
+  `favicon-16x16/32x32.png`, `apple-touch-icon.png`,
+  `icon-192/512.png`, `icon-maskable-192/512.png`) from the shared
+  "icon universe" wrench-emblem master; every page head links them via
+  absolute `/icons/...` paths. The header brand mark in `partials.js`
+  reuses `assets/icon.png` (a 64px downscale of the same master). Footer
+  project favicons are 48px PNG downscales of each brand master in
+  `assets/favicons/` (no more green SVGs).
 
 ## Performance budget
 
