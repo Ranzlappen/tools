@@ -1,0 +1,5 @@
+# tools.ranzlappen.com
+User-agent: *
+Allow: /
+
+Sitemap: https://tools.ranzlappen.com/sitemap.xml
