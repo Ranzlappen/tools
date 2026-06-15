@@ -105,18 +105,23 @@ Workbox**. Pieces:
 3. Add a matching entry to `assets/search.json`
    (`{title, url:"/<slug>/", description, group:"Tools"}`) or the
    on-site search won't find the new tool.
-4. Keep each tool self-contained — no shared state, no shared JS unless it
+4. Add a `<url>` to `sitemap.xml` and a self-referential
+   `<link rel="canonical" href="https://tools.ranzlappen.com/<slug>/">` to
+   the page `<head>`. **If copied from another tool, fix the canonical to the
+   new slug** (per-page `<head>` carries canonical + OG/Twitter + verification
+   tags; only header/footer are runtime-shared).
+5. Keep each tool self-contained — no shared state, no shared JS unless it
    genuinely belongs in `assets/js/`.
-5. Client-only? Stays on Pages. Needs a server / build step? Plan for
+6. Client-only? Stays on Pages. Needs a server / build step? Plan for
    Vercel and document the routing.
-6. Write `<slug>/README.md` using the template in
+7. Write `<slug>/README.md` using the template in
    `json-formatter/README.md` (User guide + Developer guide).
    This is **mandatory** — the in-app info modal expects it.
-7. Wire the info modal into the tool's `<header>` — add a
+8. Wire the info modal into the tool's `<header>` — add a
    `<button class="info-btn" data-info-button>` next to `.tool-title__text`
    and include `<script type="module" src="/assets/js/info-modal.js">`.
    The modal fetches `./README.md` by default.
-8. Smoke-test the tool at a 360 px viewport before shipping. If
+9. Smoke-test the tool at a 360 px viewport before shipping. If
    anything clips the right edge, the fix is almost always
    `minmax(0, 1fr)` on the offending grid track or a `.scroll-x`
    wrapper on wide content — not a custom per-tool media query.
@@ -143,7 +148,7 @@ Files present:
 
 - Root: `README.md`, `LICENSE`, `CLAUDE.md`, `CHANGELOG.md`,
   `.standards-version`, `.gitignore`, `.nojekyll`, `CNAME`, `vercel.json`,
-  `.vercelignore`, `package.json`.
+  `.vercelignore`, `package.json`, `robots.txt`, `sitemap.xml`.
 - `.github/`: `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`,
   `GOVERNANCE.md`, `CODEOWNERS`, `FUNDING.yml`,
   `pull_request_template.md`, issue forms (`bug.yml`, `feature.yml`,
