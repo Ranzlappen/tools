@@ -16,6 +16,12 @@ All notable changes to **tools** are recorded here. Format follows
   `main.js` registers the service worker on `load`. No build step, no Workbox.
 
 ### Changed
+- **Header `ranzlappen.com` button collapses to a favicon on small screens.**
+  The text label took too much room in the mobile header, so at ≤640px the
+  button now shows just the main-site favicon (`assets/favicons/ranzlappen.png`,
+  a 48px downscale of the parent's icon-universe emblem); the text label +
+  external-arrow are restored on wider viewports. Precached by `sw.js`
+  (`CACHE_VERSION` → `tools-v7`).
 - **Flattened tool URLs: `/tools/<slug>/` → `/<slug>/`.** The redundant
   `tools/` path segment is gone; every tool now lives at the repo root
   (`tools.ranzlappen.com/<slug>/`). Old paths survive as no-index

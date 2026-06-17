@@ -23,7 +23,10 @@
           </span>
         </a>
         <div class="header-actions">
-          <a class="site-header__home" href="https://ranzlappen.com" target="_blank" rel="noopener noreferrer">ranzlappen.com<span class="external-icon" aria-hidden="true">↗</span></a>
+          <a class="site-header__home" href="https://ranzlappen.com" target="_blank" rel="noopener noreferrer" aria-label="ranzlappen.com">
+            <img class="site-header__home-icon" src="/assets/favicons/ranzlappen.png" alt="" width="20" height="20" loading="lazy">
+            <span class="site-header__home-label">ranzlappen.com</span><span class="external-icon" aria-hidden="true">↗</span>
+          </a>
           <button class="search-toggle" id="search-toggle" type="button" aria-label="Search">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>

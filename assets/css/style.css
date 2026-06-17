@@ -194,6 +194,13 @@ main {
   border-color: var(--c-accent-border);
   background: var(--c-accent-bg);
 }
+/* The main-site favicon only stands in for the text label on small screens. */
+.site-header__home-icon {
+  display: none;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--border-radius-sm);
+}
 
 .external-icon {
   font-size: 0.75rem;
@@ -1075,12 +1082,14 @@ html[data-header-sticky="off"] .theme-toggle {
   .shell { padding: 0 var(--space-md); }
   .card { padding: var(--space-md); }
   .header-actions { gap: var(--space-xs); }
-  /* Keep the ranzlappen.com button visible on mobile, just more compact. */
+  /* On small screens the text label takes too much room — collapse the
+     button to just the main-site favicon. */
   .site-header__home {
-    font-size: 0.7rem;
-    padding: var(--space-xs) var(--space-sm);
+    padding: var(--space-xs);
   }
+  .site-header__home-label,
   .site-header__home .external-icon { display: none; }
+  .site-header__home-icon { display: block; }
   .brand__name { font-size: 0.9rem; }
   html[data-header-sticky="off"] .header-sticky-toggle {
     right: calc((100vw - min(100vw, var(--max-width))) / 2 + var(--space-md));
