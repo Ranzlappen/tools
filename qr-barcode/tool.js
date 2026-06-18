@@ -20,140 +20,144 @@ const $ = (s) => document.querySelector(s);
 // `bwip` is the bwip-js symbology id. Sentinel `'qr-fancy'` routes to
 // qr-code-styling instead of bwip-js. `group` is the optgroup label,
 // `is2D` controls whether the design panel is visible, `requires` is
-// a human-readable hint about input constraints.
+// a human-readable hint about input constraints, and `example` is a
+// known-valid sample payload. Selecting a symbology seeds the payload
+// box (and its placeholder) with `example` so every code renders a
+// real, scannable sample out of the box — strict 1D/GS1 symbologies
+// would otherwise error on the generic default text.
 
 const SYMBOLOGIES = [
   // QR & 2D
   { id: "qr-fancy",     label: "QR Code",                  group: "QR & 2D",    is2D: true,  badge: "2D",
-    bwip: "qrcode", requires: "Any text up to ~2,953 bytes (ECC L)." },
+    bwip: "qrcode", requires: "Any text up to ~2,953 bytes (ECC L).", example: "https://tools.ranzlappen.com" },
   { id: "datamatrix",   label: "Data Matrix",              group: "QR & 2D",    is2D: true,  badge: "2D",
-    bwip: "datamatrix", requires: "Any text up to 2,335 alphanumeric chars." },
+    bwip: "datamatrix", requires: "Any text up to 2,335 alphanumeric chars.", example: "Wikipedia, the free encyclopedia" },
   { id: "datamatrixrectangular", label: "Data Matrix (rectangular)", group: "QR & 2D", is2D: true, badge: "2D",
-    bwip: "datamatrixrectangular", requires: "Same as Data Matrix; rectangular form factors." },
+    bwip: "datamatrixrectangular", requires: "Same as Data Matrix; rectangular form factors.", example: "Test1234" },
   { id: "azteccode",    label: "Aztec Code",               group: "QR & 2D",    is2D: true,  badge: "2D",
-    bwip: "azteccode", requires: "Any text. ECC 5–95% configurable." },
+    bwip: "azteccode", requires: "Any text. ECC 5–95% configurable.", example: "This is an Aztec Code" },
   { id: "azteccodecompact", label: "Aztec Code (compact)", group: "QR & 2D",    is2D: true,  badge: "2D",
-    bwip: "azteccodecompact", requires: "Compact Aztec for small payloads." },
+    bwip: "azteccodecompact", requires: "Compact Aztec for small payloads.", example: "Aztec" },
   { id: "pdf417",       label: "PDF417",                   group: "QR & 2D",    is2D: true,  badge: "2D",
-    bwip: "pdf417", requires: "Up to ~1,800 alphanumeric chars." },
+    bwip: "pdf417", requires: "Up to ~1,800 alphanumeric chars.", example: "PDF417 sample data 12345" },
   { id: "pdf417compact",label: "PDF417 (compact)",         group: "QR & 2D",    is2D: true,  badge: "2D",
-    bwip: "pdf417compact", requires: "Truncated PDF417 for narrow labels." },
+    bwip: "pdf417compact", requires: "Truncated PDF417 for narrow labels.", example: "PDF417 compact" },
   { id: "micropdf417",  label: "MicroPDF417",              group: "QR & 2D",    is2D: true,  badge: "2D",
-    bwip: "micropdf417", requires: "Small PDF417 variant for limited space." },
+    bwip: "micropdf417", requires: "Small PDF417 variant for limited space.", example: "MicroPDF" },
   { id: "microqrcode",  label: "Micro QR Code",            group: "QR & 2D",    is2D: true,  badge: "2D",
-    bwip: "microqrcode", requires: "Up to 35 numeric chars; smaller than QR." },
+    bwip: "microqrcode", requires: "Up to 35 numeric chars; smaller than QR.", example: "01234567" },
   { id: "maxicode",     label: "MaxiCode",                 group: "QR & 2D",    is2D: true,  badge: "2D",
-    bwip: "maxicode", requires: "UPS shipping label format. 93 chars max." },
+    bwip: "maxicode", requires: "UPS shipping label format. 93 chars max.", example: "Test message" },
   { id: "hanxin",       label: "Han Xin Code",             group: "QR & 2D",    is2D: true,  badge: "2D",
-    bwip: "hanxin", requires: "Chinese national 2D standard. UTF-8 friendly." },
+    bwip: "hanxin", requires: "Chinese national 2D standard. UTF-8 friendly.", example: "Han Xin Code 12345" },
   { id: "codeone",      label: "Code One",                 group: "QR & 2D",    is2D: true,  badge: "2D",
-    bwip: "codeone", requires: "Industrial 2D matrix code." },
+    bwip: "codeone", requires: "Industrial 2D matrix code.", example: "Code One 12345" },
 
   // Retail / EAN
   { id: "ean13",        label: "EAN-13",                   group: "Retail (EAN/UPC)", is2D: false, badge: "1D",
-    bwip: "ean13", requires: "Exactly 12 digits (check digit auto-added)." },
+    bwip: "ean13", requires: "Exactly 12 digits (check digit auto-added).", example: "590123412345" },
   { id: "ean8",         label: "EAN-8",                    group: "Retail (EAN/UPC)", is2D: false, badge: "1D",
-    bwip: "ean8", requires: "Exactly 7 digits (check digit auto-added)." },
+    bwip: "ean8", requires: "Exactly 7 digits (check digit auto-added).", example: "9638507" },
   { id: "ean5",         label: "EAN-5 supplement",         group: "Retail (EAN/UPC)", is2D: false, badge: "1D",
-    bwip: "ean5", requires: "Exactly 5 digits. Supplemental code." },
+    bwip: "ean5", requires: "Exactly 5 digits. Supplemental code.", example: "52495" },
   { id: "ean2",         label: "EAN-2 supplement",         group: "Retail (EAN/UPC)", is2D: false, badge: "1D",
-    bwip: "ean2", requires: "Exactly 2 digits. Supplemental code." },
+    bwip: "ean2", requires: "Exactly 2 digits. Supplemental code.", example: "12" },
   { id: "upca",         label: "UPC-A",                    group: "Retail (EAN/UPC)", is2D: false, badge: "1D",
-    bwip: "upca", requires: "Exactly 11 digits (check digit auto-added)." },
+    bwip: "upca", requires: "Exactly 11 digits (check digit auto-added).", example: "01234567890" },
   { id: "upce",         label: "UPC-E",                    group: "Retail (EAN/UPC)", is2D: false, badge: "1D",
-    bwip: "upce", requires: "6 digits. Compact UPC variant." },
+    bwip: "upce", requires: "7 digits (incl. number system & check).", example: "0123456" },
   { id: "isbn",         label: "ISBN",                     group: "Retail (EAN/UPC)", is2D: false, badge: "1D",
-    bwip: "isbn", requires: "ISBN-13 (12 digits + auto checksum)." },
+    bwip: "isbn", requires: "ISBN-13 with dashes, e.g. 978-1-56619-909-4.", example: "978-1-56619-909-4" },
   { id: "ismn",         label: "ISMN",                     group: "Retail (EAN/UPC)", is2D: false, badge: "1D",
-    bwip: "ismn", requires: "Music publication number." },
+    bwip: "ismn", requires: "Music number with dashes, e.g. 979-0-2600-0043-8.", example: "979-0-2600-0043-8" },
   { id: "issn",         label: "ISSN",                     group: "Retail (EAN/UPC)", is2D: false, badge: "1D",
-    bwip: "issn", requires: "Serial publication number." },
+    bwip: "issn", requires: "Serial number with dash, e.g. 0317-8471.", example: "0317-8471" },
 
   // Industrial
   { id: "code128",      label: "Code 128",                 group: "Industrial 1D", is2D: false, badge: "1D",
-    bwip: "code128", requires: "Any ASCII. Most common shipping barcode." },
+    bwip: "code128", requires: "Any ASCII. Most common shipping barcode.", example: "Code 128 ABC-123" },
   { id: "code39",       label: "Code 39",                  group: "Industrial 1D", is2D: false, badge: "1D",
-    bwip: "code39", requires: "A–Z, 0–9, and -.$/+%*. Industrial standard." },
+    bwip: "code39", requires: "A–Z, 0–9, and -.$/+%*. Industrial standard.", example: "CODE39" },
   { id: "code39ext",    label: "Code 39 (extended)",       group: "Industrial 1D", is2D: false, badge: "1D",
-    bwip: "code39ext", requires: "Full ASCII via shift encoding." },
+    bwip: "code39ext", requires: "Full ASCII via shift encoding.", example: "Code39Ext" },
   { id: "code93",       label: "Code 93",                  group: "Industrial 1D", is2D: false, badge: "1D",
-    bwip: "code93", requires: "A–Z, 0–9, symbols. Denser than Code 39." },
+    bwip: "code93", requires: "A–Z, 0–9, symbols. Denser than Code 39.", example: "CODE93" },
   { id: "code93ext",    label: "Code 93 (extended)",       group: "Industrial 1D", is2D: false, badge: "1D",
-    bwip: "code93ext", requires: "Full ASCII via shift encoding." },
+    bwip: "code93ext", requires: "Full ASCII via shift encoding.", example: "Code93Ext" },
   { id: "code11",       label: "Code 11",                  group: "Industrial 1D", is2D: false, badge: "1D",
-    bwip: "code11", requires: "0–9 and dash. Telecom equipment." },
+    bwip: "code11", requires: "0–9 and dash. Telecom equipment.", example: "1234567890" },
   { id: "codabar",      label: "Codabar",                  group: "Industrial 1D", is2D: false, badge: "1D",
-    bwip: "rationalizedCodabar", requires: "0–9 and -$:/.+. Library / blood bank." },
+    bwip: "rationalizedCodabar", requires: "0–9 and -$:/.+, A–D start/stop. Library / blood bank.", example: "A40156B" },
   { id: "interleaved2of5", label: "Interleaved 2 of 5 (ITF)", group: "Industrial 1D", is2D: false, badge: "1D",
-    bwip: "interleaved2of5", requires: "Even number of digits." },
+    bwip: "interleaved2of5", requires: "Even number of digits.", example: "1234567890" },
   { id: "itf14",        label: "ITF-14",                   group: "Industrial 1D", is2D: false, badge: "1D",
-    bwip: "itf14", requires: "Exactly 13 digits. Shipping cartons." },
+    bwip: "itf14", requires: "Exactly 13 digits. Shipping cartons.", example: "1234567890123" },
   { id: "msi",          label: "MSI Plessey",              group: "Industrial 1D", is2D: false, badge: "1D",
-    bwip: "msi", requires: "0–9. Inventory / shelf marking." },
+    bwip: "msi", requires: "0–9. Inventory / shelf marking.", example: "1234567890" },
   { id: "plessey",      label: "Plessey",                  group: "Industrial 1D", is2D: false, badge: "1D",
-    bwip: "plessey", requires: "0–9 and A–F. Library shelving." },
+    bwip: "plessey", requires: "0–9 and A–F. Library shelving.", example: "01234ABCDEF" },
   { id: "telepen",      label: "Telepen",                  group: "Industrial 1D", is2D: false, badge: "1D",
-    bwip: "telepen", requires: "Full ASCII. UK libraries." },
+    bwip: "telepen", requires: "Full ASCII. UK libraries.", example: "Telepen123" },
   { id: "channelcode",  label: "Channel Code",             group: "Industrial 1D", is2D: false, badge: "1D",
-    bwip: "channelcode", requires: "Up to 7-digit numeric. High density." },
+    bwip: "channelcode", requires: "Up to 7-digit numeric. High density.", example: "1234567" },
 
   // Pharmacode
   { id: "pharmacode",   label: "Pharmacode (One-track)",   group: "Pharmaceutical", is2D: false, badge: "1D",
-    bwip: "pharmacode", requires: "Integer 3 to 131,070." },
+    bwip: "pharmacode", requires: "Integer 3 to 131,070.", example: "1234" },
   { id: "pharmacode2",  label: "Pharmacode (Two-track)",   group: "Pharmaceutical", is2D: false, badge: "1D",
-    bwip: "pharmacode2", requires: "Integer 4 to 64,570." },
+    bwip: "pharmacode2", requires: "Integer 4 to 64,570.", example: "1234" },
   { id: "code32",       label: "Code 32 (Italian pharma)", group: "Pharmaceutical", is2D: false, badge: "1D",
-    bwip: "code32", requires: "Italian pharmaceutical code." },
+    bwip: "code32", requires: "8-digit Italian pharmaceutical code.", example: "01234567" },
   { id: "pzn",          label: "PZN (German pharma)",      group: "Pharmaceutical", is2D: false, badge: "1D",
-    bwip: "pzn", requires: "PZN-8 (7 digits + check digit)." },
+    bwip: "pzn", requires: "PZN-7 (6 digits + check digit), e.g. 1234562.", example: "1234562" },
   { id: "hibccode128",  label: "HIBC Code 128",            group: "Pharmaceutical", is2D: false, badge: "1D",
-    bwip: "hibccode128", requires: "Healthcare barcode standard." },
+    bwip: "hibccode128", requires: "Healthcare barcode standard.", example: "A123BJC5D6E71" },
   { id: "hibcdatamatrix", label: "HIBC Data Matrix",       group: "Pharmaceutical", is2D: true, badge: "2D",
-    bwip: "hibcdatamatrix", requires: "HIBC payload in Data Matrix." },
+    bwip: "hibcdatamatrix", requires: "HIBC payload in Data Matrix.", example: "A123BJC5D6E71" },
 
   // GS1
   { id: "gs1-128",      label: "GS1-128",                  group: "GS1",            is2D: false, badge: "1D",
-    bwip: "gs1-128", requires: "GS1 Application Identifiers. e.g. (01)07614141000012" },
+    bwip: "gs1-128", requires: "GS1 Application Identifiers, e.g. (01)09521234543213.", example: "(01)09521234543213" },
   { id: "gs1datamatrix",label: "GS1 Data Matrix",          group: "GS1",            is2D: true,  badge: "2D",
-    bwip: "gs1datamatrix", requires: "GS1 AI payload in Data Matrix." },
+    bwip: "gs1datamatrix", requires: "GS1 AI payload, e.g. (01)09521234543213.", example: "(01)09521234543213" },
   { id: "gs1qrcode",    label: "GS1 QR Code",              group: "GS1",            is2D: true,  badge: "2D",
-    bwip: "gs1qrcode", requires: "GS1 AI payload in QR." },
+    bwip: "gs1qrcode", requires: "GS1 AI payload, e.g. (01)09521234543213.", example: "(01)09521234543213" },
   { id: "databarexpanded", label: "GS1 DataBar Expanded",  group: "GS1",            is2D: false, badge: "1D",
-    bwip: "databarexpanded", requires: "GS1 AI compressed payload." },
+    bwip: "databarexpanded", requires: "GS1 AI payload, e.g. (01)90012345678908(3103)001750.", example: "(01)90012345678908(3103)001750" },
   { id: "databaromni",  label: "GS1 DataBar Omnidirectional", group: "GS1",        is2D: false, badge: "1D",
-    bwip: "databaromni", requires: "14-digit GTIN." },
+    bwip: "databaromni", requires: "GTIN as AI, e.g. (01)00012345678905.", example: "(01)00012345678905" },
   { id: "databarstacked", label: "GS1 DataBar Stacked",    group: "GS1",            is2D: false, badge: "1D",
-    bwip: "databarstacked", requires: "14-digit GTIN, stacked." },
+    bwip: "databarstacked", requires: "GTIN as AI, stacked, e.g. (01)00012345678905.", example: "(01)00012345678905" },
   { id: "databarlimited", label: "GS1 DataBar Limited",    group: "GS1",            is2D: false, badge: "1D",
-    bwip: "databarlimited", requires: "14-digit GTIN, smaller form." },
+    bwip: "databarlimited", requires: "GTIN as AI (GTIN starts 0/1), e.g. (01)00012345678905.", example: "(01)00012345678905" },
 
   // Postal
   { id: "auspost",      label: "Australia Post 4-state",   group: "Postal",         is2D: false, badge: "1D",
-    bwip: "auspost", requires: "Australia Post Customer Barcode." },
+    bwip: "auspost", requires: "Australia Post Customer Barcode.", example: "5956439111ABA 9" },
   { id: "japanpost",    label: "Japan Post 4-state",       group: "Postal",         is2D: false, badge: "1D",
-    bwip: "japanpost", requires: "Japan Post Customer Barcode." },
+    bwip: "japanpost", requires: "Japan Post Customer Barcode.", example: "1310022" },
   { id: "kix",          label: "Royal Mail KIX",           group: "Postal",         is2D: false, badge: "1D",
-    bwip: "kix", requires: "Netherlands KIX / Royal Mail RM4SCC." },
+    bwip: "kix", requires: "Netherlands KIX / Royal Mail RM4SCC.", example: "1231FZ13XHS" },
   { id: "royalmail",    label: "Royal Mail 4-state (RM4SCC)", group: "Postal",      is2D: false, badge: "1D",
-    bwip: "royalmail", requires: "UK Royal Mail customer barcode." },
+    bwip: "royalmail", requires: "UK Royal Mail customer barcode.", example: "LE28HS9Z" },
   { id: "onecode",      label: "USPS Intelligent Mail",    group: "Postal",         is2D: false, badge: "1D",
-    bwip: "onecode", requires: "20–31 digit USPS payload." },
+    bwip: "onecode", requires: "20–31 digit USPS payload.", example: "01234567094987654321" },
   { id: "postnet",      label: "USPS POSTNET",             group: "Postal",         is2D: false, badge: "1D",
-    bwip: "postnet", requires: "5, 9, or 11 digit ZIP." },
+    bwip: "postnet", requires: "5, 9, or 11 digit ZIP.", example: "12345" },
   { id: "planet",       label: "USPS PLANET",              group: "Postal",         is2D: false, badge: "1D",
-    bwip: "planet", requires: "USPS PLANET tracking code." },
+    bwip: "planet", requires: "USPS PLANET tracking code.", example: "12345678901" },
   { id: "identcode",    label: "Deutsche Post Identcode",  group: "Postal",         is2D: false, badge: "1D",
-    bwip: "identcode", requires: "11 digits." },
+    bwip: "identcode", requires: "11 digits.", example: "563102430313" },
   { id: "leitcode",     label: "Deutsche Post Leitcode",   group: "Postal",         is2D: false, badge: "1D",
-    bwip: "leitcode", requires: "13 digits." },
+    bwip: "leitcode", requires: "13 digits.", example: "2112345678903" },
 
   // Other niche
   { id: "ultracode",    label: "Ultracode (colour)",       group: "Other",          is2D: true,  badge: "2D",
-    bwip: "ultracode", requires: "Colour 2D matrix." },
+    bwip: "ultracode", requires: "Colour 2D matrix.", example: "Ultracode 12345" },
   { id: "dotcode",      label: "DotCode",                  group: "Other",          is2D: true,  badge: "2D",
-    bwip: "dotcode", requires: "High-speed printing 2D code." },
+    bwip: "dotcode", requires: "High-speed printing 2D code.", example: "DotCode 12345" },
   { id: "raw",          label: "Raw bit pattern",          group: "Other",          is2D: false, badge: "1D",
-    bwip: "raw", requires: "Custom bit pattern as bars." },
+    bwip: "raw", requires: "Custom bar/space widths, e.g. 331132131313411122131311333.", example: "331132131313411122131311333" },
 ];
 
 // ---------- presets (QR/2D content templates) ----------
@@ -397,28 +401,31 @@ function syncSymbologyUI() {
   symBadge.textContent = s.badge;
   symDescription.textContent = s.requires;
 
-  // Show/hide preset tabs — only for QR / 2D where structured payloads matter
-  const showPresets = s.is2D;
-  presetTabs.parentElement.style.display = ""; // panel always visible
-
   // Toggle design panel — only meaningful for QR (fancy styling)
   designPanel.style.display = s.id === "qr-fancy" ? "" : "none";
 
   // Rebuild ECC controls per symbology
   buildEccControls(s);
   rebuildPresetTabs(s);
-  if (!state.payloadDirty) applyPresetToPayload();
+  if (!state.payloadDirty) applyDefaultPayload();
 }
 
 // ---------- preset tabs + fields ----------
 
 function rebuildPresetTabs(sym) {
   presetTabs.innerHTML = "";
-  // Only QR family + GS1 QR / GS1 Data Matrix get the full preset set
-  const fullPresets = (sym.id === "qr-fancy" || sym.id === "gs1qrcode");
-  const visible = fullPresets
-    ? Object.keys(PRESETS)
-    : ["text", "url"];
+  // Structured content presets only make sense for the free-text QR engine.
+  // Every other symbology has strict input rules, so it's seeded from its
+  // own validated `example` instead (see applyDefaultPayload) and the preset
+  // tabs are hidden to avoid offering payloads that wouldn't encode.
+  const usesPresets = sym.id === "qr-fancy";
+  presetTabs.style.display = usesPresets ? "" : "none";
+  if (!usesPresets) {
+    presetFields.innerHTML = "";
+    presetFields.className = "";
+    return;
+  }
+  const visible = Object.keys(PRESETS);
   for (const key of visible) {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -521,6 +528,23 @@ function applyPresetToPayload() {
   state.payload = out;
   state.payloadDirty = false;
   payloadEl.value = out;
+}
+
+// Seed the payload box with a sensible default for the active symbology.
+// The QR engine drives its content from the structured presets; every other
+// symbology gets its validated `example`, which both demonstrates the
+// expected format and guarantees the very first render is a scannable code.
+function applyDefaultPayload() {
+  const sym = getSymbology();
+  if (sym.id === "qr-fancy") {
+    applyPresetToPayload();
+  } else {
+    const sample = sym.example || "";
+    state.payload = sample;
+    state.payloadDirty = false;
+    payloadEl.value = sample;
+  }
+  payloadEl.placeholder = sym.example || "";
 }
 
 // ---------- ECC + size controls ----------

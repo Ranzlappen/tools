@@ -18,6 +18,10 @@ Render preview is live; export to SVG, PNG (1×/2×/4×), JPG, or PDF.
 
 - **Symbology picker** with a filter input. Pills group the formats so
   you don't scroll through everything.
+- **Worked example for every symbology.** Selecting a format seeds the
+  payload box (and its placeholder) with a known-valid sample, so you
+  always start from a real, scannable code and can see the exact shape
+  each format expects — then edit it to your own data.
 - **Content presets** auto-format payloads per spec — plain text, URL
   (auto-prefixes `https://`), WiFi (`WIFI:T:…;S:…;P:…;;`), vCard 3.0,
   SMS (`SMSTO:…`), email (`mailto:…?subject=…&body=…`), geo
@@ -37,9 +41,10 @@ Render preview is live; export to SVG, PNG (1×/2×/4×), JPG, or PDF.
 
 ### How to use it
 
-1. Filter or scroll to pick a **symbology**.
-2. Pick a **content preset** (or leave on *Plain text*).
-3. Type or paste into **Payload**. The preview updates live.
+1. Filter or scroll to pick a **symbology**. A valid sample payload is
+   filled in automatically so the preview shows a working code right away.
+2. (QR only) Pick a **content preset** (or leave on *URL*).
+3. Type or paste your own data into **Payload**. The preview updates live.
 4. Tune **ECC**, **module size**, and **quiet zone** if you need to.
 5. (QR only) Open the **Design** panel for colours, shapes, gradient,
    or a logo overlay.
