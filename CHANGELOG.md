@@ -6,6 +6,19 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+### Security
+- **Escaped all user/imported data rendered as HTML in MIUI Theme Studio.**
+  The render helpers built rows with template-literal `innerHTML` but only the
+  font *catalog* was escaped; package names, color/drawable names, font and
+  preview file names, MAML element types/ids, field values, and validation
+  messages were interpolated raw. Because that data can come from an imported
+  `.mtz` file (not just self-entry), it was a DOM-XSS sink — opening a crafted
+  theme could execute script. Every interpolation now goes through
+  `xml.esc(...)`. (CodeQL *DOM text reinterpreted as HTML*.)
+- **Escaped color-format strings in the Color Picker.** `makeFormatRow` now
+  runs its label/value through a local `escapeHtml` before assigning
+  `innerHTML`, hardening the row builder against the same CodeQL rule.
+
 ### Added
 - **Installable PWA (offline-capable).** Added a root `site.webmanifest`
   (standalone display, brand colors), a hand-written dependency-free service
