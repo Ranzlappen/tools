@@ -6,6 +6,17 @@ All notable changes to **tools** are recorded here. Format follows
 
 ## [Unreleased]
 
+### Added
+- **Regex Tester: ~10× larger snippet library (`regex/`).** The 9-chip
+  palette grew to ~100 click-to-insert patterns across eight labelled
+  categories (web & network, dates & times, numbers, IDs & codes, text &
+  markup, files & paths, programming, validation & locale), moved into a
+  dedicated `regex/snippets.js` module (`SNIPPET_GROUPS`). Added a filter
+  box that narrows the palette by snippet name or pattern text, and
+  per-snippet recommended flags that apply automatically on insert (e.g.
+  `m` for line-anchored patterns, `u` for the emoji range). Chips are
+  rendered with DOM nodes (no `innerHTML`).
+
 ### Security
 - **Escaped all user/imported data rendered as HTML in MIUI Theme Studio.**
   The render helpers built rows with template-literal `innerHTML` but only the

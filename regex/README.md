@@ -7,9 +7,11 @@
 Type a JavaScript regular expression and a test string. The tool
 compiles the pattern, highlights every match inline, lists each match
 with its capture groups, and — if you want — runs a replacement pass.
-A palette of common pre-built patterns (email, URL, IPv4, UUID,
-semver, …) sits one click away. Everything happens in your browser
-via the `RegExp` constructor.
+A large palette of common pre-built patterns — nearly 100 across eight
+categories (web & network, dates & times, numbers, IDs & codes, text &
+markup, files & paths, programming, validation & locale) — sits one
+click away, with a filter box to find the one you need. Everything
+happens in your browser via the `RegExp` constructor.
 
 ## User guide
 
@@ -24,9 +26,14 @@ via the `RegExp` constructor.
   `$2`, …) and named groups.
 - **Match count** in the panel header (`N matches` / `1 match` /
   `No matches`).
-- **Snippet palette** — click any chip to load a battle-tested
-  pattern (email, URL, IPv4, ISO date, phone, hex colour, UUID,
-  semver, whitespace-only lines).
+- **Snippet palette** — ~100 click-to-load patterns grouped into
+  labelled categories. A **filter box** narrows the palette by snippet
+  name *or* pattern text as you type. Hovering a chip shows the full
+  `/pattern/flags` in a tooltip.
+- **Recommended flags** — snippets that need specific flags (e.g. `m`
+  for line-anchored patterns like *Blank lines*, or `u` for the emoji
+  range) set them automatically on insert; the flag chips update to
+  match.
 - **Replace mode** (collapsed by default) — supports `$1`, `$2`, `$&`
   back-references via `String.prototype.replace`.
 - **Invalid pattern** errors surface in a red banner with the engine
@@ -34,7 +41,9 @@ via the `RegExp` constructor.
 
 ### How to use it
 
-1. Pick a snippet chip *or* type a pattern between the `/` markers.
+1. Pick a snippet chip (use the filter box to search) *or* type a
+   pattern between the `/` markers. Inserting a snippet may adjust the
+   active flags to its recommended set.
 2. Toggle the flag chips you need (`g` is on by default).
 3. Drop a test string into the **Input** textarea on the left.
 4. Read matches on the right. Expand **Replace mode** if you need to
@@ -65,10 +74,15 @@ the test string is matched in your browser; nothing is transmitted.
 
 ### File layout
 
-- `index.html` — pattern input, flag-chip row, snippet container,
-  input/highlight split, match list, collapsible replace mode.
+- `index.html` — pattern input, flag-chip row, snippet filter +
+  container, input/highlight split, match list, collapsible replace
+  mode.
 - `tool.js` — compile + run on every input, render highlights, build
-  the match list, snippet palette injected at startup.
+  the match list, render the grouped/filterable snippet palette, apply
+  per-snippet recommended flags.
+- `snippets.js` — the snippet library itself: `SNIPPET_GROUPS`, an array
+  of `{ group, items: [{ name, pattern, flags? }] }`. Patterns use
+  `String.raw` so backslashes stay single.
 
 ### Key DOM hooks
 
@@ -83,9 +97,10 @@ the test string is matched in your browser; nothing is transmitted.
 | `#re-error` / `#re-error-text` | Invalid-pattern banner.             |
 | `#re-replace`       | Replacement template input.                    |
 | `#re-replaced`      | Read-only replaced output.                     |
-| `#re-snippets`      | Chip container, populated from `SNIPPETS`.     |
+| `#re-snippets`      | Grouped chip container, rendered from `SNIPPET_GROUPS`. |
+| `#re-snippet-filter`| Search input that filters the snippet palette. |
 | `[data-flag="…"]`   | Flag toggle chips.                             |
-| `[data-snippet="…"]`| Snippet chips (populated from `SNIPPETS`).     |
+| `[data-snippet="…"]`| Snippet chips; `data-flags` carries recommended flags. |
 
 ### Dependencies
 
@@ -94,9 +109,11 @@ Vanilla JS only. Uses the built-in `RegExp` constructor and
 
 ### Extending
 
-- **Add a snippet**: push an object `{ name, pattern }` into the
-  `SNIPPETS` array near the top of `tool.js`. The chip is rendered
-  automatically.
+- **Add a snippet**: add `{ name, pattern, flags? }` to the relevant
+  group's `items` in `snippets.js` (or add a whole new `{ group, items }`
+  block). Write the pattern with `String.raw` and add `flags` only when
+  it needs more than the user's current flags. The chip and its category
+  render automatically and are covered by the filter.
 - **Add a flag**: add a `<button class="chip" data-flag="x">` to the
   flag row in `index.html`. The delegated click handler already
   toggles it in the `flags` `Set`.
