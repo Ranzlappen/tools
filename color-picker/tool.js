@@ -99,13 +99,22 @@ function contrast(rgb1, rgb2) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+function escapeHtml(str) {
+  return String(str).replace(
+    /[&<>"]/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]),
+  );
+}
+
 function makeFormatRow(label, value) {
   const row = document.createElement("div");
   row.className = "format-row";
+  const safeLabel = escapeHtml(label);
+  const safeValue = escapeHtml(value);
   row.innerHTML =
-    `<span class="label">${label}</span>` +
-    `<input class="input input--single input--mono" readonly value="${value}" aria-label="${label}" />` +
-    `<button class="btn btn--ghost btn--copy" data-copy="${value.replace(/"/g, "&quot;")}">Copy</button>`;
+    `<span class="label">${safeLabel}</span>` +
+    `<input class="input input--single input--mono" readonly value="${safeValue}" aria-label="${safeLabel}" />` +
+    `<button class="btn btn--ghost btn--copy" data-copy="${safeValue}">Copy</button>`;
   return row;
 }
 

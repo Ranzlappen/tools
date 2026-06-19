@@ -7,6 +7,30 @@ All notable changes to **tools** are recorded here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Regex Tester: ~10× larger snippet library (`regex/`).** The 9-chip
+  palette grew to ~100 click-to-insert patterns across eight labelled
+  categories (web & network, dates & times, numbers, IDs & codes, text &
+  markup, files & paths, programming, validation & locale), moved into a
+  dedicated `regex/snippets.js` module (`SNIPPET_GROUPS`). Added a filter
+  box that narrows the palette by snippet name or pattern text, and
+  per-snippet recommended flags that apply automatically on insert (e.g.
+  `m` for line-anchored patterns, `u` for the emoji range). Chips are
+  rendered with DOM nodes (no `innerHTML`).
+
+### Security
+- **Escaped all user/imported data rendered as HTML in MIUI Theme Studio.**
+  The render helpers built rows with template-literal `innerHTML` but only the
+  font *catalog* was escaped; package names, color/drawable names, font and
+  preview file names, MAML element types/ids, field values, and validation
+  messages were interpolated raw. Because that data can come from an imported
+  `.mtz` file (not just self-entry), it was a DOM-XSS sink — opening a crafted
+  theme could execute script. Every interpolation now goes through
+  `xml.esc(...)`. (CodeQL *DOM text reinterpreted as HTML*.)
+- **Escaped color-format strings in the Color Picker.** `makeFormatRow` now
+  runs its label/value through a local `escapeHtml` before assigning
+  `innerHTML`, hardening the row builder against the same CodeQL rule.
+
+### Added
 - **Installable PWA (offline-capable).** Added a root `site.webmanifest`
   (standalone display, brand colors), a hand-written dependency-free service
   worker (`sw.js`) that precaches the app shell and serves an `offline.html`

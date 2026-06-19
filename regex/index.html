@@ -115,8 +115,11 @@
           </div>
 
           <div class="regex-builder">
-            <span class="panel__sub muted">Snippets — click to insert:</span>
-            <div class="chips" id="re-snippets"></div>
+            <div class="panel__head" style="margin-bottom: var(--space-sm);">
+              <span class="panel__sub muted">Snippets — click to insert:</span>
+              <input id="re-snippet-filter" class="input input--single" type="search" placeholder="Filter snippets…" aria-label="Filter snippets" style="max-width: 240px;" />
+            </div>
+            <div id="re-snippets" style="display: grid; gap: var(--space-md);"></div>
           </div>
 
           <div id="re-error" class="banner banner--error is-hidden">

@@ -195,9 +195,9 @@ function renderMaml() {
   list.innerHTML = els.length
     ? els
         .map(
-          (el) => `<div class="mt-row" data-el-row="${el.id}">
-            <button class="mt-row__name" data-action="el-select" data-id="${el.id}">${el.type}</button>
-            <button class="btn btn--ghost btn--copy" data-action="el-remove" data-id="${el.id}" aria-label="Remove">×</button>
+          (el) => `<div class="mt-row" data-el-row="${xml.esc(el.id)}">
+            <button class="mt-row__name" data-action="el-select" data-id="${xml.esc(el.id)}">${xml.esc(el.type)}</button>
+            <button class="btn btn--ghost btn--copy" data-action="el-remove" data-id="${xml.esc(el.id)}" aria-label="Remove">×</button>
           </div>`,
         )
         .join("")
@@ -205,7 +205,7 @@ function renderMaml() {
 }
 
 function iconThumb(ic) {
-  if (ic.image) return `<img src="${ic.image.url}" alt="" class="mt-icon-thumb" />`;
+  if (ic.image) return `<img src="${xml.esc(ic.image.url)}" alt="" class="mt-icon-thumb" />`;
   return `<div class="mt-icon-thumb mt-thumb--empty">+</div>`;
 }
 function renderIcons() {
@@ -213,11 +213,11 @@ function renderIcons() {
   list.innerHTML = state.icons.length
     ? state.icons
         .map(
-          (ic) => `<div class="mt-row" data-icon-row="${ic.id}">
-            <button class="mt-row__thumb" data-action="icon-img" data-id="${ic.id}">${iconThumb(ic)}</button>
-            <input class="input input--single" data-icon-field="pkg" data-id="${ic.id}" value="${ic.pkg || ""}" placeholder="com.example.app" />
-            <button class="btn btn--copy${ic.fancy ? " is-active" : ""}" data-action="icon-fancy" data-id="${ic.id}" title="Animated (MAML) icon">⚡</button>
-            <button class="btn btn--ghost btn--copy" data-action="icon-remove" data-id="${ic.id}" aria-label="Remove">×</button>
+          (ic) => `<div class="mt-row" data-icon-row="${xml.esc(ic.id)}">
+            <button class="mt-row__thumb" data-action="icon-img" data-id="${xml.esc(ic.id)}">${iconThumb(ic)}</button>
+            <input class="input input--single" data-icon-field="pkg" data-id="${xml.esc(ic.id)}" value="${xml.esc(ic.pkg || "")}" placeholder="com.example.app" />
+            <button class="btn btn--copy${ic.fancy ? " is-active" : ""}" data-action="icon-fancy" data-id="${xml.esc(ic.id)}" title="Animated (MAML) icon">⚡</button>
+            <button class="btn btn--ghost btn--copy" data-action="icon-remove" data-id="${xml.esc(ic.id)}" aria-label="Remove">×</button>
           </div>`,
         )
         .join("")
@@ -229,9 +229,9 @@ function renderFonts() {
   list.innerHTML = state.fonts.length
     ? state.fonts
         .map(
-          (f) => `<div class="mt-row" data-font-row="${f.id}">
-            <span class="mt-row__name" style="font-family:${f.family || "inherit"}">${f.name}</span>
-            <button class="btn btn--ghost btn--copy" data-action="font-remove" data-id="${f.id}" aria-label="Remove">×</button>
+          (f) => `<div class="mt-row" data-font-row="${xml.esc(f.id)}">
+            <span class="mt-row__name" style="font-family:${xml.esc(f.family || "inherit")}">${xml.esc(f.name)}</span>
+            <button class="btn btn--ghost btn--copy" data-action="font-remove" data-id="${xml.esc(f.id)}" aria-label="Remove">×</button>
           </div>`,
         )
         .join("")
@@ -264,21 +264,21 @@ function renderBoot() {
   wrap.innerHTML = state.boot.parts.length
     ? state.boot.parts
         .map(
-          (p) => `<div class="mt-part" data-part="${p.name}">
+          (p) => `<div class="mt-part" data-part="${xml.esc(p.name)}">
             <div class="mt-part__head">
-              <strong>${p.name}</strong>
+              <strong>${xml.esc(p.name)}</strong>
               <span class="mt-hint">${p.frames.length} frames</span>
-              <button class="btn btn--ghost btn--copy" data-action="boot-part-remove" data-name="${p.name}" aria-label="Remove part">×</button>
+              <button class="btn btn--ghost btn--copy" data-action="boot-part-remove" data-name="${xml.esc(p.name)}" aria-label="Remove part">×</button>
             </div>
             <div class="mt-part__row">
-              <label>loop <input class="input input--single" type="number" min="0" data-boot-part="count" data-name="${p.name}" value="${p.count}" /></label>
-              <label>pause <input class="input input--single" type="number" min="0" data-boot-part="pause" data-name="${p.name}" value="${p.pause}" /></label>
-              <button class="btn btn--copy" data-action="boot-part-frames" data-name="${p.name}">+ frames</button>
+              <label>loop <input class="input input--single" type="number" min="0" data-boot-part="count" data-name="${xml.esc(p.name)}" value="${xml.esc(p.count)}" /></label>
+              <label>pause <input class="input input--single" type="number" min="0" data-boot-part="pause" data-name="${xml.esc(p.name)}" value="${xml.esc(p.pause)}" /></label>
+              <button class="btn btn--copy" data-action="boot-part-frames" data-name="${xml.esc(p.name)}">+ frames</button>
             </div>
             <div class="mt-frames">${p.frames
               .map(
                 (f, fi) =>
-                  `<span class="mt-frame"><img src="${f.url}" alt="frame ${fi}" /><button data-action="boot-frame-remove" data-name="${p.name}" data-idx="${fi}" aria-label="Remove frame ${fi}">×</button></span>`,
+                  `<span class="mt-frame"><img src="${xml.esc(f.url)}" alt="frame ${fi}" /><button data-action="boot-frame-remove" data-name="${xml.esc(p.name)}" data-idx="${fi}" aria-label="Remove frame ${fi}">×</button></span>`,
               )
               .join("")}</div>
           </div>`,
@@ -295,7 +295,7 @@ function renderPackages() {
   const active = state.ui.activePackage || (state.packages[0] && state.packages[0].name) || "";
   state.ui.activePackage = active;
   sel.innerHTML = state.packages.length
-    ? state.packages.map((p) => `<option value="${p.name}"${p.name === active ? " selected" : ""}>${p.name}</option>`).join("")
+    ? state.packages.map((p) => `<option value="${xml.esc(p.name)}"${p.name === active ? " selected" : ""}>${xml.esc(p.name)}</option>`).join("")
     : `<option value="">— none —</option>`;
 
   const pkg = packages.findPackage(state, active);
@@ -307,9 +307,9 @@ function renderPackages() {
   const colorRows = pkg.colors
     .map(
       (c, i) => `<div class="mt-row" data-color="${i}">
-        <input class="input input--single" data-pkg-color="name" data-i="${i}" value="${c.name || ""}" placeholder="color_name" />
-        <input type="color" class="mt-color" data-pkg-color="picker" data-i="${i}" value="${argbToHex6(c.value)}" />
-        <input class="input input--single mt-hex" data-pkg-color="value" data-i="${i}" value="${c.value || ""}" placeholder="#AARRGGBB" />
+        <input class="input input--single" data-pkg-color="name" data-i="${i}" value="${xml.esc(c.name || "")}" placeholder="color_name" />
+        <input type="color" class="mt-color" data-pkg-color="picker" data-i="${i}" value="${xml.esc(argbToHex6(c.value))}" />
+        <input class="input input--single mt-hex" data-pkg-color="value" data-i="${i}" value="${xml.esc(c.value || "")}" placeholder="#AARRGGBB" />
         <button class="btn btn--ghost btn--copy" data-action="color-remove" data-i="${i}" aria-label="Remove">×</button>
       </div>`,
     )
@@ -318,17 +318,17 @@ function renderPackages() {
     .map(
       (d, i) => `<div class="mt-row" data-draw="${i}">
         <select class="input input--single" data-pkg-draw="density" data-i="${i}">
-          ${DRAWABLE_DENSITIES.map((den) => `<option${den === d.density ? " selected" : ""}>${den}</option>`).join("")}
+          ${DRAWABLE_DENSITIES.map((den) => `<option${den === d.density ? " selected" : ""}>${xml.esc(den)}</option>`).join("")}
         </select>
-        <input class="input input--single" data-pkg-draw="name" data-i="${i}" value="${d.name || ""}" placeholder="drawable_name" />
-        <button class="mt-row__thumb" data-action="drawable-img" data-i="${i}">${d.url ? `<img src="${d.url}" class="mt-icon-thumb" alt=""/>` : "+"}</button>
+        <input class="input input--single" data-pkg-draw="name" data-i="${i}" value="${xml.esc(d.name || "")}" placeholder="drawable_name" />
+        <button class="mt-row__thumb" data-action="drawable-img" data-i="${i}">${d.url ? `<img src="${xml.esc(d.url)}" class="mt-icon-thumb" alt=""/>` : "+"}</button>
         <button class="btn btn--ghost btn--copy" data-action="drawable-remove" data-i="${i}" aria-label="Remove">×</button>
       </div>`,
     )
     .join("");
   ed.innerHTML = `
     <div class="mt-subhead">Colors <button class="btn btn--copy" data-action="color-add">+ add</button>
-      <button class="btn btn--ghost btn--copy" data-action="pkg-remove" data-name="${pkg.name}">remove package</button></div>
+      <button class="btn btn--ghost btn--copy" data-action="pkg-remove" data-name="${xml.esc(pkg.name)}">remove package</button></div>
     ${colorRows || '<p class="mt-hint">No colors.</p>'}
     <div class="mt-subhead">Drawable replacements <button class="btn btn--copy" data-action="drawable-add">+ add</button></div>
     ${drawRows || '<p class="mt-hint">No drawable overrides.</p>'}`;
@@ -339,7 +339,7 @@ function renderPreviews() {
   const imgs = [...(state.previews.thumbnail ? [state.previews.thumbnail] : []), ...state.previews.images];
   for (const p of imgs) if (!p.url && p.blob) p.url = URL.createObjectURL(p.blob);
   wrap.innerHTML = imgs.length
-    ? imgs.map((p) => `<figure class="mt-prev"><img src="${p.url}" alt="${p.name}" /><figcaption>${p.name}</figcaption></figure>`).join("")
+    ? imgs.map((p) => `<figure class="mt-prev"><img src="${xml.esc(p.url)}" alt="${xml.esc(p.name)}" /><figcaption>${xml.esc(p.name)}</figcaption></figure>`).join("")
     : `<p class="mt-hint">No previews yet. Generate them from the canvas.</p>`;
 }
 
@@ -359,38 +359,38 @@ function renderInspector() {
 function fieldInput(scope, el, field, dataset) {
   const id = `f_${field.key}_${Math.random().toString(36).slice(2, 6)}`;
   const val = el[field.key] ?? "";
-  const dataAttrs = `data-el-scope="${scope}" data-el-key="${field.key}" ${Object.entries(dataset).map(([k, v]) => `data-${k}="${v}"`).join(" ")}`;
+  const dataAttrs = `data-el-scope="${xml.esc(scope)}" data-el-key="${xml.esc(field.key)}" ${Object.entries(dataset).map(([k, v]) => `data-${xml.esc(k)}="${xml.esc(v)}"`).join(" ")}`;
   let control;
   if (field.kind === "select") {
-    control = `<select class="input input--single" ${dataAttrs}>${field.options.map((o) => `<option${o === val ? " selected" : ""}>${o}</option>`).join("")}</select>`;
+    control = `<select class="input input--single" ${dataAttrs}>${field.options.map((o) => `<option${o === val ? " selected" : ""}>${xml.esc(o)}</option>`).join("")}</select>`;
   } else if (field.kind === "color") {
-    control = `<input class="input input--single mt-hex" ${dataAttrs} value="${val}" placeholder="#AARRGGBB" />`;
+    control = `<input class="input input--single mt-hex" ${dataAttrs} value="${xml.esc(val)}" placeholder="#AARRGGBB" />`;
   } else {
-    control = `<input class="input input--single" type="${field.kind === "number" ? "number" : "text"}" ${dataAttrs} value="${val}" />`;
+    control = `<input class="input input--single" type="${field.kind === "number" ? "number" : "text"}" ${dataAttrs} value="${xml.esc(val)}" />`;
   }
-  return `<label class="mt-field"><span>${field.label}</span>${control}</label>`;
+  return `<label class="mt-field"><span>${xml.esc(field.label)}</span>${control}</label>`;
 }
 
 function elementEditor(scope, el, registry, dataset) {
   const wrap = document.createElement("div");
   wrap.innerHTML =
-    `<div class="mt-subhead">${el.type}</div>` +
+    `<div class="mt-subhead">${xml.esc(el.type)}</div>` +
     editableFields(registry, el.type).map((f) => fieldInput(scope, el, f, dataset)).join("");
   return wrap;
 }
 
 function fancyEditor(ic) {
   const wrap = document.createElement("div");
-  const opts = Object.keys(FANCY_TYPES).map((t) => `<option>${t}</option>`).join("");
+  const opts = Object.keys(FANCY_TYPES).map((t) => `<option>${xml.esc(t)}</option>`).join("");
   wrap.innerHTML =
-    `<div class="mt-subhead">${ic.pkg || "icon"} · animated</div>
-     <label class="mt-field"><span>Frame rate</span><input class="input input--single" type="number" data-fancy-id="${ic.id}" data-fancy-key="frameRate" value="${ic.fancy.frameRate}" /></label>
+    `<div class="mt-subhead">${xml.esc(ic.pkg || "icon")} · animated</div>
+     <label class="mt-field"><span>Frame rate</span><input class="input input--single" type="number" data-fancy-id="${xml.esc(ic.id)}" data-fancy-key="frameRate" value="${xml.esc(ic.fancy.frameRate)}" /></label>
      <div class="mt-add-row"><select class="input input--single" id="mt-fancy-type">${opts}</select>
-       <button class="btn btn--copy" data-action="fancy-add" data-id="${ic.id}">+ element</button></div>` +
+       <button class="btn btn--copy" data-action="fancy-add" data-id="${xml.esc(ic.id)}">+ element</button></div>` +
     ic.fancy.elements
       .map(
         (el) =>
-          `<div class="mt-el-block"><div class="mt-subhead">${el.type}<button class="btn btn--ghost btn--copy" data-action="fancy-el-remove" data-id="${ic.id}" data-el="${el.id}">×</button></div>` +
+          `<div class="mt-el-block"><div class="mt-subhead">${xml.esc(el.type)}<button class="btn btn--ghost btn--copy" data-action="fancy-el-remove" data-id="${xml.esc(ic.id)}" data-el="${xml.esc(el.id)}">×</button></div>` +
           editableFields(FANCY_TYPES, el.type).map((f) => fieldInput("fancyEl", el, f, { id: ic.id, el: el.id })).join("") +
           `</div>`,
       )
@@ -402,8 +402,8 @@ function renderValidation() {
   const { errors, warnings } = validate(state);
   const box = $("#mt-validation");
   const parts = [];
-  for (const e of errors) parts.push(`<div class="mt-val mt-val--err">${e.msg}</div>`);
-  for (const w of warnings) parts.push(`<div class="mt-val mt-val--warn">${w.msg}</div>`);
+  for (const e of errors) parts.push(`<div class="mt-val mt-val--err">${xml.esc(e.msg)}</div>`);
+  for (const w of warnings) parts.push(`<div class="mt-val mt-val--warn">${xml.esc(w.msg)}</div>`);
   if (!parts.length) parts.push(`<div class="mt-val mt-val--ok">Ready to build.</div>`);
   box.innerHTML = parts.join("");
   const build = $("#mt-build");

@@ -1,5 +1,7 @@
 /* Regex Tester & Builder */
 
+import { SNIPPET_GROUPS } from "./snippets.js";
+
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
 
@@ -14,28 +16,65 @@ const errTextEl = $("#re-error-text");
 const replaceEl = $("#re-replace");
 const replacedEl = $("#re-replaced");
 const snippetsEl = $("#re-snippets");
+const snippetFilterEl = $("#re-snippet-filter");
 
 const flags = new Set(["g"]);
 
-const SNIPPETS = [
-  { name: "Email",      pattern: "\\b[\\w._%+-]+@[\\w.-]+\\.[A-Za-z]{2,}\\b" },
-  { name: "URL",        pattern: "https?:\\/\\/[\\w.-]+(?:\\.[A-Za-z]{2,})+(?:\\/[^\\s]*)?" },
-  { name: "IPv4",       pattern: "\\b(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d?\\d)\\b" },
-  { name: "ISO date",   pattern: "\\b\\d{4}-\\d{2}-\\d{2}(?:[T ]\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d+)?)?(?:Z|[+-]\\d{2}:?\\d{2})?)?\\b" },
-  { name: "Phone (loose)", pattern: "\\+?\\d[\\d\\s().-]{7,}\\d" },
-  { name: "Hex color",  pattern: "#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\\b" },
-  { name: "UUID",       pattern: "\\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-7][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\\b" },
-  { name: "Semver",     pattern: "\\bv?\\d+\\.\\d+\\.\\d+(?:-[\\w.]+)?(?:\\+[\\w.]+)?\\b" },
-  { name: "Whitespace lines", pattern: "^\\s*$" },
-];
+// Build the grouped snippet palette, optionally filtered by a query that
+// matches a snippet's name or its pattern. Chips are built with DOM nodes
+// (no innerHTML) so the static library can't be reinterpreted as markup.
+function renderSnippets(query = "") {
+  const q = query.trim().toLowerCase();
+  snippetsEl.replaceChildren();
+  let shown = 0;
+  for (const grp of SNIPPET_GROUPS) {
+    const items = grp.items.filter(
+      (it) => !q || it.name.toLowerCase().includes(q) || it.pattern.toLowerCase().includes(q),
+    );
+    if (!items.length) continue;
+    const section = document.createElement("div");
+    section.className = "regex-snippet-group";
+    section.style.display = "grid";
+    section.style.gap = "6px";
+    const label = document.createElement("span");
+    label.className = "panel__sub muted tiny";
+    label.textContent = grp.group;
+    const chips = document.createElement("div");
+    chips.className = "chips";
+    for (const it of items) {
+      const c = document.createElement("button");
+      c.type = "button";
+      c.className = "chip";
+      c.textContent = it.name;
+      c.dataset.snippet = it.pattern;
+      if (it.flags) c.dataset.flags = it.flags;
+      c.title = `/${it.pattern}/${it.flags || ""}`;
+      chips.appendChild(c);
+      shown++;
+    }
+    section.appendChild(label);
+    section.appendChild(chips);
+    snippetsEl.appendChild(section);
+  }
+  if (!shown) {
+    const empty = document.createElement("p");
+    empty.className = "muted tiny";
+    empty.textContent = "No snippets match your filter.";
+    snippetsEl.appendChild(empty);
+  }
+}
 
-SNIPPETS.forEach((s) => {
-  const c = document.createElement("button");
-  c.className = "chip";
-  c.textContent = s.name;
-  c.dataset.snippet = s.pattern;
-  snippetsEl.appendChild(c);
-});
+// Replace the active flag set and reflect it in the flag chips' UI.
+function setFlags(str) {
+  flags.clear();
+  for (const f of str) flags.add(f);
+  if (flags.has("g") && flags.has("y")) flags.delete("y");
+  $$("[data-flag]").forEach((btn) =>
+    btn.setAttribute("aria-pressed", flags.has(btn.dataset.flag) ? "true" : "false"),
+  );
+}
+
+renderSnippets();
 
 function escapeHtml(str) {
   return str.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -149,13 +188,15 @@ document.addEventListener("click", (e) => {
   const snip = e.target.closest("[data-snippet]");
   if (snip) {
     patternEl.value = snip.dataset.snippet;
+    if (snip.dataset.flags) setFlags(snip.dataset.flags);
     run();
     patternEl.focus();
   }
 });
 
 [patternEl, inputEl, replaceEl].forEach((el) => el.addEventListener("input", run));
+if (snippetFilterEl) snippetFilterEl.addEventListener("input", () => renderSnippets(snippetFilterEl.value));
 
 inputEl.value = "Email: ada@example.com\nVisit https://ranzlappen.com\nIP 10.0.0.1 today.";
-patternEl.value = SNIPPETS[0].pattern;
+patternEl.value = SNIPPET_GROUPS[0].items[0].pattern;
 run();
