@@ -27,14 +27,27 @@ function safeUrl(v) {
 }
 const URL_ATTRS = new Set(["href", "src", "poster", "action"]);
 
-export function attrString(node) {
+/* Resolve an "asset:<id>" reference to either an inline data URL (preview /
+   single-file HTML) or a relative ./assets/<name> path (ZIP). Anything else
+   passes through unchanged. Pure. */
+export function resolveAsset(value, assets, mode) {
+  if (typeof value === "string" && value.startsWith("asset:")) {
+    const a = (assets || []).find((x) => x.id === value.slice(6));
+    if (!a) return "";
+    return mode === "path" ? "./assets/" + a.name : a.dataUrl;
+  }
+  return value;
+}
+
+export function attrString(node, opts = {}) {
+  const resolveUrl = opts.resolveUrl || ((x) => x);
   // node.id can come from a loaded share-link doc — escape it like any value.
   let out = ` data-hb-id="${escapeAttr(node.id)}"`;
   if (node.classes && node.classes.length) out += ` class="${escapeAttr(node.classes.join(" "))}"`;
   for (const [name, value] of Object.entries(node.attrs || {})) {
     if (value === false || value == null || value === "") continue;
     if (value === true) { out += ` ${name}`; continue; }
-    const v = URL_ATTRS.has(name) ? safeUrl(value) : value;
+    const v = URL_ATTRS.has(name) ? safeUrl(resolveUrl(value)) : value;
     out += ` ${name}="${escapeAttr(v)}"`;
   }
   const bind = serializeBindings(node);
@@ -45,7 +58,7 @@ export function attrString(node) {
 export function renderNode(node, opts = {}) {
   if (node.hidden && !opts.keepHidden) return "";
   const tag = node.tag;
-  const attrs = attrString(node);
+  const attrs = attrString(node, opts);
   if (isVoid(tag)) return `<${tag}${attrs}>`;
 
   let inner = "";
@@ -61,18 +74,18 @@ export function renderNode(node, opts = {}) {
 
 /* Pretty, indented render for export/code-view. Block elements break onto
    their own lines; text-only leaves stay inline. */
-export function renderNodePretty(node, depth = 0) {
+export function renderNodePretty(node, depth = 0, opts = {}) {
   if (node.hidden) return "";
   const pad = "  ".repeat(depth);
   const tag = node.tag;
-  const attrs = attrString(node);
+  const attrs = attrString(node, opts);
   if (isVoid(tag)) return `${pad}<${tag}${attrs}>`;
   const kids = (node.children || []).filter((c) => !c.hidden);
   if (!kids.length) {
     const text = canHaveChildren(tag) ? (node.text ? escapeHtml(node.text) : "") : escapeHtml(node.text || "");
     return `${pad}<${tag}${attrs}>${text}</${tag}>`;
   }
-  const inner = kids.map((c) => renderNodePretty(c, depth + 1)).join("\n");
+  const inner = kids.map((c) => renderNodePretty(c, depth + 1, opts)).join("\n");
   return `${pad}<${tag}${attrs}>\n${inner}\n${pad}</${tag}>`;
 }
 
@@ -89,8 +102,10 @@ const EDITOR_CSS = `
 export function buildSrcdoc(doc, opts = {}) {
   const interactive = !!opts.interactive;
   const css = buildStylesheet(doc);
-  const bodyAttrs = attrString(doc.root);
-  const bodyInner = (doc.root.children || []).map((c) => renderNode(c, opts)).join("");
+  // preview inlines uploaded assets as data URLs
+  const ropts = { ...opts, resolveUrl: (v) => resolveAsset(v, doc.assets, "inline") };
+  const bodyAttrs = attrString(doc.root, ropts);
+  const bodyInner = (doc.root.children || []).map((c) => renderNode(c, ropts)).join("");
   const editorBlock = interactive ? "" : `<style data-hb-editor>${EDITOR_CSS}</style>`;
   const runtimeBlock = interactive ? `<script>${RUNTIME_JS}</script>` : "";
   const lang = (doc.meta && doc.meta.lang) || "en";
@@ -121,7 +136,7 @@ export function patchText(iframeDoc, node) {
 }
 
 const RESERVED = new Set(["data-hb-id", "class", "style", "data-hb-bind"]);
-export function patchAttrs(iframeDoc, node) {
+export function patchAttrs(iframeDoc, node, assets) {
   const el = elFor(iframeDoc, node.id);
   if (!el) return;
   el.className = (node.classes || []).join(" ");
@@ -133,7 +148,7 @@ export function patchAttrs(iframeDoc, node) {
   for (const [name, value] of Object.entries(node.attrs || {})) {
     if (value === false || value == null || value === "") { el.removeAttribute(name); continue; }
     if (value === true) { el.setAttribute(name, ""); continue; }
-    el.setAttribute(name, URL_ATTRS.has(name) ? safeUrl(value) : value);
+    el.setAttribute(name, URL_ATTRS.has(name) ? safeUrl(resolveAsset(value, assets, "inline")) : value);
   }
   const bind = serializeBindings(node);
   if (bind) el.setAttribute("data-hb-bind", JSON.stringify(bind));

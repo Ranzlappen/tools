@@ -2,8 +2,7 @@
    stylesheet inlined in <style> and (when interactions exist) the runtime
    inlined in <script>. DOM-free. */
 
-import { attrString } from "../lib/renderer.js";
-import { cssSource, renderBody, hasBehaviors, jsSource } from "./code-view.js";
+import { cssSource, renderBody, bodyOpenTag, hasBehaviors, jsSource } from "./code-view.js";
 import { escapeHtml } from "../lib/renderer.js";
 
 export function buildHtml(doc) {
@@ -12,7 +11,9 @@ export function buildHtml(doc) {
   const title = escapeHtml(meta.title || "Untitled page");
   const desc = meta.description ? `\n  <meta name="description" content="${escapeHtml(meta.description)}">` : "";
   const css = cssSource(doc);
-  const body = renderBody(doc);
+  // single file → inline uploaded assets as data URLs
+  const body = renderBody(doc, "inline");
+  const bodyOpen = bodyOpenTag(doc, "inline");
   const script = hasBehaviors(doc) ? `\n  <script>\n${jsSource(doc)}\n  </script>` : "";
   return `<!doctype html>
 <html lang="${lang}">
@@ -24,7 +25,7 @@ export function buildHtml(doc) {
 ${css}
   </style>
 </head>
-<body${attrString(doc.root)}>
+${bodyOpen}
 ${body}${script}
 </body>
 </html>

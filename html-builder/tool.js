@@ -65,6 +65,8 @@ function status(msg) {
   clearTimeout(statusTimer);
   statusTimer = setTimeout(() => { els.status.hidden = true; }, 2600);
 }
+// modules (inspector, etc.) surface user-facing messages via this event
+window.addEventListener("hb:notify", (e) => status(e.detail));
 
 /* ── toolbar state ─────────────────────────────────────────────────────── */
 function updateToolbar() {
@@ -119,10 +121,11 @@ function filename(ext) {
 }
 
 function share() {
-  const hash = persistence.toHash(store.get());
+  const { hash, droppedAssets } = persistence.toHash(store.get());
   const url = location.origin + location.pathname + "#" + hash;
   location.hash = hash;
-  if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => status("Share link copied")).catch(() => status("Share link in address bar"));
+  const msg = droppedAssets ? "Link copied — uploaded images aren't included; export a file to keep them" : "Share link copied";
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => status(msg)).catch(() => status("Share link in address bar"));
   else status("Share link in address bar");
 }
 

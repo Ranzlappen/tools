@@ -254,3 +254,20 @@ export function setMeta(patch) {
 export function setGlobalCss(css) {
   mutate((d) => { d.globals.customCss = css; }, { kind: "style" });
 }
+
+/* ── asset registry ────────────────────────────────────────────────────── */
+export function addAsset(asset) {
+  // registry change only; the referencing setAttr() drives the re-render.
+  // kind "ui" keeps it out of the undo history (the orphan, if any, is pruned
+  // on export) while autosave still persists it.
+  mutate((d) => {
+    if (!Array.isArray(d.assets)) d.assets = [];
+    if (!d.assets.some((a) => a.id === asset.id)) d.assets.push(asset);
+  }, { kind: "ui" });
+}
+
+export function removeAsset(id) {
+  mutate((d) => {
+    d.assets = (d.assets || []).filter((a) => a.id !== id);
+  }, { kind: "ui" });
+}
