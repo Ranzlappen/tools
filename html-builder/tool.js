@@ -55,6 +55,9 @@ function cacheEls() {
   els.statusText = $("#hb-status-text");
   els.codeModal = $("#hb-code-modal");
   els.codeOut = $("#hb-code-out");
+  els.importModal = $("#hb-import-modal");
+  els.importText = $("#hb-import-text");
+  els.importUrl = $("#hb-import-url");
 }
 
 /* ── status banner ─────────────────────────────────────────────────────── */
@@ -65,6 +68,8 @@ function status(msg) {
   clearTimeout(statusTimer);
   statusTimer = setTimeout(() => { els.status.hidden = true; }, 2600);
 }
+// modules (inspector, etc.) surface user-facing messages via this event
+window.addEventListener("hb:notify", (e) => status(e.detail));
 
 /* ── toolbar state ─────────────────────────────────────────────────────── */
 function updateToolbar() {
@@ -119,11 +124,46 @@ function filename(ext) {
 }
 
 function share() {
-  const hash = persistence.toHash(store.get());
+  const { hash, droppedAssets } = persistence.toHash(store.get());
   const url = location.origin + location.pathname + "#" + hash;
   location.hash = hash;
-  if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => status("Share link copied")).catch(() => status("Share link in address bar"));
+  const msg = droppedAssets ? "Link copied — uploaded images aren't included; export a file to keep them" : "Share link copied";
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => status(msg)).catch(() => status("Share link in address bar"));
   else status("Share link in address bar");
+}
+
+/* ── HTML import ───────────────────────────────────────────────────────── */
+async function runImport() {
+  const html = els.importText.value.trim();
+  if (!html) { status("Paste some HTML first"); return; }
+  try {
+    status("Importing…");
+    const { parseHtml } = await import("./lib/import-html.js");
+    const { root, customCss, skippedLinks } = await parseHtml(html);
+    if (!root.children.length) { status("Nothing importable found"); return; }
+    // undoable whole-document replace
+    store.mutate((d) => {
+      d.root = root;
+      d.globals.customCss = customCss || "";
+      d.assets = [];
+      d.ui.selectedId = null;
+      d.ui.expandedIds = ["root"];
+    }, { kind: "full" });
+    els.importModal.close();
+    status(skippedLinks ? `Imported · ${skippedLinks} linked stylesheet(s) skipped (CORS)` : "Imported — undo to revert");
+  } catch (e) { status(e.message || "Import failed"); console.error(e); }
+}
+
+async function fetchImportUrl() {
+  const url = els.importUrl.value.trim();
+  if (!url) return;
+  try {
+    status("Fetching…");
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    els.importText.value = await res.text();
+    status("Fetched — review, then Import");
+  } catch (e) { status("Fetch blocked (CORS) — paste the HTML instead"); }
 }
 
 /* ── starter document ──────────────────────────────────────────────────── */
@@ -178,6 +218,10 @@ function wireToolbar() {
     if (navigator.clipboard) navigator.clipboard.writeText(codeSources[codeTab] || "").then(() => status("Copied"));
   });
   $("#hb-code-close").addEventListener("click", () => els.codeModal.close());
+  $("#hb-import").addEventListener("click", () => els.importModal.showModal());
+  $("#hb-import-close").addEventListener("click", () => els.importModal.close());
+  $("#hb-import-go").addEventListener("click", runImport);
+  $("#hb-import-fetch").addEventListener("click", fetchImportUrl);
 }
 
 function wireKeyboard() {

@@ -108,6 +108,7 @@ export const tagInfo = (tag) => TAGS[tag] || { label: tag, group: "Misc" };
 
 /* Global attributes offered for every element. */
 export const GLOBAL_ATTRS = {
+  id: { type: "text" },
   title: { type: "text" },
   role: { type: "text" },
   "aria-label": { type: "text" },
@@ -161,6 +162,7 @@ export function defaultDoc() {
     meta: { title: "Untitled page", lang: "en", description: "" },
     root,
     globals: { fonts: [], customCss: "", bodyStyles: makeStyleMap() },
+    assets: [], // uploaded media: { id, name, type, dataUrl } — referenced as "asset:<id>"
     ui: { selectedId: null, hoverId: null, device: "desktop", expandedIds: ["root"], zoom: 1 },
   };
 }
@@ -222,6 +224,7 @@ export function migrate(doc) {
   // normalize shape defensively
   if (!doc.ui) doc.ui = defaultDoc().ui;
   if (!doc.globals) doc.globals = { fonts: [], customCss: "", bodyStyles: makeStyleMap() };
+  if (!Array.isArray(doc.assets)) doc.assets = [];
   walk(doc.root, (n) => {
     if (!n.styles) n.styles = makeStyleMap();
     for (const bp of BREAKPOINTS) if (!n.styles[bp]) n.styles[bp] = {};

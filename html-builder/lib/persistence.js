@@ -16,11 +16,25 @@ export function canPersist() {
   catch (e) { return false; }
 }
 
+const SAVE_LIMIT = 4.5 * 1024 * 1024; // localStorage budget (uploaded assets count here)
+let warnedSize = false;
+
 export function save(doc) {
   if (!canPersist()) return;
   clearTimeout(timer);
   timer = setTimeout(() => {
-    try { localStorage.setItem(KEY, JSON.stringify(doc)); } catch (e) { /* quota / private mode */ }
+    try {
+      const json = JSON.stringify(doc);
+      if (json.length > SAVE_LIMIT) {
+        if (!warnedSize) {
+          warnedSize = true;
+          window.dispatchEvent(new CustomEvent("hb:notify", { detail: "Too large to autosave (images) — export to keep your work" }));
+        }
+        return;
+      }
+      warnedSize = false;
+      localStorage.setItem(KEY, json);
+    } catch (e) { /* quota / private mode */ }
   }, SAVE_MS);
 }
 
@@ -55,10 +69,15 @@ const dec = new TextDecoder();
 /* ── share link ────────────────────────────────────────────────────────── */
 export const HASH_LIMIT = 32000; // skip auto-hashing very large docs
 
+/* Share links carry the design but NOT uploaded assets — data URLs blow the
+   URL length budget. `asset:` refs travel; the images don't. Returns
+   { hash, droppedAssets } so the caller can warn. */
 export function toHash(doc) {
   const slim = cloneDoc(doc);
   delete slim.ui;
-  return "d=" + bytesToB64url(enc.encode(JSON.stringify(slim)));
+  const droppedAssets = (slim.assets && slim.assets.length) || 0;
+  slim.assets = [];
+  return { hash: "d=" + bytesToB64url(enc.encode(JSON.stringify(slim))), droppedAssets };
 }
 
 export function fromHash(hash) {

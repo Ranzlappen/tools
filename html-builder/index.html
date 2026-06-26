@@ -185,6 +185,24 @@
     .hb-clear:hover { color: var(--c-danger); }
     .hb-check { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--c-text-muted); }
 
+    /* ── grid editor ─────────────────────────────────────────────────── */
+    .hb-grid-ed { display: flex; flex-direction: column; gap: var(--space-sm); width: 100%; }
+    .hb-grid-ax { display: flex; flex-direction: column; gap: 4px; }
+    .hb-grid-ax__head { display: flex; align-items: center; justify-content: space-between; }
+    .hb-grid-ax__btns { display: flex; gap: 4px; }
+    .hb-grid-ax__btns .hb-tool-btn { padding: 0 0.5rem; line-height: 1.6; }
+    .hb-grid-track { display: flex; gap: 4px; }
+    .hb-grid-val { flex: 1; min-width: 0; }
+    .hb-grid-unit { flex: 0 0 auto; width: 96px; }
+
+    /* ── asset upload ────────────────────────────────────────────────── */
+    .hb-url-row { display: flex; gap: 4px; align-items: center; }
+    .hb-url-row .hb-input { flex: 1; min-width: 0; }
+    .hb-upload-btn { flex: 0 0 auto; }
+    .hb-asset-info { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 0.72rem; color: var(--c-text-muted); }
+    .hb-asset-thumb { width: 28px; height: 28px; object-fit: cover; border-radius: var(--border-radius-sm); border: 1px solid var(--c-border); flex: 0 0 auto; }
+    .hb-asset-info span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+
     /* ── behaviors ───────────────────────────────────────────────────── */
     .hb-bhv { padding: var(--space-sm) var(--space-md); display: flex; flex-direction: column; gap: var(--space-sm); }
     .hb-bhv__hint { font-size: 0.76rem; color: var(--c-text-faint); margin: 0; }
@@ -280,6 +298,7 @@
               <button type="button" class="hb-tool-btn" id="hb-undo" title="Undo (Ctrl/Cmd+Z)" disabled>↶</button>
               <button type="button" class="hb-tool-btn" id="hb-redo" title="Redo (Ctrl/Cmd+Shift+Z)" disabled>↷</button>
               <button type="button" class="hb-tool-btn" id="hb-test" title="Test interactions">▶ Test</button>
+              <button type="button" class="hb-tool-btn" id="hb-import" title="Import existing HTML">Import</button>
               <button type="button" class="hb-tool-btn" id="hb-code">&lt;/&gt; Code</button>
               <button type="button" class="hb-tool-btn" id="hb-share">Share</button>
               <button type="button" class="hb-tool-btn" id="hb-export-html">Export HTML</button>
@@ -327,6 +346,29 @@
     </div>
     <div class="hb-modal__body">
       <pre class="hb-code" id="hb-code-out"></pre>
+    </div>
+  </dialog>
+
+  <!-- import modal -->
+  <dialog class="hb-modal" id="hb-import-modal">
+    <div class="hb-modal__head">
+      <span class="panel__title">Import HTML</span>
+      <div class="hb-spacer"></div>
+      <button type="button" class="btn btn--primary" id="hb-import-go">Import</button>
+      <button type="button" class="btn btn--ghost" id="hb-import-close">Cancel</button>
+    </div>
+    <div class="hb-modal__body">
+      <div class="banner banner--warn" style="margin-bottom: var(--space-md);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        <span>Replaces the current canvas. Structure, classes &amp; inline styles become editable; <code>&lt;style&gt;</code>/linked CSS goes to custom CSS; scripts are stripped.</span>
+      </div>
+      <label class="field-label" for="hb-import-text">Paste HTML</label>
+      <textarea id="hb-import-text" class="input" style="min-height:200px;font-family:var(--f-mono);" spellcheck="false" placeholder="&lt;section&gt;…&lt;/section&gt;"></textarea>
+      <label class="field-label" for="hb-import-url" style="margin-top: var(--space-md);">…or fetch a URL (CORS-permitting)</label>
+      <div class="hb-url-row">
+        <input id="hb-import-url" type="text" class="input hb-input" placeholder="https://example.com/page.html" spellcheck="false">
+        <button type="button" class="hb-tool-btn" id="hb-import-fetch">Fetch</button>
+      </div>
     </div>
   </dialog>
 

@@ -1,10 +1,13 @@
 /* code-view.js — generate the read-only HTML/CSS/JS sources shown in the code
    modal, and the shared building blocks the single-file and ZIP exporters
-   reuse. DOM-free. */
+   reuse. DOM-free.
+
+   Asset refs ("asset:<id>") resolve by mode: "inline" embeds a data URL
+   (single-file HTML), "path" emits ./assets/<name> (the linked / ZIP form). */
 
 import { walk } from "../lib/schema.js";
 import { buildStylesheet } from "../lib/style-engine.js";
-import { renderNodePretty, attrString, escapeHtml } from "../lib/renderer.js";
+import { renderNodePretty, attrString, escapeHtml, resolveAsset } from "../lib/renderer.js";
 import { RUNTIME_JS } from "../lib/behaviors-runtime.js";
 
 export function hasBehaviors(doc) {
@@ -13,11 +16,20 @@ export function hasBehaviors(doc) {
   return yes;
 }
 
-export function renderBody(doc) {
+function urlOpts(doc, mode) {
+  return { resolveUrl: (v) => resolveAsset(v, doc.assets, mode) };
+}
+
+export function renderBody(doc, mode = "path") {
+  const opts = urlOpts(doc, mode);
   return (doc.root.children || [])
     .filter((c) => !c.hidden)
-    .map((c) => renderNodePretty(c, 2))
+    .map((c) => renderNodePretty(c, 2, opts))
     .join("\n");
+}
+
+export function bodyOpenTag(doc, mode = "path") {
+  return `<body${attrString(doc.root, urlOpts(doc, mode))}>`;
 }
 
 export function cssSource(doc) {
@@ -35,12 +47,12 @@ function headTags(doc, links) {
   return `<head>\n  <meta charset="utf-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1">\n  <title>${title}</title>${desc}\n${links}\n</head>`;
 }
 
-/* Multi-file HTML that links styles.css / app.js. */
+/* Multi-file HTML that links styles.css / app.js and references ./assets/*. */
 export function htmlSourceLinked(doc) {
   const lang = (doc.meta && doc.meta.lang) || "en";
   const head = headTags(doc, `  <link rel="stylesheet" href="styles.css">`);
-  const bodyOpen = `<body${attrString(doc.root)}>`;
-  const body = renderBody(doc);
+  const bodyOpen = bodyOpenTag(doc, "path");
+  const body = renderBody(doc, "path");
   const script = hasBehaviors(doc) ? `\n  <script src="app.js"></script>` : "";
   return `<!doctype html>\n<html lang="${lang}">\n${head}\n${bodyOpen}\n${body}${script}\n</body>\n</html>\n`;
 }

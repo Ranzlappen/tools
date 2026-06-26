@@ -153,7 +153,7 @@ export function onChange(doc, meta) {
     }
     case "attr": {
       const n = meta.nodeId && findNode(doc.root, meta.nodeId);
-      if (n) patchAttrs(iframeDoc, n);
+      if (n) patchAttrs(iframeDoc, n, doc.assets);
       overlay.sync();
       break;
     }

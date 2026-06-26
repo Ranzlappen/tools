@@ -11,6 +11,8 @@ import * as store from "./store.js";
 import { findNode, tagInfo, canHaveText, GLOBAL_ATTRS, DEVICES } from "./schema.js";
 import { resolveStyle } from "./style-engine.js";
 import * as behaviors from "./behaviors.js";
+import * as gridEditor from "./grid-editor.js";
+import * as assets from "./assets.js";
 
 let el = null;
 let tab = "style";
@@ -53,11 +55,7 @@ function styleSections(display, position) {
       txt("gap", "Gap", "e.g. 16px"),
     );
   } else if (display === "grid") {
-    layout.push(
-      txt("grid-template-columns", "Columns", "e.g. 1fr 1fr"),
-      txt("grid-template-rows", "Rows", "e.g. auto"),
-      txt("gap", "Gap", "e.g. 16px"),
-    );
+    layout.push({ kind: "grid" });
   }
 
   const sections = [
@@ -134,6 +132,10 @@ export function render() {
   el.innerHTML = html;
 
   if (tab === "behaviors") behaviors.render(el.querySelector("[data-behaviors-slot]"), node);
+  if (tab === "style") {
+    const gs = el.querySelector("[data-grid-slot]");
+    if (gs) gridEditor.render(gs, node, layer);
+  }
 }
 
 function styleTab(node, layer) {
@@ -155,6 +157,8 @@ function controlHtml(c, resolved, own) {
   const v = resolved[c.prop] != null ? resolved[c.prop] : "";
   const overridden = own[c.prop] != null;
   const badge = overridden ? `<span class="hb-ov-badge" title="Overridden at this breakpoint"></span>` : "";
+  if (c.kind === "grid") return `<div class="hb-grid-ed" data-grid-slot></div>`;
+
   const lab = `<label class="hb-ctrl__label">${c.label}${badge}</label>`;
 
   if (c.kind === "select") {
@@ -207,6 +211,16 @@ function attrTab(node) {
       } else if (def.type === "enum") {
         const opts = def.options.map((o) => `<option value="${o}"${o === (val || "") ? " selected" : ""}>${o || "—"}</option>`).join("");
         html += `<div class="hb-ctrl"><label class="hb-ctrl__label">${name}</label><select class="input hb-input" data-attr="${name}">${opts}</select></div>`;
+      } else if (def.type === "url") {
+        html += `<div class="hb-ctrl"><label class="hb-ctrl__label">${name}</label>`;
+        html += `<div class="hb-url-row"><input type="text" class="input hb-input" data-attr="${name}" value="${escapeAttr(val == null ? "" : val)}" placeholder="https://… or upload" spellcheck="false">`;
+        html += `<button type="button" class="hb-tool-btn hb-upload-btn" data-upload="${name}" title="Upload image">↑</button>`;
+        html += `<input type="file" accept="image/*" data-asset-upload="${name}" hidden></div>`;
+        if (typeof val === "string" && val.startsWith("asset:")) {
+          const a = assets.get(val.slice(6));
+          if (a) html += `<div class="hb-asset-info"><img class="hb-asset-thumb" src="${escapeAttr(a.dataUrl)}" alt=""><span>${escape(a.name)}</span><button type="button" class="hb-clear" data-asset-clear="${name}" title="Remove">×</button></div>`;
+        }
+        html += `</div>`;
       } else {
         const type = def.type === "number" ? "number" : "text";
         html += `<div class="hb-ctrl"><label class="hb-ctrl__label">${name}</label><input type="${type}" class="input hb-input" data-attr="${name}" value="${escapeAttr(val == null ? "" : val)}" spellcheck="false"></div>`;
@@ -242,6 +256,19 @@ function onClick(e) {
     if (row) row.querySelector('input[type="text"]').value = "";
     return;
   }
+  const up = e.target.closest("[data-upload]");
+  if (up) {
+    const file = up.parentElement.querySelector('input[type="file"][data-asset-upload]');
+    if (file) file.click();
+    return;
+  }
+  const aclr = e.target.closest("[data-asset-clear]");
+  if (aclr) {
+    const id = store.get().ui.selectedId;
+    store.setAttr(id, aclr.getAttribute("data-asset-clear"), "");
+    render();
+    return;
+  }
 }
 
 function onInput(e) {
@@ -259,6 +286,17 @@ function onInput(e) {
     store.setStyle(id, t.getAttribute("data-prop"), value, layer);
     return;
   }
+  if (t.hasAttribute("data-asset-upload")) {
+    const name = t.getAttribute("data-asset-upload");
+    const file = t.files && t.files[0];
+    if (file) {
+      assets.addFromFile(file)
+        .then((aid) => { store.setAttr(id, name, "asset:" + aid); render(); notify("Image uploaded"); })
+        .catch((err) => notify(err.message || "Upload failed"));
+    }
+    t.value = ""; // allow re-selecting the same file
+    return;
+  }
   if (t.hasAttribute("data-attr")) {
     const name = t.getAttribute("data-attr");
     const value = t.type === "checkbox" ? t.checked : t.value;
@@ -273,5 +311,6 @@ function onInput(e) {
   }
 }
 
+function notify(msg) { window.dispatchEvent(new CustomEvent("hb:notify", { detail: msg })); }
 function escape(s) { return String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
 function escapeAttr(s) { return String(s == null ? "" : s).replace(/[&"<]/g, (c) => ({ "&": "&amp;", '"': "&quot;", "<": "&lt;" }[c])); }
