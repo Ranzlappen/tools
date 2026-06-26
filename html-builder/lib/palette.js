@@ -81,13 +81,17 @@ const PRESET_META = [
   { key: "form", label: "Form" },
 ];
 
+/* own-property guards: drag payloads are user-controlled, so a key like
+   "constructor" must not dispatch to an inherited prototype member. */
+const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+
 /* shared factory for both drop paths */
 export function nodeFromDrag(dt) {
   if (!dt) return null;
   const preset = dt.getData("text/hb-preset");
-  if (preset && PRESETS[preset]) return PRESETS[preset]();
+  if (preset && hasOwn(PRESETS, preset)) return PRESETS[preset]();
   const tag = dt.getData("text/hb-tag") || dt.getData("text/plain");
-  if (tag && TAGS[tag]) return makeNode(tag);
+  if (tag && hasOwn(TAGS, tag)) return makeNode(tag);
   return null;
 }
 
@@ -133,7 +137,9 @@ export function mount(el) {
   el.addEventListener("click", (e) => {
     const item = e.target.closest(".hb-pal__item");
     if (!item) return;
-    const node = item.dataset.preset ? PRESETS[item.dataset.preset]() : makeNode(item.dataset.tag);
+    let node = null;
+    if (item.dataset.preset && hasOwn(PRESETS, item.dataset.preset)) node = PRESETS[item.dataset.preset]();
+    else if (item.dataset.tag && hasOwn(TAGS, item.dataset.tag)) node = makeNode(item.dataset.tag);
     if (node) store.insert(node, { parentId: targetParentId() });
   });
 }

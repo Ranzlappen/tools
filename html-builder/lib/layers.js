@@ -37,9 +37,10 @@ export function render() {
     const hasKids = node.children && node.children.length;
     const isOpen = expanded.has(node.id);
     const selCls = node.id === sel ? " is-selected" : "";
+    const id = escAttr(node.id);
     rows.push(
-      `<div class="hb-tree__row${selCls}" data-id="${node.id}" draggable="${node.id !== "root"}" style="padding-left:${4 + depth * 14}px">` +
-      `<span class="hb-tree__tog" data-tog="${node.id}">${hasKids ? (isOpen ? "▾" : "▸") : ""}</span>` +
+      `<div class="hb-tree__row${selCls}" data-id="${id}" draggable="${node.id !== "root"}" style="padding-left:${4 + depth * 14}px">` +
+      `<span class="hb-tree__tog" data-tog="${id}">${hasKids ? (isOpen ? "▾" : "▸") : ""}</span>` +
       `<span class="hb-tree__icon">${acceptsChildren(node.tag) ? "▢" : "—"}</span>` +
       `<span class="hb-tree__label">${escape(label(node))}</span>` +
       `</div>`
@@ -51,6 +52,9 @@ export function render() {
 }
 
 function escape(s) { return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+/* Attribute-safe escape. ids/tags can originate from a loaded share-link doc,
+   so they are untrusted when interpolated into markup. */
+function escAttr(s) { return String(s == null ? "" : s).replace(/[&"'<>]/g, (c) => ({ "&": "&amp;", '"': "&quot;", "'": "&#39;", "<": "&lt;", ">": "&gt;" }[c])); }
 
 function onClick(e) {
   const tog = e.target.closest("[data-tog]");

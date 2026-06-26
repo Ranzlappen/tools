@@ -66,11 +66,22 @@ function status(msg) {
 }
 
 /* ── download helper ───────────────────────────────────────────────────── */
+/* Only ever assign a verified blob: URL to the anchor (same guard the repo's
+   other tools use — see markdown/tool.js). createObjectURL always returns a
+   blob: URL, so this is belt-and-suspenders against a tainted-value flow. */
+function safeBlobUrl(url) {
+  try { return new URL(url).protocol === "blob:" ? url : ""; }
+  catch (_) { return ""; }
+}
 function download(data, name, type = "text/html") {
   const blob = data instanceof Blob ? data : new Blob([data], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = name; a.click();
+  a.href = safeBlobUrl(url);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 

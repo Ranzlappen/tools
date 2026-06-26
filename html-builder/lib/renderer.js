@@ -28,7 +28,8 @@ function safeUrl(v) {
 const URL_ATTRS = new Set(["href", "src", "poster", "action"]);
 
 export function attrString(node) {
-  let out = ` data-hb-id="${node.id}"`;
+  // node.id can come from a loaded share-link doc — escape it like any value.
+  let out = ` data-hb-id="${escapeAttr(node.id)}"`;
   if (node.classes && node.classes.length) out += ` class="${escapeAttr(node.classes.join(" "))}"`;
   for (const [name, value] of Object.entries(node.attrs || {})) {
     if (value === false || value == null || value === "") continue;
