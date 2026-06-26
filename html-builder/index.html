@@ -185,6 +185,16 @@
     .hb-clear:hover { color: var(--c-danger); }
     .hb-check { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--c-text-muted); }
 
+    /* ── grid editor ─────────────────────────────────────────────────── */
+    .hb-grid-ed { display: flex; flex-direction: column; gap: var(--space-sm); width: 100%; }
+    .hb-grid-ax { display: flex; flex-direction: column; gap: 4px; }
+    .hb-grid-ax__head { display: flex; align-items: center; justify-content: space-between; }
+    .hb-grid-ax__btns { display: flex; gap: 4px; }
+    .hb-grid-ax__btns .hb-tool-btn { padding: 0 0.5rem; line-height: 1.6; }
+    .hb-grid-track { display: flex; gap: 4px; }
+    .hb-grid-val { flex: 1; min-width: 0; }
+    .hb-grid-unit { flex: 0 0 auto; width: 96px; }
+
     /* ── behaviors ───────────────────────────────────────────────────── */
     .hb-bhv { padding: var(--space-sm) var(--space-md); display: flex; flex-direction: column; gap: var(--space-sm); }
     .hb-bhv__hint { font-size: 0.76rem; color: var(--c-text-faint); margin: 0; }

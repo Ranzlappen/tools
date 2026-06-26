@@ -11,6 +11,7 @@ import * as store from "./store.js";
 import { findNode, tagInfo, canHaveText, GLOBAL_ATTRS, DEVICES } from "./schema.js";
 import { resolveStyle } from "./style-engine.js";
 import * as behaviors from "./behaviors.js";
+import * as gridEditor from "./grid-editor.js";
 
 let el = null;
 let tab = "style";
@@ -53,11 +54,7 @@ function styleSections(display, position) {
       txt("gap", "Gap", "e.g. 16px"),
     );
   } else if (display === "grid") {
-    layout.push(
-      txt("grid-template-columns", "Columns", "e.g. 1fr 1fr"),
-      txt("grid-template-rows", "Rows", "e.g. auto"),
-      txt("gap", "Gap", "e.g. 16px"),
-    );
+    layout.push({ kind: "grid" });
   }
 
   const sections = [
@@ -134,6 +131,10 @@ export function render() {
   el.innerHTML = html;
 
   if (tab === "behaviors") behaviors.render(el.querySelector("[data-behaviors-slot]"), node);
+  if (tab === "style") {
+    const gs = el.querySelector("[data-grid-slot]");
+    if (gs) gridEditor.render(gs, node, layer);
+  }
 }
 
 function styleTab(node, layer) {
@@ -155,6 +156,8 @@ function controlHtml(c, resolved, own) {
   const v = resolved[c.prop] != null ? resolved[c.prop] : "";
   const overridden = own[c.prop] != null;
   const badge = overridden ? `<span class="hb-ov-badge" title="Overridden at this breakpoint"></span>` : "";
+  if (c.kind === "grid") return `<div class="hb-grid-ed" data-grid-slot></div>`;
+
   const lab = `<label class="hb-ctrl__label">${c.label}${badge}</label>`;
 
   if (c.kind === "select") {
