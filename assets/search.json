@@ -88,5 +88,11 @@
     "url": "/cookies-txt/",
     "description": "Convert a browser cookie export into a yt-dlp-ready Netscape cookies.txt — entirely in the browser.",
     "group": "Tools"
+  },
+  {
+    "title": "HTML Builder",
+    "url": "/html-builder/",
+    "description": "No-code visual web page builder — drag elements onto a live canvas, style every property, add responsive breakpoints and interactions, export clean HTML/CSS/JS.",
+    "group": "Tools"
   }
 ]

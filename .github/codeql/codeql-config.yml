@@ -24,3 +24,13 @@ name: tools-codeql
 # blob: barrier guard.
 paths-ignore:
   - tools/video/tool.js
+  # html-builder/lib/download.js triggers the same js/xss-through-dom false
+  # positive on its blob: download anchor (`a.href = createObjectURL(...)`).
+  # blob: URLs synthesised by createObjectURL are always `blob:<origin>/<uuid>`
+  # and, with the anchor's `download` attribute, are saved rather than
+  # navigated — never reinterpreted as HTML. The `new URL().protocol === "blob:"`
+  # barrier in that file is not recognised by the query (same as video above).
+  # The module is a single self-contained download helper with no other logic,
+  # so excluding it keeps full CodeQL coverage on the rest of the tool.
+  # `**/` matches regardless of the analysis source-root prefix.
+  - "**/html-builder/lib/download.js"
