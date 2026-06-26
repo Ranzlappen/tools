@@ -7,6 +7,22 @@ All notable changes to **tools** are recorded here. Format follows
 ## [Unreleased]
 
 ### Added
+- **HTML Builder — a no-code visual page builder (`html-builder/`).** A new
+  model-first tool: a structured document tree is the single source of truth,
+  rendered live into a same-origin `srcdoc` iframe, with clean framework-free
+  HTML/CSS/JS generated on export. Ships a three-pane app shell (palette +
+  layers / device-framed canvas / inspector) built from the shared `tool.css`
+  helpers. Features: drag-and-drop element + component presets, click-to-select
+  with a parent-drawn selection overlay and resize handles, a hierarchical
+  layers tree with drag-to-reparent, a full style inspector (box model, flex/
+  grid, typography, colour, border, effects, position), responsive
+  desktop/tablet/mobile breakpoints with real `@media` overrides, a no-code
+  interaction system (trigger → action behaviors compiled to a tiny vanilla
+  runtime), undo/redo, localStorage autosave, share links, a read-only code
+  view, and single-file HTML / ZIP export. Structured like the repo's other
+  complex tools — a `tool.js` shell importing concern-split `lib/*.js` modules
+  with lazy-loaded `exporters/*.js` (and JSZip only on ZIP export). No build
+  step, no framework.
 - **Regex Tester: ~10× larger snippet library (`regex/`).** The 9-chip
   palette grew to ~100 click-to-insert patterns across eight labelled
   categories (web & network, dates & times, numbers, IDs & codes, text &
