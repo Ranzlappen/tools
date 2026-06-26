@@ -85,11 +85,20 @@ const PRESET_META = [
    "constructor" must not dispatch to an inherited prototype member. */
 const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
+/* Resolve a preset key to its factory function via an own-property lookup,
+   then call the cached local — never `PRESETS[key]()`, so there is no
+   user-named dynamic method call to dispatch to an unexpected target. */
+function presetFactory(key) {
+  if (!key || !hasOwn(PRESETS, key)) return null;
+  const f = PRESETS[key];
+  return typeof f === "function" ? f : null;
+}
+
 /* shared factory for both drop paths */
 export function nodeFromDrag(dt) {
   if (!dt) return null;
-  const preset = dt.getData("text/hb-preset");
-  if (preset && hasOwn(PRESETS, preset)) return PRESETS[preset]();
+  const make = presetFactory(dt.getData("text/hb-preset"));
+  if (make) return make();
   const tag = dt.getData("text/hb-tag") || dt.getData("text/plain");
   if (tag && hasOwn(TAGS, tag)) return makeNode(tag);
   return null;
@@ -138,7 +147,8 @@ export function mount(el) {
     const item = e.target.closest(".hb-pal__item");
     if (!item) return;
     let node = null;
-    if (item.dataset.preset && hasOwn(PRESETS, item.dataset.preset)) node = PRESETS[item.dataset.preset]();
+    const make = presetFactory(item.dataset.preset);
+    if (make) node = make();
     else if (item.dataset.tag && hasOwn(TAGS, item.dataset.tag)) node = makeNode(item.dataset.tag);
     if (node) store.insert(node, { parentId: targetParentId() });
   });

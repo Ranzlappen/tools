@@ -12,6 +12,7 @@ import * as inspector from "./lib/inspector.js";
 import * as palette from "./lib/palette.js";
 import * as persistence from "./lib/persistence.js";
 import { PRESETS } from "./lib/palette.js";
+import { downloadFile } from "./lib/download.js";
 
 const $ = (s) => document.querySelector(s);
 
@@ -65,26 +66,6 @@ function status(msg) {
   statusTimer = setTimeout(() => { els.status.hidden = true; }, 2600);
 }
 
-/* ── download helper ───────────────────────────────────────────────────── */
-/* Only ever assign a verified blob: URL to the anchor (same guard the repo's
-   other tools use — see markdown/tool.js). createObjectURL always returns a
-   blob: URL, so this is belt-and-suspenders against a tainted-value flow. */
-function safeBlobUrl(url) {
-  try { return new URL(url).protocol === "blob:" ? url : ""; }
-  catch (_) { return ""; }
-}
-function download(data, name, type = "text/html") {
-  const blob = data instanceof Blob ? data : new Blob([data], { type });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = safeBlobUrl(url);
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1500);
-}
-
 /* ── toolbar state ─────────────────────────────────────────────────────── */
 function updateToolbar() {
   const d = store.get();
@@ -118,7 +99,7 @@ function showCode(tab) {
 async function exportHtml() {
   try {
     const { buildHtml } = await import("./exporters/index.js");
-    download(buildHtml(store.get()), filename("html"), "text/html");
+    downloadFile(buildHtml(store.get()), filename("html"), "text/html");
     status("Exported index.html");
   } catch (e) { status("Export failed."); console.error(e); }
 }
@@ -128,7 +109,7 @@ async function exportZip() {
     const JSZip = await ensureJSZip();
     const { buildZip } = await import("./exporters/index.js");
     const blob = await buildZip(store.get(), { JSZip });
-    download(blob, filename("zip"), "application/zip");
+    downloadFile(blob, filename("zip"), "application/zip");
     status("Exported ZIP");
   } catch (e) { status("ZIP export failed."); console.error(e); }
 }
