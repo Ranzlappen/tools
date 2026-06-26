@@ -55,6 +55,9 @@ function cacheEls() {
   els.statusText = $("#hb-status-text");
   els.codeModal = $("#hb-code-modal");
   els.codeOut = $("#hb-code-out");
+  els.importModal = $("#hb-import-modal");
+  els.importText = $("#hb-import-text");
+  els.importUrl = $("#hb-import-url");
 }
 
 /* ── status banner ─────────────────────────────────────────────────────── */
@@ -129,6 +132,40 @@ function share() {
   else status("Share link in address bar");
 }
 
+/* ── HTML import ───────────────────────────────────────────────────────── */
+async function runImport() {
+  const html = els.importText.value.trim();
+  if (!html) { status("Paste some HTML first"); return; }
+  try {
+    status("Importing…");
+    const { parseHtml } = await import("./lib/import-html.js");
+    const { root, customCss, skippedLinks } = await parseHtml(html);
+    if (!root.children.length) { status("Nothing importable found"); return; }
+    // undoable whole-document replace
+    store.mutate((d) => {
+      d.root = root;
+      d.globals.customCss = customCss || "";
+      d.assets = [];
+      d.ui.selectedId = null;
+      d.ui.expandedIds = ["root"];
+    }, { kind: "full" });
+    els.importModal.close();
+    status(skippedLinks ? `Imported · ${skippedLinks} linked stylesheet(s) skipped (CORS)` : "Imported — undo to revert");
+  } catch (e) { status(e.message || "Import failed"); console.error(e); }
+}
+
+async function fetchImportUrl() {
+  const url = els.importUrl.value.trim();
+  if (!url) return;
+  try {
+    status("Fetching…");
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    els.importText.value = await res.text();
+    status("Fetched — review, then Import");
+  } catch (e) { status("Fetch blocked (CORS) — paste the HTML instead"); }
+}
+
 /* ── starter document ──────────────────────────────────────────────────── */
 function starterDoc() {
   const d = schema.defaultDoc();
@@ -181,6 +218,10 @@ function wireToolbar() {
     if (navigator.clipboard) navigator.clipboard.writeText(codeSources[codeTab] || "").then(() => status("Copied"));
   });
   $("#hb-code-close").addEventListener("click", () => els.codeModal.close());
+  $("#hb-import").addEventListener("click", () => els.importModal.showModal());
+  $("#hb-import-close").addEventListener("click", () => els.importModal.close());
+  $("#hb-import-go").addEventListener("click", runImport);
+  $("#hb-import-fetch").addEventListener("click", fetchImportUrl);
 }
 
 function wireKeyboard() {

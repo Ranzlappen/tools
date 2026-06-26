@@ -35,6 +35,16 @@ is generated when you export. Everything runs locally; nothing is uploaded.
   flex/grid sub-controls, typography, colour, background, border, radius,
   shadow, opacity, and position. Every value is a control; nothing is typed as
   CSS unless you want to.
+- **Visual grid editor** — set `display: grid` and the Layout section shows a
+  track editor: add/remove columns and rows, pick each track's unit
+  (`fr / px / % / em / auto / min-content / max-content`), and set the gap — no
+  raw `grid-template` strings required.
+- **Image upload** — on an image (or video) element, click **↑** to upload a
+  file. It is stored with the design, shown in the preview, inlined into the
+  single-file HTML export, and written to `assets/` in the ZIP export.
+- **Import HTML** — the **Import** button opens a panel to paste existing HTML
+  (or fetch a URL). Structure, classes, and inline styles become editable;
+  `<style>`/linked CSS is preserved as custom CSS; scripts are stripped.
 - **Responsive breakpoints** — switch *Desktop / Tablet / Mobile* in the
   toolbar. Edits made while on Tablet or Mobile become overrides for that
   breakpoint only (real `@media` rules); a badge marks overridden properties.
@@ -101,6 +111,9 @@ export a ZIP — the pinned JSZip library from a CDN.
 | `palette.js` | Element catalog + component presets; the shared drag factory. |
 | `behaviors.js` | The Behaviors tab UI. |
 | `behaviors-runtime.js` | Interaction metadata + the runtime IIFE (shared by preview and export). |
+| `grid-editor.js` | Visual `grid-template` track editor (Layout section). |
+| `assets.js` | Uploaded-media registry (data URLs, size caps, export pruning). |
+| `import-html.js` | Pragmatic HTML → model importer (lazy; sanitizes via DOMPurify). |
 | `persistence.js` | localStorage autosave + base64url share links. |
 
 ### Key DOM hooks
@@ -132,8 +145,16 @@ else; no build step, no framework.
 
 ### Limitations / gotchas
 
-- **Import is not supported** — the builder generates code from its model; it
-  does not parse arbitrary pasted HTML back into the model.
+- **HTML import is pragmatic, not pixel-perfect.** Inline `style=` attributes
+  become editable per-element styles, but CSS from `<style>` blocks and linked
+  stylesheets is preserved verbatim as *custom CSS* (not GUI-editable per
+  element). Text interleaved directly beside child elements (e.g. `Hello
+  <b>world</b>`) is dropped; JavaScript/interactions are not imported;
+  cross-origin linked stylesheets may be skipped by CORS. Import replaces the
+  current canvas (undoable).
+- **Uploaded images** are capped (per-file and total) and live in your browser
+  only. They inline into the single-file HTML and write to `assets/` in the
+  ZIP, but are **not** included in share links — export a file to keep them.
 - The Spacing controls read/write the longhand `*-top/right/bottom/left`
   properties; a shorthand `padding`/`margin` set by a preset still applies but
   won't populate the four side fields.

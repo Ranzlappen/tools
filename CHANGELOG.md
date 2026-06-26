@@ -7,6 +7,18 @@ All notable changes to **tools** are recorded here. Format follows
 ## [Unreleased]
 
 ### Added
+- **HTML Builder — grid editor, image upload & HTML import.** Three follow-up
+  features for `html-builder/`: (1) a **visual grid editor** — when an element
+  is `display:grid`, the Layout inspector shows a track editor (add/remove
+  columns & rows, per-track unit `fr/px/%/em/auto/min/max-content`, gap) instead
+  of raw `grid-template` strings (`lib/grid-editor.js`); (2) **image upload** — a
+  `doc.assets` registry (`lib/assets.js`) with size caps; images upload from the
+  inspector and resolve as inline data URLs in the preview and single-file HTML
+  export, and as `assets/<name>` files in the ZIP export; (3) **HTML import**
+  (`lib/import-html.js`, lazy) — paste markup or fetch a URL; it's sanitized via
+  the repo's pinned DOMPurify, then walked into the model (structure + classes +
+  inline styles editable, `<style>`/linked CSS preserved as custom CSS, scripts
+  stripped). No build step; new deps load lazily from existing pinned-SRI CDNs.
 - **HTML Builder — a no-code visual page builder (`html-builder/`).** A new
   model-first tool: a structured document tree is the single source of truth,
   rendered live into a same-origin `srcdoc` iframe, with clean framework-free
