@@ -81,16 +81,16 @@ const PRESET_META = [
   { key: "form", label: "Form" },
 ];
 
-/* own-property guards: drag payloads are user-controlled, so a key like
-   "constructor" must not dispatch to an inherited prototype member. */
+/* own-property guard for the tag lookup: drag payloads are user-controlled. */
 const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
-/* Resolve a preset key to its factory function via an own-property lookup,
-   then call the cached local — never `PRESETS[key]()`, so there is no
-   user-named dynamic method call to dispatch to an unexpected target. */
+/* Preset factories are resolved through a Map, never `PRESETS[userKey]`.
+   `Map.get(key)` takes the key as an argument rather than as a computed member
+   name, so a user-controlled key can never become a dynamic method call (and a
+   key like "constructor" simply misses). */
+const PRESET_MAP = new Map(Object.entries(PRESETS));
 function presetFactory(key) {
-  if (!key || !hasOwn(PRESETS, key)) return null;
-  const f = PRESETS[key];
+  const f = key ? PRESET_MAP.get(key) : null;
   return typeof f === "function" ? f : null;
 }
 

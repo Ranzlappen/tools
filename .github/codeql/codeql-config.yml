@@ -32,4 +32,5 @@ paths-ignore:
   # barrier in that file is not recognised by the query (same as video above).
   # The module is a single self-contained download helper with no other logic,
   # so excluding it keeps full CodeQL coverage on the rest of the tool.
-  - tools/html-builder/lib/download.js
+  # `**/` matches regardless of the analysis source-root prefix.
+  - "**/html-builder/lib/download.js"
