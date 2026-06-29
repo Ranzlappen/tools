@@ -27,6 +27,9 @@ authentication, all handled by yt-dlp locally.
 - **Embed options** — cover-art thumbnail, metadata (title/artist), and
   chapters baked into the file; optional SponsorBlock removal,
   ASCII-safe filenames, and a download archive to skip already-grabbed items.
+- **Auto-cut multi-song videos** — split a single video (album upload, DJ mix,
+  full set) into one file per chapter via `--split-chapters`, with an editable
+  per-song filename template. See the section below.
 - **Scope** — a single video (`--no-playlist`) or a whole playlist
   (`--yes-playlist`), with an optional item range like `1-10` or `1,3,5-8`.
 - **Output template** — a sensible default per scope, fully editable.
@@ -34,7 +37,8 @@ authentication, all handled by yt-dlp locally.
   `--cookies cookies.txt` (Android / anywhere). Cookies stay on your machine.
 - **Sign in with Google (optional)** — pull your **Liked videos** or any of
   your playlists without exporting cookies. See the section below.
-- **Presets** — *Max-quality MP3*, *Whole playlist → MP3*, *Private playlist*.
+- **Presets** — *Max-quality MP3*, *Whole playlist → MP3*,
+  *Multi-song video → split*, *Private playlist*.
 - **Parallel fragments** for faster downloads.
 - **Copy** the finished command in one click; **install snippets** for every
   platform including Android (Termux).
@@ -47,6 +51,37 @@ authentication, all handled by yt-dlp locally.
    **Private / sign-in cookies**.
 4. Click **Copy** and run the command in your terminal. (Install yt-dlp +
    ffmpeg first — see the snippets at the bottom of the tool.)
+
+### Auto-cut multi-song videos
+
+When a single video packs several songs — an album upload, a DJ mix, a full
+concert — you usually want one file per track, not one giant MP3. Turn on
+**✂ Auto-cut into one file per chapter** (or use the *Multi-song video → split*
+preset) and the command gains `--split-chapters`, which slices the audio at the
+video's **chapter markers**.
+
+- Splitting keys off the **chapters** YouTube creators add — almost every
+  multi-song upload has them. A video with **no chapters downloads whole**, with
+  no error, so the toggle is safe to leave on.
+- The **Per-song filename template** field names each split track. It uses the
+  split-only fields `%(section_number)s`, `%(section_title)s`, plus the usual
+  ones like `%(title)s`. The default
+  `%(title)s/%(section_number)02d - %(section_title)s.%(ext)s` drops every song
+  into a folder named after the video, numbered in order, e.g.
+  `Greatest Hits/03 - Song Title.mp3`.
+- **Caveat — the un-split original is kept.** yt-dlp writes the per-song files
+  *and* leaves the full-length file (named by the normal output template)
+  beside them; there's no built-in flag to delete it. Just remove that one file
+  after the run. Routing the songs into their own folder (the default template)
+  keeps them easy to tell apart.
+
+```
+yt-dlp -x --audio-format mp3 --audio-quality 320K -f bestaudio/best \
+  --embed-thumbnail --embed-metadata --no-playlist \
+  -o '%(title)s.%(ext)s' --split-chapters \
+  -o 'chapter:%(title)s/%(section_number)02d - %(section_title)s.%(ext)s' \
+  'https://www.youtube.com/watch?v=…'
+```
 
 ### Sign in with Google (optional)
 
@@ -154,13 +189,14 @@ your browser). See the site
 | `#yt-options`       | Options panel; delegates `input` / `change`.      |
 | `#yt-format` / `#yt-quality` | Audio format and MP3 quality selects.    |
 | `#yt-embed`         | Boolean chip toggles (`data-flag`, `aria-pressed`).|
+| `#yt-split` / `#yt-chapter` | Auto-cut toggle chip + per-song template.   |
 | `#yt-scope` / `#yt-items` | Playlist scope and item range.              |
 | `#yt-auth` / `#yt-browser` / `#yt-cookiefile` | Cookie source.        |
 | `#yt-output`        | `-o` filename template.                           |
 | `#yt-command`       | `<pre>` output; `dataset.command` holds raw text. |
 | `#yt-account` / `#yt-signin` / `#yt-playlist` / `#yt-load` | Optional account panel. |
 | `#yt-using` / `#yt-download-urls` | "Using N videos" note + `urls.txt` download. |
-| `[data-action]`     | `paste` / `clear` / `copy` / `yt-signin` / `yt-signout` / `yt-load` / `yt-download-urls` / `yt-clear-list`. |
+| `[data-action]`     | `paste` / `clear` / `copy` / `yt-split-toggle` / `yt-signin` / `yt-signout` / `yt-load` / `yt-download-urls` / `yt-clear-list`. |
 
 ### Dependencies
 
@@ -196,6 +232,9 @@ just shows a setup hint.
   `#yt-presets`.
 - **More formats / qualities**: extend the `<option>`s; the value is passed
   straight to `--audio-format` / `--audio-quality`.
+- **Split-chapters template**: the `chapter:`-prefixed `-o` is emitted in
+  `buildTokens()` only when the `#yt-split` chip is on; edit `#yt-chapter` (and
+  the `split` preset / `setSplit()` helper) to change defaults.
 
 ### Limitations / gotchas
 
@@ -206,5 +245,8 @@ just shows a setup hint.
   PowerShell generally accepts the single-quoted form.
 - `--cookies-from-browser` can't read system Chrome on non-rooted Android —
   use a `cookies.txt` there.
+- **Auto-cut** relies on the video's chapter markers; a video with none simply
+  downloads whole. yt-dlp keeps the full un-split file alongside the per-song
+  splits — there is no built-in flag to delete it, so remove it manually.
 - YouTube changes often; if a download fails, update yt-dlp
   (`yt-dlp -U` or via your package manager) before anything else.

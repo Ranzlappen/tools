@@ -17,6 +17,9 @@ const els = {
   quality: $("yt-quality"),
   concurrent: $("yt-concurrent"),
   embed: $("yt-embed"),
+  split: $("yt-split"),
+  chapterField: $("yt-chapter-field"),
+  chapter: $("yt-chapter"),
   scope: $("yt-scope"),
   itemsField: $("yt-items-field"),
   items: $("yt-items"),
@@ -75,6 +78,21 @@ function embedState() {
   return state;
 }
 
+// The single "Auto-cut into one file per chapter" toggle chip.
+function splitChip() {
+  return els.split.querySelector("[data-action='yt-split-toggle']");
+}
+
+function isSplit() {
+  return splitChip().getAttribute("aria-pressed") === "true";
+}
+
+function setSplit(on) {
+  const chip = splitChip();
+  chip.setAttribute("aria-pressed", String(on));
+  chip.classList.toggle("is-active", on);
+}
+
 // Build an array of { t, s } tokens: t is 'cmd' | 'flag' | 'val' | 'str'.
 function buildTokens() {
   const t = [];
@@ -127,6 +145,15 @@ function buildTokens() {
   const out = els.output.value.trim();
   if (out) { push("flag", "-o"); push("str", out); }
 
+  // Auto-cut a multi-song video into one file per chapter. The chapter:-typed
+  // -o names each split track; the plain -o above still names the leftover
+  // full file. Videos with no chapters just download whole — no error.
+  if (isSplit()) {
+    push("flag", "--split-chapters");
+    const ct = els.chapter.value.trim();
+    if (ct) { push("flag", "-o"); push("str", "chapter:" + ct); }
+  }
+
   if (usingList) {
     push("flag", "-a");
     push("str", "urls.txt");
@@ -169,6 +196,7 @@ function syncVisibility() {
   els.qualityField.classList.toggle("ytm-hidden", els.format.value !== "mp3");
   // The manual scope/items controls don't apply to a loaded list.
   els.itemsField.classList.toggle("ytm-hidden", usingList || els.scope.value !== "playlist");
+  els.chapterField.classList.toggle("ytm-hidden", !isSplit());
   els.browserField.classList.toggle("ytm-hidden", els.auth.value !== "browser");
   els.cookieFileField.classList.toggle("ytm-hidden", els.auth.value !== "file");
   els.authNote.textContent = AUTH_NOTES[els.auth.value] || "";
@@ -200,6 +228,7 @@ const PRESETS = {
     els.auth.value = "none";
     els.output.value = TEMPLATE_SINGLE;
     setEmbed({ thumbnail: true, metadata: true });
+    setSplit(false);
   },
   playlist() {
     els.format.value = "mp3";
@@ -207,6 +236,17 @@ const PRESETS = {
     els.scope.value = "playlist";
     els.output.value = TEMPLATE_PLAYLIST;
     setEmbed({ thumbnail: true, metadata: true });
+    setSplit(false);
+  },
+  split() {
+    els.format.value = "mp3";
+    els.quality.value = "320K";
+    els.scope.value = "single";
+    els.auth.value = "none";
+    els.output.value = TEMPLATE_SINGLE;
+    els.chapter.value = "%(title)s/%(section_number)02d - %(section_title)s.%(ext)s";
+    setEmbed({ thumbnail: true, metadata: true });
+    setSplit(true);
   },
   private() {
     els.format.value = "mp3";
@@ -216,6 +256,7 @@ const PRESETS = {
     els.browser.value = "chrome";
     els.output.value = TEMPLATE_PLAYLIST;
     setEmbed({ thumbnail: true, metadata: true });
+    setSplit(false);
   },
 };
 
@@ -334,6 +375,12 @@ els.embed.addEventListener("click", (ev) => {
   const on = chip.getAttribute("aria-pressed") !== "true";
   chip.setAttribute("aria-pressed", String(on));
   chip.classList.toggle("is-active", on);
+  render();
+});
+
+els.split.addEventListener("click", (ev) => {
+  if (!ev.target.closest("[data-action='yt-split-toggle']")) return;
+  setSplit(!isSplit());
   render();
 });
 
