@@ -7,6 +7,15 @@ All notable changes to **tools** are recorded here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Video Studio — two-pass, size estimate & before/after (`video/`).**
+  Follow-ups to the compression work: (1) an optional **two-pass** encode in
+  Target-bitrate mode (`opts.pass` in `buildArgs()` → analyse to the
+  format's null sink, then encode; shared `-passlogfile`, logs cleaned up
+  after); (2) a live **estimated output size** in the Run panel
+  (`estimateBytes()`/`updateEstimate()`, a bits-per-pixel model for CRF,
+  exact for target-bitrate, refreshed on every setting change); and (3) a
+  **before/after** size panel on each result showing original vs output and
+  the percent saved. No new dependencies.
 - **Video Studio — deep compression & format controls (`video/`).** A new
   **Compress** sub-section turns the tool into a real size-reducer: **rate
   control** toggle between *Quality · CRF* and *Target bitrate*; a **CRF

@@ -350,6 +350,14 @@
               </div>
             </div>
 
+            <div class="opt" id="opt-twopass-block">
+              <span class="field-label">Two-pass</span>
+              <div class="chips" role="radiogroup" aria-label="Two-pass">
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="twopass" data-value="off">Off</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="twopass" data-value="on" title="More accurate sizing, ~2× encode time">On · 2× time</button>
+              </div>
+            </div>
+
             <div class="opt" id="opt-preset-block">
               <span class="field-label">Encoder effort</span>
               <select class="input input--single input--mono" id="opt-preset" aria-label="Encoder effort">
@@ -422,6 +430,10 @@
           </div>
 
           <div class="run">
+            <div class="run__stage">
+              <span class="muted tiny">Estimated output</span>
+              <span id="est-size" class="muted tiny">load a file</span>
+            </div>
             <div class="run__stage">
               <span id="stage-label">idle</span>
               <span id="stage-time" class="muted tiny"></span>
