@@ -7,14 +7,14 @@
   <meta name="google-site-verification" content="YajPB0wGuLIjxwUYMtU7dbEpVAuIjnOXrYR_2mRmUS0" />
   <meta name="msvalidate.01" content="F77DFE78F7CE09D0DBC60CFB2FA27E51" />
   <title>Video Studio · tools · ranzlappen</title>
-  <meta name="description" content="Trim, reverse, boomerang, resize, crop, rotate, colour-grade and re-encode video — export MP4/WebM/GIF, PNG frames or audio, entirely in your browser." />
+  <meta name="description" content="Compress, trim, reverse, resize, crop, rotate, colour-grade and re-encode video — CRF or bitrate, frame-dropping, MP4/MKV/MOV/WebM/GIF, PNG frames or audio, entirely in your browser." />
   <meta name="theme-color" content="#0b1210" />
   <meta name="color-scheme" content="dark light" />
 
   <link rel="canonical" href="https://tools.ranzlappen.com/video/" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Video Studio · tools · ranzlappen" />
-  <meta property="og:description" content="Trim, reverse, boomerang, resize, crop, rotate, colour-grade and re-encode video — export MP4/WebM/GIF, PNG frames or audio, entirely in your browser." />
+  <meta property="og:description" content="Compress, trim, reverse, resize, crop, rotate, colour-grade and re-encode video — CRF or bitrate, frame-dropping, MP4/MKV/MOV/WebM/GIF, PNG frames or audio, entirely in your browser." />
   <meta property="og:url" content="https://tools.ranzlappen.com/video/" />
   <meta property="og:site_name" content="ranzlappen tools" />
   <meta property="og:image" content="https://tools.ranzlappen.com/assets/og.png" />
@@ -24,7 +24,7 @@
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Video Studio · tools · ranzlappen" />
-  <meta name="twitter:description" content="Trim, reverse, boomerang, resize, crop, rotate, colour-grade and re-encode video — export MP4/WebM/GIF, PNG frames or audio, entirely in your browser." />
+  <meta name="twitter:description" content="Compress, trim, reverse, resize, crop, rotate, colour-grade and re-encode video — CRF or bitrate, frame-dropping, MP4/MKV/MOV/WebM/GIF, PNG frames or audio, entirely in your browser." />
   <meta name="twitter:image" content="https://tools.ranzlappen.com/assets/og.png" />
 
 
@@ -87,7 +87,7 @@
             </div>
             <div class="tool-title__text">
               <h1>Video Studio</h1>
-              <p>Trim, reverse, resize, crop, rotate, colour-grade and re-encode — export video, GIF, PNG frames or audio, all in the browser, powered by ffmpeg.wasm.</p>
+              <p>Compress, trim, reverse, resize, crop, rotate, colour-grade and re-encode — CRF/bitrate control, frame-dropping, MP4/MKV/MOV/WebM, GIF, PNG frames or audio, all in the browser, powered by ffmpeg.wasm.</p>
             </div>
             <button type="button" class="info-btn" data-info-button aria-label="About this tool" title="About this tool">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>
@@ -190,6 +190,8 @@
                 <button type="button" class="chip" role="radio" aria-checked="false" data-opt="scale" data-value="1080">1080p</button>
                 <button type="button" class="chip" role="radio" aria-checked="false" data-opt="scale" data-value="720">720p</button>
                 <button type="button" class="chip" role="radio" aria-checked="false" data-opt="scale" data-value="480">480p</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="scale" data-value="360">360p</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="scale" data-value="240">240p</button>
               </div>
             </div>
 
@@ -275,19 +277,24 @@
           <span class="panel__sub">Encode</span>
           <div class="opt-grid">
             <div class="opt" id="opt-format-block">
-              <span class="field-label">Format</span>
+              <span class="field-label">Format · codec</span>
               <div class="chips" role="radiogroup" aria-label="Format">
                 <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="format" data-value="mp4">mp4 · h264</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="format" data-value="mkv">mkv · h264</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="format" data-value="mov">mov · h264</button>
                 <button type="button" class="chip" role="radio" aria-checked="false" data-opt="format" data-value="webm">webm · vp9</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="format" data-value="webm-vp8">webm · vp8</button>
               </div>
             </div>
 
             <div class="opt" id="opt-quality-block">
-              <span class="field-label">Quality</span>
-              <div class="chips" role="radiogroup" aria-label="Quality">
+              <span class="field-label">Quality preset</span>
+              <div class="chips" role="radiogroup" aria-label="Quality preset">
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="quality" data-value="tiny">Tiny</button>
                 <button type="button" class="chip" role="radio" aria-checked="false" data-opt="quality" data-value="low">Low</button>
                 <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="quality" data-value="medium">Medium</button>
                 <button type="button" class="chip" role="radio" aria-checked="false" data-opt="quality" data-value="high">High</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="quality" data-value="lossless">Near-lossless</button>
               </div>
             </div>
 
@@ -315,6 +322,73 @@
               </div>
             </div>
 
+          </div>
+
+          <span class="panel__sub">Compress</span>
+          <div class="opt-grid">
+            <div class="opt" id="opt-rate-block">
+              <span class="field-label">Rate control</span>
+              <div class="chips" role="radiogroup" aria-label="Rate control">
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="rateMode" data-value="crf">Quality · CRF</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="rateMode" data-value="bitrate">Target bitrate</button>
+              </div>
+            </div>
+
+            <div class="opt opt--full" id="opt-crf-block">
+              <div class="trim__row">
+                <span class="field-label">CRF — lower keeps more quality, raises file size</span>
+                <span class="trim__hint" id="crf-hint">23</span>
+              </div>
+              <input type="range" id="crf" min="0" max="51" step="1" value="23" aria-label="CRF quality" />
+            </div>
+
+            <div class="opt" id="opt-bitrate-block">
+              <span class="field-label">Target video bitrate</span>
+              <div class="trim__row">
+                <input type="number" id="bitrate" class="input input--single input--mono trim__num" min="50" max="50000" step="50" value="1000" aria-label="Target video bitrate in kilobits per second" />
+                <span class="trim__hint">kbps</span>
+              </div>
+            </div>
+
+            <div class="opt" id="opt-preset-block">
+              <span class="field-label">Encoder effort</span>
+              <select class="input input--single input--mono" id="opt-preset" aria-label="Encoder effort">
+                <option value="ultrafast">ultrafast · fastest, biggest</option>
+                <option value="superfast">superfast</option>
+                <option value="veryfast" selected>veryfast</option>
+                <option value="faster">faster</option>
+                <option value="fast">fast</option>
+                <option value="medium">medium</option>
+                <option value="slow">slow</option>
+                <option value="slower">slower</option>
+                <option value="veryslow">veryslow · slowest, smallest</option>
+              </select>
+            </div>
+
+            <div class="opt" id="opt-framedrop-block">
+              <span class="field-label">Frame drop</span>
+              <div class="chips" role="radiogroup" aria-label="Frame drop">
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="framedrop" data-value="none">None</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="framedrop" data-value="d2" title="Keep every other frame">Every 2nd</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="framedrop" data-value="d3" title="Keep 1 of every 3">2 of 3</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="framedrop" data-value="d4" title="Keep 1 of every 4">3 of 4</button>
+              </div>
+            </div>
+
+            <div class="opt" id="opt-abr-block">
+              <span class="field-label">Audio bitrate</span>
+              <div class="chips" role="radiogroup" aria-label="Audio bitrate">
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="audioBitrate" data-value="64k">64k</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="audioBitrate" data-value="96k">96k</button>
+                <button type="button" class="chip is-active" role="radio" aria-checked="true" data-opt="audioBitrate" data-value="128k">128k</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="audioBitrate" data-value="192k">192k</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="audioBitrate" data-value="256k">256k</button>
+              </div>
+            </div>
+          </div>
+
+          <span class="panel__sub">Trim</span>
+          <div class="opt-grid">
             <div class="opt opt--full" id="opt-trim-block">
               <span class="field-label">Trim</span>
               <div class="trim">

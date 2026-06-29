@@ -25,10 +25,31 @@ const CDN = {
   fflate: "https://unpkg.com/fflate@0.8.2/esm/browser.js",
 };
 
-const QUALITY_CRF = { low: 30, medium: 23, high: 18 };
+// Quality presets map to a CRF starting point; the CRF slider can then be
+// nudged from there. "tiny" leans on heavy frame loss, "lossless" is visually
+// transparent (and large).
+const QUALITY_CRF = { tiny: 36, low: 30, medium: 23, high: 18, lossless: 12 };
+const CRF_MAX = { libx264: 51, "libvpx-vp9": 63, libvpx: 63 };
+// libvpx (vp8/vp9) has no -preset; effort maps to -cpu-used (0 slow/best … 8 fast).
+const VPX_CPU = {
+  ultrafast: 8, superfast: 7, veryfast: 6, faster: 5, fast: 4,
+  medium: 3, slow: 2, slower: 1, veryslow: 0,
+};
+// container + codec per format chip. h264 lives in mp4/mkv/mov; vp9/vp8 in webm.
+const FORMATS = {
+  mp4:        { ext: "mp4",  vcodec: "libx264",     acodec: "aac",     faststart: true },
+  mkv:        { ext: "mkv",  vcodec: "libx264",     acodec: "aac",     faststart: false },
+  mov:        { ext: "mov",  vcodec: "libx264",     acodec: "aac",     faststart: true },
+  webm:       { ext: "webm", vcodec: "libvpx-vp9",  acodec: "libopus", faststart: false },
+  "webm-vp8": { ext: "webm", vcodec: "libvpx",      acodec: "libopus", faststart: false },
+};
+// How many frames each "drop" mode keeps — keep 1 of every N (n % N === 0).
+const FRAME_DROP_N = { d2: 2, d3: 3, d4: 4 };
 const FRAME_CAP = 200; // most frames we read back / render from one sequence run
 const MIME = {
   mp4: "video/mp4",
+  mkv: "video/x-matroska",
+  mov: "video/quicktime",
   webm: "video/webm",
   gif: "image/gif",
   png: "image/png",
@@ -63,6 +84,10 @@ const fadeInEl = $("#fade-in");
 const fadeOutEl = $("#fade-out");
 const fadeHint = $("#fade-hint");
 const mFpsEl = $("#m-fps");
+const presetEl = $("#opt-preset");
+const crfEl = $("#crf");
+const crfHint = $("#crf-hint");
+const bitrateEl = $("#bitrate");
 
 // ─── state ─────────────────────────────────────────────────────────────
 const state = {
@@ -73,8 +98,14 @@ const state = {
   loops: 1,               // 1 | 2 | 3
   audio: "drop",          // drop | keep | reverse
   speed: 1,
-  quality: "medium",
-  format: "mp4",          // mp4 | webm (video output only)
+  quality: "medium",      // preset that seeds the CRF slider
+  crf: 23,                // active CRF (quality-rate-control value)
+  rateMode: "crf",        // crf | bitrate
+  bitrate: 1000,          // target video bitrate in kbps (bitrate mode)
+  preset: "veryfast",     // x264 -preset / mapped to vpx -cpu-used
+  framedrop: "none",      // none | d2 | d3 | d4 — keep 1 of every N frames
+  audioBitrate: "128k",   // encoded-audio bitrate
+  format: "mp4",          // mp4 | mkv | mov | webm | webm-vp8 (video output only)
   scale: "orig",          // orig | 1080 | 720 | 480
   crop: "none",           // none | 1:1 | 9:16 | 16:9
   rotate: "none",         // none | cw | ccw | 180
@@ -400,6 +431,14 @@ function frateFilter(fr) {
     default: return "";
   }
 }
+// Decimation as a compression strategy: physically drop frames (keep 1 of every
+// N) rather than resample. Paired with `-fps_mode vfr` at encode so the kept
+// frames retain their original timestamps — the clip stays the same length but
+// carries fewer frames, which the encoder turns into real bytes saved.
+function frameDropFilter(fd) {
+  const n = FRAME_DROP_N[fd];
+  return n ? `select=not(mod(n\\,${n}))` : "";
+}
 
 // Final clip duration after mode + speed — used to place the fade-out.
 function outputDuration(tIn, tOut, speed) {
@@ -445,6 +484,9 @@ function buildArgs(inputName, outputName) {
 
   // linear segment → [v1]
   const lin = geometryColorSegment();
+  // frame decimation runs first so downstream filters touch fewer frames
+  const dropF = isGif ? "" : frameDropFilter(state.framedrop);
+  if (dropF) lin.unshift(dropF);
   if (isGif) lin.push(`fps=${state.fps === "orig" ? "15" : state.fps}`);
   else if (state.fps !== "orig") lin.push(`fps=${state.fps}`);
   if (speed !== 1) lin.push(`setpts=PTS/${speed}`);
@@ -513,28 +555,49 @@ function buildArgs(inputName, outputName) {
     return args;
   }
 
-  const crf = QUALITY_CRF[state.quality] ?? 23;
-  if (state.format === "mp4") {
-    args.push(
-      "-c:v", "libx264",
-      "-preset", "veryfast",
-      "-crf", String(crf),
-      "-pix_fmt", "yuv420p",
-      "-movflags", "+faststart",
-    );
-    if (hasAudio) args.push("-c:a", "aac", "-b:a", "128k");
+  const fmt = FORMATS[state.format] || FORMATS.mp4;
+  const useBitrate = state.rateMode === "bitrate";
+  const vbr = `${clampBitrate(state.bitrate)}k`;
+  const crf = clampCrf(state.crf, fmt.vcodec);
+
+  if (fmt.vcodec === "libx264") {
+    args.push("-c:v", "libx264", "-preset", state.preset, "-pix_fmt", "yuv420p");
+    if (useBitrate) args.push("-b:v", vbr);
+    else args.push("-crf", String(crf));
+    if (fmt.faststart) args.push("-movflags", "+faststart");
+    if (hasAudio) args.push("-c:a", "aac", "-b:a", state.audioBitrate);
   } else {
-    args.push(
-      "-c:v", "libvpx-vp9",
-      "-b:v", "0",
-      "-crf", String(Math.min(crf + 5, 40)),
-      "-row-mt", "1",
-    );
-    if (hasAudio) args.push("-c:a", "libopus", "-b:a", "128k");
+    // libvpx-vp9 / libvpx (vp8): -cpu-used stands in for -preset
+    args.push("-c:v", fmt.vcodec, "-row-mt", "1", "-deadline", "good",
+      "-cpu-used", String(VPX_CPU[state.preset] ?? 4));
+    if (useBitrate) {
+      args.push("-b:v", vbr);
+    } else if (fmt.vcodec === "libvpx-vp9") {
+      // VP9 constant quality: crf with no target bitrate
+      args.push("-b:v", "0", "-crf", String(crf));
+    } else {
+      // VP8 constrained quality needs a bitrate ceiling alongside crf
+      args.push("-crf", String(crf), "-b:v", vbr);
+    }
+    if (hasAudio) args.push("-c:a", "libopus", "-b:a", state.audioBitrate);
   }
+
+  // Honour the dropped-frame timestamps instead of padding back to CFR, so the
+  // decimation actually removes frames (and bytes) from the output.
+  if (state.framedrop !== "none") args.push("-fps_mode", "vfr");
 
   args.push(outputName);
   return args;
+}
+
+function clampCrf(v, vcodec) {
+  const max = CRF_MAX[vcodec] ?? 51;
+  const n = Math.round(Number(v));
+  return Math.max(0, Math.min(max, Number.isFinite(n) ? n : 23));
+}
+function clampBitrate(v) {
+  const n = Math.round(Number(v));
+  return Math.max(50, Math.min(50000, Number.isFinite(n) ? n : 1000));
 }
 
 // Single PNG still. Accurate input seek lands on the frame-snapped timestamp
@@ -562,7 +625,7 @@ function buildFramesArgs(inputName, tIn, tOut) {
 function buildAudioArgs(inputName, outputName, tIn, tOut, speed) {
   const args = ["-ss", tIn.toFixed(3), "-to", tOut.toFixed(3), "-i", inputName, "-vn"];
   if (speed !== 1) args.push("-filter:a", atempoChain(speed));
-  args.push("-c:a", "aac", "-b:a", "192k", outputName);
+  args.push("-c:a", "aac", "-b:a", state.audioBitrate, outputName);
   return args;
 }
 
@@ -583,7 +646,7 @@ function outExt() {
     case "frame": return "png";
     case "frames": return "png";
     case "audio": return "m4a";
-    default: return state.format; // mp4 | webm
+    default: return (FORMATS[state.format] || FORMATS.mp4).ext; // mp4 | mkv | mov | webm
   }
 }
 function outputSuffix() {
@@ -885,6 +948,24 @@ async function downloadFramesZip(files, base, btn) {
 }
 
 // ─── output-type visibility ────────────────────────────────────────────
+function showBlock(id, on) {
+  const el = $("#" + id);
+  // .opt { display:flex } beats the `hidden` attribute, so toggle inline.
+  if (el) el.style.display = on ? "" : "none";
+}
+// Only one of CRF / bitrate is relevant at a time; the other hides.
+function updateRateVisibility() {
+  if (state.output !== "video") return; // both already hidden for non-video
+  showBlock("opt-crf-block", state.rateMode === "crf");
+  showBlock("opt-bitrate-block", state.rateMode === "bitrate");
+}
+
+// compression controls that only make sense for the re-encoded video path
+const COMPRESS_BLOCKS = [
+  "opt-rate-block", "opt-crf-block", "opt-bitrate-block",
+  "opt-preset-block", "opt-framedrop-block", "opt-abr-block",
+];
+
 function applyOutputVisibility() {
   const o = state.output;
   const all = [
@@ -892,35 +973,38 @@ function applyOutputVisibility() {
     "opt-scale-block", "opt-crop-block", "opt-rotate-block", "opt-flip-block",
     "opt-color-block", "opt-fps-block", "opt-frate-block", "opt-fade-block",
     "opt-format-block", "opt-quality-block", "opt-audio-block", "opt-fpssrc-block",
-    "opt-trim-block",
+    "opt-trim-block", ...COMPRESS_BLOCKS,
   ];
-  const show = (id, on) => {
-    const el = $("#" + id);
-    // .opt { display:flex } beats the `hidden` attribute, so toggle inline.
-    if (el) el.style.display = on ? "" : "none";
-  };
 
   const hide = {
-    // frame export rate is only meaningful for the frame sequence
+    // frame export rate is only meaningful for the frame sequence; compress
+    // controls all apply to video
     video: ["opt-frate-block"],
-    gif: ["opt-frate-block", "opt-format-block", "opt-audio-block"],
+    // gif quality is palette/fps driven, not codec/CRF driven
+    gif: ["opt-frate-block", "opt-format-block", "opt-audio-block", ...COMPRESS_BLOCKS],
     frame: [
       "opt-frate-block", "opt-format-block", "opt-quality-block", "opt-audio-block",
       "opt-loops-block", "opt-speed-block", "opt-fps-block", "opt-fade-block", "opt-mode-block",
+      ...COMPRESS_BLOCKS,
     ],
     frames: [
       "opt-format-block", "opt-quality-block", "opt-audio-block",
       "opt-loops-block", "opt-speed-block", "opt-fps-block", "opt-fade-block", "opt-mode-block",
+      ...COMPRESS_BLOCKS,
     ],
+    // audio export keeps only the audio-bitrate control from the compress group
     audio: [
       "opt-frate-block", "opt-scale-block", "opt-crop-block", "opt-rotate-block",
       "opt-flip-block", "opt-color-block", "opt-fps-block", "opt-fade-block",
       "opt-loops-block", "opt-mode-block", "opt-format-block", "opt-quality-block",
       "opt-fpssrc-block",
+      "opt-rate-block", "opt-crf-block", "opt-bitrate-block",
+      "opt-preset-block", "opt-framedrop-block",
     ],
   }[o] || [];
 
-  all.forEach((id) => show(id, !hide.includes(id)));
+  all.forEach((id) => showBlock(id, !hide.includes(id)));
+  updateRateVisibility();
 }
 
 // ─── UI wiring ─────────────────────────────────────────────────────────
@@ -973,6 +1057,12 @@ document.addEventListener("click", (e) => {
     } else {
       state[opt] = val;
     }
+    // a quality preset seeds the CRF slider
+    if (opt === "quality") {
+      state.crf = QUALITY_CRF[val] ?? state.crf;
+      syncCrfUI();
+    }
+    if (opt === "rateMode") updateRateVisibility();
     if (opt === "output") applyOutputVisibility();
     return;
   }
@@ -1006,6 +1096,33 @@ if (fadeOutEl) {
   fadeOutEl.addEventListener("input", () => {
     state.fadeOut = parseFloat(fadeOutEl.value) || 0;
     updateFadeHint();
+  });
+}
+
+// ─── compression controls ──────────────────────────────────────────────
+function syncCrfUI() {
+  if (crfEl) crfEl.value = String(state.crf);
+  if (crfHint) crfHint.textContent = String(state.crf);
+}
+if (crfEl) {
+  crfEl.addEventListener("input", () => {
+    state.crf = clampCrf(crfEl.value, (FORMATS[state.format] || FORMATS.mp4).vcodec);
+    if (crfHint) crfHint.textContent = String(state.crf);
+    // a hand-set CRF no longer matches a named preset — drop the highlight
+    state.quality = "custom";
+    document.querySelectorAll('[data-opt="quality"]').forEach((c) => {
+      c.classList.remove("is-active");
+      c.setAttribute("aria-checked", "false");
+    });
+  });
+}
+if (presetEl) {
+  presetEl.addEventListener("change", () => { state.preset = presetEl.value; });
+}
+if (bitrateEl) {
+  bitrateEl.addEventListener("change", () => {
+    state.bitrate = clampBitrate(bitrateEl.value);
+    bitrateEl.value = String(state.bitrate);
   });
 }
 
@@ -1086,6 +1203,12 @@ function resetOptions() {
   state.audio = "drop";
   state.speed = 1;
   state.quality = "medium";
+  state.crf = QUALITY_CRF.medium;
+  state.rateMode = "crf";
+  state.bitrate = 1000;
+  state.preset = "veryfast";
+  state.framedrop = "none";
+  state.audioBitrate = "128k";
   state.format = "mp4";
   state.scale = "orig";
   state.crop = "none";
@@ -1104,6 +1227,9 @@ function resetOptions() {
     c.setAttribute("aria-checked", active ? "true" : "false");
   });
   optSpeed.value = "1";
+  if (presetEl) presetEl.value = state.preset;
+  if (bitrateEl) bitrateEl.value = String(state.bitrate);
+  syncCrfUI();
   if (fadeInEl) fadeInEl.value = "0";
   if (fadeOutEl) fadeOutEl.value = "0";
   updateFadeHint();
@@ -1131,6 +1257,7 @@ setStage("idle");
 applyOutputVisibility();
 syncFpsPickChips();
 updateFadeHint();
+syncCrfUI();
 updateFrameInfo();
 log(
   self.crossOriginIsolated && typeof SharedArrayBuffer === "function"

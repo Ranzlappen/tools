@@ -7,6 +7,21 @@ All notable changes to **tools** are recorded here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Video Studio — deep compression & format controls (`video/`).** A new
+  **Compress** sub-section turns the tool into a real size-reducer: **rate
+  control** toggle between *Quality · CRF* and *Target bitrate*; a **CRF
+  slider** (0–51, clamped per codec) seeded by the quality presets (now
+  tiny / low / medium / high / near-lossless); an **encoder effort** select
+  (H.264 `-preset` ultrafast…veryslow, mapped to libvpx `-cpu-used`); an
+  **audio-bitrate** picker (64k–256k) wired into both muxed and audio-only
+  exports; and **frame dropping** — keep every 2nd / 1-of-3 / 1-of-4 frame
+  via `select=not(mod(n\,N))` + `-fps_mode vfr`, so frames are physically
+  removed (same length, fewer frames, smaller file) rather than resampled.
+  The format list grew from MP4/WebM to **MP4, MKV, MOV (H.264), WebM (VP9),
+  and WebM (VP8)** via a `FORMATS` map, and the scale presets gained **360p
+  and 240p**. Codec args are now data-driven; rate values are range-clamped
+  (`clampCrf`/`clampBitrate`). No new dependencies — still ffmpeg.wasm,
+  no build step.
 - **HTML Builder — grid editor, image upload & HTML import.** Three follow-up
   features for `html-builder/`: (1) a **visual grid editor** — when an element
   is `display:grid`, the Layout inspector shows a track editor (add/remove
