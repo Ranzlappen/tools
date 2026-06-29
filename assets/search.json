@@ -38,7 +38,7 @@
   {
     "title": "Video Studio",
     "url": "/video/",
-    "description": "Trim, reverse, resize, crop, rotate, colour-grade and re-encode video — export video, GIF, PNG frames or audio, in the browser via ffmpeg.wasm.",
+    "description": "Compress, trim, reverse, resize, crop, rotate and re-encode video — CRF or bitrate, frame-dropping, MP4/MKV/MOV/WebM/GIF, PNG frames or audio, in the browser via ffmpeg.wasm.",
     "group": "Tools"
   },
   {

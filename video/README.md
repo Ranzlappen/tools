@@ -9,10 +9,14 @@
 Drop a video file in, pick what to make — a trimmed/converted clip, a
 boomerang, a GIF, a single PNG frame, a whole PNG frame-sequence, or just
 the audio — then layer on resize, crop, rotate/flip, a colour preset, a
-fade and frame-rate changes. A frame-perfect trim shows exact frame
-numbers and snaps to frame boundaries. Nothing leaves your machine — the
-entire ffmpeg pipeline runs in WebAssembly. The wasm core lazy-loads on
-first run so the dashboard's first-paint budget is untouched.
+fade and frame-rate changes. A deep **Compress** section lets you change
+container/codec, pick CRF or target-bitrate rate control, dial the encoder
+effort, cap the audio bitrate, and even **drop frames** (keep every 2nd,
+every 3rd, every 4th) as a brute-force size reduction. A frame-perfect
+trim shows exact frame numbers and snaps to frame boundaries. Nothing
+leaves your machine — the entire ffmpeg pipeline runs in WebAssembly. The
+wasm core lazy-loads on first run so the dashboard's first-paint budget is
+untouched.
 
 ## User guide
 
@@ -22,8 +26,9 @@ first run so the dashboard's first-paint budget is untouched.
   (forward + reverse), *reverse-only*, or *palindrome* (held endpoints).
 - **Output type** — Video (MP4/WebM), **GIF**, a single **Frame · PNG**, a
   **PNG frame-sequence**, or **Audio · m4a**.
-- **Scale** — keep original or resize to 1080p / 720p / 480p
-  (`scale=-2:<h>`, aspect-preserving, even dimensions).
+- **Scale** — keep original or resize to 1080p / 720p / 480p / 360p / 240p
+  (`scale=-2:<h>`, aspect-preserving, even dimensions). Smaller scales are
+  one of the biggest single wins for file size.
 - **Crop aspect** — centred 1:1 / 9:16 / 16:9 via `crop='min(…)':'…'`.
 - **Rotate / Flip** — 90° CW/CCW or 180° (`transpose`), horizontal or
   vertical (`hflip` / `vflip`).
@@ -45,9 +50,29 @@ first run so the dashboard's first-paint budget is untouched.
   palindrome), or reverse with the video. Audio-only export is AAC/m4a.
 - **Speed** — 0.25× to 4× via `setpts` plus chained `atempo` for the
   extremes.
-- **Quality preset** — low / medium / high → CRF 30 / 23 / 18.
-- **Output format** — MP4 (H.264 + AAC, faststart) or WebM (VP9 +
-  Opus, row-mt).
+- **Output format · codec** — MP4 (H.264 + AAC, faststart), MKV (H.264 +
+  AAC), MOV (H.264 + AAC, faststart), WebM (VP9 + Opus), or WebM (VP8 +
+  Opus). The container's extension drives the muxer.
+
+#### Compress
+
+- **Quality preset** — tiny / low / medium / high / near-lossless seed the
+  CRF slider (CRF 36 / 30 / 23 / 18 / 12).
+- **Rate control** — *Quality · CRF* (constant-quality, variable size) or
+  *Target bitrate* (you set the kbps; CRF is ignored). For VP9, CRF mode is
+  true constant-quality (`-b:v 0`); for VP8 the bitrate field acts as a
+  ceiling alongside the CRF.
+- **CRF slider** — 0–51 fine control (lower = better quality, bigger file).
+  Hand-setting it drops the preset highlight. Clamped per codec (H.264 ≤ 51,
+  VP8/VP9 ≤ 63).
+- **Encoder effort** — H.264 `-preset` (ultrafast … veryslow); for VP8/VP9
+  it maps to `-cpu-used` 8…0. Slower = smaller for the same quality.
+- **Frame drop** — keep every 2nd / 1-of-3 / 1-of-4 frame
+  (`select=not(mod(n\,N))`) with `-fps_mode vfr`, so frames are physically
+  removed (same clip length, fewer frames, real bytes saved) rather than
+  resampled. Video output only.
+- **Audio bitrate** — 64k / 96k / 128k / 192k / 256k for the encoded audio
+  track (AAC or Opus) and for audio-only m4a export.
 - **Loop count** — 1× / 2× / 3× via filter-graph split + concat (GIF
   loops on playback instead).
 - **Drag-and-drop** with metadata preview (filename, size, duration,
@@ -79,6 +104,12 @@ first run so the dashboard's first-paint budget is untouched.
 - **Contact sheet:** output *Frames · PNG set* + rate *1 / sec* → a gallery
   you can zip.
 - **Strip the audio:** output *Audio · m4a*.
+- **Shrink for sharing:** scale *480p* + *Quality · CRF* ~28 + encoder
+  effort *slow* + audio *128k* → a much smaller MP4 that still looks fine.
+- **Aggressive size cut:** scale *360p* + frame drop *Every 2nd* + quality
+  *tiny* → tiny file, choppier motion (the brute-force route).
+- **Hit a size target:** *Target bitrate* mode + e.g. *800* kbps → output
+  tracks roughly that video bitrate regardless of content.
 
 ### Privacy
 
@@ -92,8 +123,8 @@ static file requests, never your video.
 ### File layout
 
 - `index.html` — drop zone, metadata preview, the Options panel
-  (Transform / Frame / Look / Encode sub-sections), render log, export
-  area.
+  (Transform / Frame / Look / Encode / Compress / Trim sub-sections),
+  render log, export area.
 - `tool.js` — file pickup, frame-perfect helpers, `buildArgs()` and its
   per-output builders, the ffmpeg worker lifecycle, frame-sequence
   collection/gallery, progress wiring, export.
@@ -107,7 +138,14 @@ static file requests, never your video.
 - Each option block has a stable id (`opt-<name>-block`) so
   `applyOutputVisibility()` can show/hide whole groups per output type.
   Note: `.opt { display:flex }` overrides the `hidden` attribute, so
-  visibility is toggled via inline `style.display`.
+  visibility is toggled via inline `style.display` (`showBlock()`).
+- The compress group (`COMPRESS_BLOCKS`) shows only for video output
+  (audio output keeps just the audio-bitrate chip). Within video,
+  `updateRateVisibility()` shows the CRF slider or the bitrate field
+  depending on the **Rate control** chip.
+- CRF/bitrate/effort hooks: `#crf` (range, mirrored to `#crf-hint`),
+  `#bitrate` (number), `#opt-preset` (select). A `quality` chip seeds
+  `state.crf` and the slider; dragging the slider clears the preset chips.
 - Trim: `#trim-in/-out` (numbers), `#trim-in-r/-out-r` (ranges),
   `#trim-window` (frame readout), `#trim-*-prev/next` (frame nudge).
 - Frame rate: `#fps-src` (number) + `data-opt="fpsSrcPick"` presets;
@@ -150,7 +188,14 @@ The filter model is a **hybrid**:
 `buildArgs()` branches early per output type into `buildFrameArgs()`,
 `buildFramesArgs()` and `buildAudioArgs()`; GIF reuses the video graph but
 terminates into a single-pass `split,palettegen,paletteuse` palette
-pipeline. New codecs swap only the codec block at the end of `buildArgs()`.
+pipeline. The codec block at the end is driven by the `FORMATS` map
+(`{ ext, vcodec, acodec, faststart }`) — to add a container/codec, add an
+entry and a `format` chip; H.264 uses `-preset`, libvpx uses `-cpu-used`
+(via `VPX_CPU`). Rate control reads `state.rateMode` (`-crf` vs `-b:v`),
+clamped by `clampCrf()` / `clampBitrate()`. **Frame drop** is a linear
+`select` filter (`frameDropFilter()`) unshifted to the front of the linear
+segment, paired with `-fps_mode vfr` so the dropped frames are not padded
+back to CFR.
 
 **Source FPS** is user-set (with quick-picks) because HTML5 video metadata
 exposes no frame rate, and eagerly probing via ffmpeg.wasm would defeat the
@@ -171,7 +216,16 @@ lazy-load budget. It is best-effort auto-corrected by parsing the
 - **Frame-sequence memory** is capped — at most 200 frames are read back
   and shown from one run (the warning tells you how many were produced).
 - **Audio export is AAC/m4a** — `libmp3lame` is usually absent from
-  `@ffmpeg/core`, so MP3 is not offered.
+  `@ffmpeg/core`, so MP3 is not offered. The format list is limited to the
+  codecs the core ships (H.264, VP8, VP9); H.265/AV1 are not built in.
+- **VP8 CRF needs a ceiling** — libvpx VP8 has no pure constant-quality
+  mode, so in CRF mode the *Target bitrate* value is used as an upper
+  bound. For predictable VP8 sizing, use *Target bitrate* mode.
+- **Frame drop + Output FPS conflict** — setting a non-original Output FPS
+  resamples after the drop, which re-fills frames and negates the saving.
+  Use one or the other.
+- **MKV/MOV may not preview in-page** — some browsers can't play the MKV
+  container inline; the result still downloads correctly.
 - WebM with audio re-encoding can be slow on lower-end hardware; ffmpeg.wasm
   has no GPU access, so large 4K files take real time.
 - Output / frame `URL.createObjectURL` results are revoked on reset / new
