@@ -174,6 +174,7 @@
           <div class="chips" id="yt-presets" role="group" aria-label="Presets">
             <button type="button" class="chip" data-preset="mp3">★ Max-quality MP3</button>
             <button type="button" class="chip" data-preset="playlist">≣ Whole playlist → MP3</button>
+            <button type="button" class="chip" data-preset="split">✂ Multi-song video → split</button>
             <button type="button" class="chip" data-preset="private">🔒 Private playlist</button>
           </div>
         </section>
@@ -256,6 +257,13 @@
             </div>
           </div>
 
+          <div>
+            <span class="field-label">Multi-song video</span>
+            <div class="chips" id="yt-split" role="group" aria-label="Auto-cut">
+              <button type="button" class="chip" aria-pressed="false" data-action="yt-split-toggle">✂ Auto-cut into one file per chapter</button>
+            </div>
+          </div>
+
           <div class="ytm-grid">
             <div class="ytm-field">
               <label class="field-label" for="yt-scope">Scope</label>
@@ -268,6 +276,11 @@
               <label class="field-label" for="yt-items">Playlist items (optional)</label>
               <input id="yt-items" class="input input--single input--mono" type="text" spellcheck="false"
                      placeholder="e.g. 1-10  or  1,3,5-8" />
+            </div>
+            <div class="ytm-field ytm-hidden" id="yt-chapter-field">
+              <label class="field-label" for="yt-chapter">Per-song filename template</label>
+              <input id="yt-chapter" class="input input--single input--mono" type="text" spellcheck="false"
+                     value="%(title)s/%(section_number)02d - %(section_title)s.%(ext)s" />
             </div>
           </div>
 
