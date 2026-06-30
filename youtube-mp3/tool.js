@@ -17,7 +17,7 @@ const els = {
   quality: $("yt-quality"),
   concurrent: $("yt-concurrent"),
   embed: $("yt-embed"),
-  split: $("yt-split"),
+  splitInput: $("yt-split-input"),
   chapterField: $("yt-chapter-field"),
   chapter: $("yt-chapter"),
   scope: $("yt-scope"),
@@ -27,7 +27,7 @@ const els = {
   folder: $("yt-folder"),
   folderMode: $("yt-folder-mode"),
   cleanupField: $("yt-cleanup-field"),
-  cleanup: $("yt-cleanup"),
+  cleanupInput: $("yt-cleanup-input"),
   auth: $("yt-auth"),
   browserField: $("yt-browser-field"),
   browser: $("yt-browser"),
@@ -77,40 +77,28 @@ function escapeHtml(s) {
 function embedState() {
   const state = {};
   els.embed.querySelectorAll("[data-flag]").forEach((b) => {
-    state[b.dataset.flag] = b.getAttribute("aria-pressed") === "true";
+    state[b.dataset.flag] = b.checked;
   });
   return state;
 }
 
-// The single "Auto-cut into one file per chapter" toggle chip.
-function splitChip() {
-  return els.split.querySelector("[data-action='yt-split-toggle']");
-}
-
+// "Auto-cut into one file per chapter" checkbox.
 function isSplit() {
-  return splitChip().getAttribute("aria-pressed") === "true";
+  return els.splitInput.checked;
 }
 
 function setSplit(on) {
-  const chip = splitChip();
-  chip.setAttribute("aria-pressed", String(on));
-  chip.classList.toggle("is-active", on);
+  els.splitInput.checked = on;
 }
 
-// The "Delete urls.txt when done" toggle chip — only takes effect in the
-// signed-in batch flow (when the command reads `-a urls.txt`).
-function cleanupChip() {
-  return els.cleanup.querySelector("[data-action='yt-cleanup-toggle']");
-}
-
+// "Delete urls.txt when done" checkbox — only takes effect in the signed-in
+// batch flow (when the command reads `-a urls.txt`).
 function isCleanup() {
-  return cleanupChip().getAttribute("aria-pressed") === "true";
+  return els.cleanupInput.checked;
 }
 
 function setCleanup(on) {
-  const chip = cleanupChip();
-  chip.setAttribute("aria-pressed", String(on));
-  chip.classList.toggle("is-active", on);
+  els.cleanupInput.checked = on;
 }
 
 // Build an array of { t, s } tokens: t is 'cmd' | 'flag' | 'val' | 'str' | 'op'
@@ -258,9 +246,7 @@ function syncVisibility() {
 
 function setEmbed(map) {
   els.embed.querySelectorAll("[data-flag]").forEach((b) => {
-    const on = !!map[b.dataset.flag];
-    b.setAttribute("aria-pressed", String(on));
-    b.classList.toggle("is-active", on);
+    b.checked = !!map[b.dataset.flag];
   });
 }
 
@@ -413,26 +399,9 @@ els.url.addEventListener("input", render);
 els.options.addEventListener("input", render);
 els.options.addEventListener("change", render);
 
-els.embed.addEventListener("click", (ev) => {
-  const chip = ev.target.closest("[data-flag]");
-  if (!chip) return;
-  const on = chip.getAttribute("aria-pressed") !== "true";
-  chip.setAttribute("aria-pressed", String(on));
-  chip.classList.toggle("is-active", on);
-  render();
-});
-
-els.split.addEventListener("click", (ev) => {
-  if (!ev.target.closest("[data-action='yt-split-toggle']")) return;
-  setSplit(!isSplit());
-  render();
-});
-
-els.cleanup.addEventListener("click", (ev) => {
-  if (!ev.target.closest("[data-action='yt-cleanup-toggle']")) return;
-  setCleanup(!isCleanup());
-  render();
-});
+// The embed / split / cleanup checkboxes live inside #yt-options, so their
+// change events bubble to the listeners above and re-render — no per-group
+// click wiring needed.
 
 els.presets.addEventListener("click", (ev) => {
   const chip = ev.target.closest("[data-preset]");
