@@ -26,6 +26,7 @@ const els = {
   output: $("yt-output"),
   folder: $("yt-folder"),
   folderMode: $("yt-folder-mode"),
+  folderNote: $("yt-folder-note"),
   cleanupField: $("yt-cleanup-field"),
   cleanupInput: $("yt-cleanup-input"),
   auth: $("yt-auth"),
@@ -385,6 +386,18 @@ function clearList() {
   loaded = { videos: [], title: "" };
   status(yt.signedIn() ? "Pick a playlist, then “Load videos”." : "");
   render();
+}
+
+// On Android the most common pain is files landing in Termux's private home,
+// invisible to other apps. Default the target folder to shared storage so the
+// command always lands somewhere the file browser / music app can read.
+const IS_ANDROID = /Android/i.test(navigator.userAgent || "");
+const ANDROID_DIR = "/sdcard/Download";
+if (IS_ANDROID) {
+  if (!els.folder.value.trim()) els.folder.value = ANDROID_DIR;
+  els.folderNote.innerHTML =
+    `Saving to <strong>${escapeHtml(ANDROID_DIR)}</strong> so files are visible outside Termux. ` +
+    `Run <code>termux-setup-storage</code> once to grant access.`;
 }
 
 // If a client ID was never configured, say so up front (the button still works

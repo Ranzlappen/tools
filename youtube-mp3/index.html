@@ -327,6 +327,7 @@
               </select>
             </div>
           </div>
+          <p class="ytm-note" id="yt-folder-note"></p>
 
           <div id="yt-cleanup-field" class="ytm-hidden">
             <span class="field-label">After a signed-in batch download</span>
@@ -400,6 +401,10 @@
           </dl>
           <p class="ytm-note">On Android, <code>--cookies-from-browser</code> can't read system Chrome — export a
             <code>cookies.txt</code> and choose the “From cookies.txt” option above.</p>
+          <p class="ytm-note">Android files vanishing? Termux's home is private to other apps. Run
+            <code>termux-setup-storage</code> once, then save into a shared path like
+            <code>/sdcard/Download</code> (pre-filled in <strong>Save into folder</strong> on Android) so your
+            music app and file browser can see the tracks.</p>
         </section>
 
       </div>
