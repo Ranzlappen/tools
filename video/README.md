@@ -12,7 +12,10 @@ the audio — then layer on resize, crop, rotate/flip, a colour preset, a
 fade and frame-rate changes. A deep **Compress** section lets you change
 container/codec, pick CRF or target-bitrate rate control, dial the encoder
 effort, cap the audio bitrate, and even **drop frames** (keep every 2nd,
-every 3rd, every 4th) as a brute-force size reduction. A frame-perfect
+every 3rd, every 4th) as a brute-force size reduction. A live **estimated
+output size** updates as you change settings, an optional **two-pass**
+encode hits a target bitrate accurately, and after each run a
+**before/after** panel shows exactly how much you saved. A frame-perfect
 trim shows exact frame numbers and snaps to frame boundaries. Nothing
 leaves your machine — the entire ffmpeg pipeline runs in WebAssembly. The
 wasm core lazy-loads on first run so the dashboard's first-paint budget is
@@ -71,8 +74,18 @@ untouched.
   (`select=not(mod(n\,N))`) with `-fps_mode vfr`, so frames are physically
   removed (same clip length, fewer frames, real bytes saved) rather than
   resampled. Video output only.
+- **Two-pass** — in *Target bitrate* mode, run a real two-pass encode
+  (analyse, then encode) so the output lands much closer to the requested
+  bitrate. Costs ~2× the encode time; off by default.
 - **Audio bitrate** — 64k / 96k / 128k / 192k / 256k for the encoded audio
   track (AAC or Opus) and for audio-only m4a export.
+- **Estimated output size** — a live `≈ size` readout in the Run panel,
+  recomputed on every change from resolution, rate control, frame rate,
+  frame drop and duration. *Target bitrate* is labelled `(target)` — it's the
+  size implied by the requested bitrate (single-pass ABR lands near it,
+  two-pass closer); CRF is a `(rough estimate)` from a bits-per-pixel model.
+- **Before / after** — the result panel reports original vs output size and
+  the percent saved (or gained), so the win is visible at a glance.
 - **Loop count** — 1× / 2× / 3× via filter-graph split + concat (GIF
   loops on playback instead).
 - **Drag-and-drop** with metadata preview (filename, size, duration,
@@ -197,6 +210,16 @@ clamped by `clampCrf()` / `clampBitrate()`. **Frame drop** is a linear
 segment, paired with `-fps_mode vfr` so the dropped frames are not padded
 back to CFR.
 
+**Two-pass** (bitrate mode only) is driven by an `opts.pass` argument to
+`buildArgs()`: pass 1 drops audio and discards output through the null
+muxer (`-f null /dev/null`, which needs no seekable file — unlike the MP4
+muxer), both passes share `-passlogfile ff2pass`, and `run()` executes the
+two argvs back to back, deleting the `ff2pass-0.log*` files afterwards. The **size estimate** (`estimateBytes()`
+/ `updateEstimate()`, with `bppForCrf()` for the CRF path) is pure UI — it
+never touches ffmpeg — and is refreshed from `updateTrimWindow()` plus the
+chip/slider handlers. The **before/after** panel is built in
+`renderOutput()` from `state.file.size` vs the result blob size.
+
 **Source FPS** is user-set (with quick-picks) because HTML5 video metadata
 exposes no frame rate, and eagerly probing via ffmpeg.wasm would defeat the
 lazy-load budget. It is best-effort auto-corrected by parsing the
@@ -226,6 +249,16 @@ lazy-load budget. It is best-effort auto-corrected by parsing the
   Use one or the other.
 - **MKV/MOV may not preview in-page** — some browsers can't play the MKV
   container inline; the result still downloads correctly.
+- **Size estimate is approximate** — the CRF estimate uses a generic
+  bits-per-pixel model and ignores scene complexity, so it can be off by a
+  fair margin on very flat or very busy footage. The *Target bitrate* figure
+  reflects the requested bitrate (single-pass ABR can still overshoot or
+  undershoot it; two-pass tracks it more closely). It also folds in the audio
+  bitrate whenever audio is kept, even if the source has no audio track. GIF /
+  PNG outputs aren't estimated.
+- **Two-pass is bitrate-only** — it has no effect in CRF mode and roughly
+  doubles encode time; it writes a transient rate-control log to the
+  in-memory FS that is cleaned up after the run.
 - WebM with audio re-encoding can be slow on lower-end hardware; ffmpeg.wasm
   has no GPU access, so large 4K files take real time.
 - Output / frame `URL.createObjectURL` results are revoked on reset / new

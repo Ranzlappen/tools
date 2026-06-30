@@ -88,6 +88,7 @@ const presetEl = $("#opt-preset");
 const crfEl = $("#crf");
 const crfHint = $("#crf-hint");
 const bitrateEl = $("#bitrate");
+const estSizeEl = $("#est-size");
 
 // ─── state ─────────────────────────────────────────────────────────────
 const state = {
@@ -102,6 +103,7 @@ const state = {
   crf: 23,                // active CRF (quality-rate-control value)
   rateMode: "crf",        // crf | bitrate
   bitrate: 1000,          // target video bitrate in kbps (bitrate mode)
+  twopass: "off",         // off | on — two-pass encode in bitrate mode
   preset: "veryfast",     // x264 -preset / mapped to vpx -cpu-used
   framedrop: "none",      // none | d2 | d3 | d4 — keep 1 of every N frames
   audioBitrate: "128k",   // encoded-audio bitrate
@@ -375,6 +377,7 @@ function updateTrimWindow() {
   const fb = frameAt(b);
   trimWindow.textContent =
     `window: ${fmtTime(a)} → ${fmtTime(b)} · ${(b - a).toFixed(2)} s · frame ${fa} → ${fb} (${fb - fa} f)`;
+  updateEstimate();
 }
 
 // ─── filter pieces (linear, comma-joined) ──────────────────────────────
@@ -460,7 +463,7 @@ function videoModeStage() {
 }
 
 // ─── argv builder ──────────────────────────────────────────────────────
-function buildArgs(inputName, outputName) {
+function buildArgs(inputName, outputName, opts = {}) {
   const dur = state.meta?.duration || 0;
   const tIn = Math.max(0, parseFloat(trimIn.value) || 0);
   const tOut = Math.max(tIn + 0.01, parseFloat(trimOut.value) || dur);
@@ -472,8 +475,11 @@ function buildArgs(inputName, outputName) {
   if (state.output === "audio") return buildAudioArgs(inputName, outputName, tIn, tOut, speed);
 
   // ── video / gif ──
+  // opts.pass: 0 single-pass, or 1/2 for a two-pass bitrate encode. Pass 1
+  // analyses only — no audio, output muxed to the null sink.
+  const passOne = opts.pass === 1;
   const isGif = state.output === "gif";
-  const hasAudio = state.output === "video" && state.audio !== "drop";
+  const hasAudio = state.output === "video" && state.audio !== "drop" && !passOne;
   const hasAudioMatch = state.mode === "boomerang" || state.mode === "palindrome";
   const outDur = outputDuration(tIn, tOut, speed);
 
@@ -564,7 +570,7 @@ function buildArgs(inputName, outputName) {
     args.push("-c:v", "libx264", "-preset", state.preset, "-pix_fmt", "yuv420p");
     if (useBitrate) args.push("-b:v", vbr);
     else args.push("-crf", String(crf));
-    if (fmt.faststart) args.push("-movflags", "+faststart");
+    if (fmt.faststart && !passOne) args.push("-movflags", "+faststart");
     if (hasAudio) args.push("-c:a", "aac", "-b:a", state.audioBitrate);
   } else {
     // libvpx-vp9 / libvpx (vp8): -cpu-used stands in for -preset
@@ -582,11 +588,18 @@ function buildArgs(inputName, outputName) {
     if (hasAudio) args.push("-c:a", "libopus", "-b:a", state.audioBitrate);
   }
 
+  // two-pass: -pass + shared log file (bitrate mode only)
+  if (opts.pass) args.push("-pass", String(opts.pass), "-passlogfile", opts.passlog || "ff2pass");
+
   // Honour the dropped-frame timestamps instead of padding back to CFR, so the
   // decimation actually removes frames (and bytes) from the output.
   if (state.framedrop !== "none") args.push("-fps_mode", "vfr");
 
-  args.push(outputName);
+  // pass 1 discards output via the null muxer (no seekable file needed; -an
+  // is already set above by the no-audio map branch). The encoder still
+  // writes the rate-control log the second pass reads.
+  if (passOne) args.push("-f", "null", "/dev/null");
+  else args.push(outputName);
   return args;
 }
 
@@ -598,6 +611,73 @@ function clampCrf(v, vcodec) {
 function clampBitrate(v) {
   const n = Math.round(Number(v));
   return Math.max(50, Math.min(50000, Number.isFinite(n) ? n : 1000));
+}
+
+// ─── output-size estimate ───────────────────────────────────────────────
+// Rough bits-per-pixel-per-frame for a CRF, anchored at x264 CRF 23 and
+// halving every +6 CRF, nudged for codec efficiency. Deliberately
+// approximate — true size depends on motion and detail.
+function bppForCrf(crf, vcodec) {
+  let bpp = 0.075 * Math.pow(2, (23 - crf) / 6);
+  if (vcodec === "libvpx-vp9") bpp *= 0.8;
+  else if (vcodec === "libvpx") bpp *= 1.15;
+  return bpp;
+}
+function estimateBytes() {
+  if (!state.meta) return null;
+  const o = state.output;
+  if (o !== "video" && o !== "audio") return null; // gif/png are too unpredictable
+  const dur = state.meta.duration || 0;
+  const tIn = Math.max(0, parseFloat(trimIn.value) || 0);
+  const tOut = Math.max(tIn + 0.01, parseFloat(trimOut.value) || dur);
+  const speed = Number(state.speed) || 1;
+
+  const aKbps = (o === "audio" || (o === "video" && state.audio !== "drop"))
+    ? parseInt(state.audioBitrate, 10) || 0
+    : 0;
+  // audio export ignores mode (no boomerang/palindrome) — plain trimmed span
+  if (o === "audio") {
+    const aDur = (tOut - tIn) / speed;
+    return aDur > 0 ? (aKbps * 1000 * aDur) / 8 : null;
+  }
+
+  const outDur = outputDuration(tIn, tOut, speed);
+  if (!(outDur > 0)) return null;
+
+  // effective resolution after scale
+  let w = state.meta.width || 1280;
+  let h = state.meta.height || 720;
+  if (state.scale !== "orig" && h) {
+    const nh = parseInt(state.scale, 10);
+    w = Math.round((w * nh) / h);
+    h = nh;
+  }
+  // Effective frame rate after output-fps + frame drop. File size tracks the
+  // frame COUNT, not wall-clock: setpts speed keeps every frame, so when fps is
+  // "original" the effective rate scales with speed (cancelling the /speed in
+  // outDur). With an explicit output fps the fps filter already fixes the count.
+  let fps = state.fps !== "orig" ? parseFloat(state.fps) : currentFps() * (Number(state.speed) || 1);
+  const dropN = FRAME_DROP_N[state.framedrop];
+  if (dropN) fps = fps / dropN;
+
+  let vKbps;
+  if (state.rateMode === "bitrate") {
+    vKbps = clampBitrate(state.bitrate);
+  } else {
+    const fmt = FORMATS[state.format] || FORMATS.mp4;
+    vKbps = (w * h * fps * bppForCrf(clampCrf(state.crf, fmt.vcodec), fmt.vcodec)) / 1000;
+  }
+  return ((vKbps + aKbps) * 1000 * outDur) / 8;
+}
+function updateEstimate() {
+  if (!estSizeEl) return;
+  const bytes = estimateBytes();
+  if (bytes == null || !Number.isFinite(bytes)) {
+    estSizeEl.textContent = state.meta ? "—" : "load a file";
+    return;
+  }
+  const exact = state.rateMode === "bitrate" && state.output === "video";
+  estSizeEl.textContent = `≈ ${fmtBytes(Math.round(bytes))} (${exact ? "target" : "rough estimate"})`;
 }
 
 // Single PNG still. Accurate input seek lands on the frame-snapped timestamp
@@ -696,12 +776,29 @@ async function run() {
     setStage("reading file…", 0);
     await ff.writeFile(inName, await state.ffmpegUtil.fetchFile(state.file));
 
-    setStage("processing…", 0);
-    const argv = buildArgs(inName, outName);
-    log(`ffmpeg ${argv.map((a) => (/\s/.test(a) ? JSON.stringify(a) : a)).join(" ")}`);
+    const logArgv = (argv) =>
+      log(`ffmpeg ${argv.map((a) => (/\s/.test(a) ? JSON.stringify(a) : a)).join(" ")}`);
+    const twoPass = state.output === "video" && state.rateMode === "bitrate" && state.twopass === "on";
 
-    const code = await ff.exec(argv);
-    if (code !== 0) throw new Error(`ffmpeg exited with code ${code}`);
+    if (twoPass) {
+      setStage("processing · pass 1/2…", 0);
+      const a1 = buildArgs(inName, outName, { pass: 1, passlog: "ff2pass" });
+      logArgv(a1);
+      const c1 = await ff.exec(a1);
+      if (c1 !== 0) throw new Error(`ffmpeg pass 1 exited with code ${c1}`);
+
+      setStage("processing · pass 2/2…", 0);
+      const a2 = buildArgs(inName, outName, { pass: 2, passlog: "ff2pass" });
+      logArgv(a2);
+      const c2 = await ff.exec(a2);
+      if (c2 !== 0) throw new Error(`ffmpeg pass 2 exited with code ${c2}`);
+    } else {
+      setStage("processing…", 0);
+      const argv = buildArgs(inName, outName);
+      logArgv(argv);
+      const code = await ff.exec(argv);
+      if (code !== 0) throw new Error(`ffmpeg exited with code ${code}`);
+    }
 
     setStage("finalizing…", 100);
 
@@ -730,6 +827,10 @@ async function run() {
     clearInterval(tick);
     try { await state.ffmpeg?.deleteFile(inName); } catch (_) {}
     if (outName) { try { await state.ffmpeg?.deleteFile(outName); } catch (_) {} }
+    // two-pass leaves its rate-control log behind in the virtual FS
+    for (const f of ["ff2pass-0.log", "ff2pass-0.log.mbtree"]) {
+      try { await state.ffmpeg?.deleteFile(f); } catch (_) {}
+    }
     state.running = false;
     btnRun.disabled = false;
     btnCancel.disabled = true;
@@ -827,6 +928,30 @@ function renderOutput(blob) {
   head.appendChild(title);
   head.appendChild(btnRow);
   wrap.appendChild(head);
+
+  // before/after size comparison
+  const orig = state.file?.size || 0;
+  if (orig > 0) {
+    const out = blob.size;
+    const delta = orig - out;
+    const pct = Math.round((Math.abs(delta) / orig) * 100);
+    const verb = delta >= 0 ? "smaller" : "larger";
+    const cmp = document.createElement("div");
+    cmp.className = "meta-grid";
+    [
+      ["Original", fmtBytes(orig)],
+      ["Output", fmtBytes(out)],
+      [delta >= 0 ? "Saved" : "Increase", `${fmtBytes(Math.abs(delta))} · ${pct}% ${verb}`],
+    ].forEach(([k, v]) => {
+      const row = document.createElement("div");
+      row.className = "kv-row";
+      const ks = document.createElement("span"); ks.className = "k"; ks.textContent = k;
+      const vs = document.createElement("span"); vs.className = "v"; vs.textContent = v;
+      row.appendChild(ks); row.appendChild(vs);
+      cmp.appendChild(row);
+    });
+    wrap.appendChild(cmp);
+  }
 
   let el;
   if (ext === "gif" || ext === "png") {
@@ -953,16 +1078,18 @@ function showBlock(id, on) {
   // .opt { display:flex } beats the `hidden` attribute, so toggle inline.
   if (el) el.style.display = on ? "" : "none";
 }
-// Only one of CRF / bitrate is relevant at a time; the other hides.
+// Only one of CRF / bitrate is relevant at a time; the other (and the
+// bitrate-only two-pass toggle) hides.
 function updateRateVisibility() {
-  if (state.output !== "video") return; // both already hidden for non-video
+  if (state.output !== "video") return; // all already hidden for non-video
   showBlock("opt-crf-block", state.rateMode === "crf");
   showBlock("opt-bitrate-block", state.rateMode === "bitrate");
+  showBlock("opt-twopass-block", state.rateMode === "bitrate");
 }
 
 // compression controls that only make sense for the re-encoded video path
 const COMPRESS_BLOCKS = [
-  "opt-rate-block", "opt-crf-block", "opt-bitrate-block",
+  "opt-rate-block", "opt-crf-block", "opt-bitrate-block", "opt-twopass-block",
   "opt-preset-block", "opt-framedrop-block", "opt-abr-block",
 ];
 
@@ -998,7 +1125,7 @@ function applyOutputVisibility() {
       "opt-flip-block", "opt-color-block", "opt-fps-block", "opt-fade-block",
       "opt-loops-block", "opt-mode-block", "opt-format-block", "opt-quality-block",
       "opt-fpssrc-block",
-      "opt-rate-block", "opt-crf-block", "opt-bitrate-block",
+      "opt-rate-block", "opt-crf-block", "opt-bitrate-block", "opt-twopass-block",
       "opt-preset-block", "opt-framedrop-block",
     ],
   }[o] || [];
@@ -1064,6 +1191,7 @@ document.addEventListener("click", (e) => {
     }
     if (opt === "rateMode") updateRateVisibility();
     if (opt === "output") applyOutputVisibility();
+    updateEstimate();
     return;
   }
   const action = e.target.closest("[data-action]")?.dataset.action;
@@ -1073,6 +1201,7 @@ document.addEventListener("click", (e) => {
 
 optSpeed.addEventListener("change", () => {
   state.speed = parseFloat(optSpeed.value) || 1;
+  updateEstimate();
 });
 
 if (fpsSrcEl) {
@@ -1114,6 +1243,7 @@ if (crfEl) {
       c.classList.remove("is-active");
       c.setAttribute("aria-checked", "false");
     });
+    updateEstimate();
   });
 }
 if (presetEl) {
@@ -1123,6 +1253,7 @@ if (bitrateEl) {
   bitrateEl.addEventListener("change", () => {
     state.bitrate = clampBitrate(bitrateEl.value);
     bitrateEl.value = String(state.bitrate);
+    updateEstimate();
   });
 }
 
@@ -1206,6 +1337,7 @@ function resetOptions() {
   state.crf = QUALITY_CRF.medium;
   state.rateMode = "crf";
   state.bitrate = 1000;
+  state.twopass = "off";
   state.preset = "veryfast";
   state.framedrop = "none";
   state.audioBitrate = "128k";
