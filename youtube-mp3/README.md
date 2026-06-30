@@ -33,6 +33,12 @@ authentication, all handled by yt-dlp locally.
 - **Scope** — a single video (`--no-playlist`) or a whole playlist
   (`--yes-playlist`), with an optional item range like `1-10` or `1,3,5-8`.
 - **Output template** — a sensible default per scope, fully editable.
+- **Save into folder** — drop downloads into a folder of your choosing, either
+  with yt-dlp's `-P` (it creates the folder for you) or by changing into it
+  first with `cd` (`cd` mode targets POSIX shells: bash/zsh, macOS, Termux).
+- **Tidy up `urls.txt`** — in the signed-in batch flow, optionally append
+  `&& rm -f urls.txt` so the temporary list deletes itself once the download
+  finishes (on by default; POSIX shells).
 - **Private / sign-in cookies** — `--cookies-from-browser` (desktop) or
   `--cookies cookies.txt` (Android / anywhere). Cookies stay on your machine.
 - **Sign in with Google (optional)** — pull your **Liked videos** or any of
@@ -51,6 +57,32 @@ authentication, all handled by yt-dlp locally.
    **Private / sign-in cookies**.
 4. Click **Copy** and run the command in your terminal. (Install yt-dlp +
    ffmpeg first — see the snippets at the bottom of the tool.)
+
+### Save into a folder
+
+The **Save into folder** field decides where files land, so you don't have to
+sort them afterwards:
+
+- **Let yt-dlp create it (`-P`)** — recommended. Adds `-P 'Music/2025'`; yt-dlp
+  makes the folder if it doesn't exist, and it works on every platform. Combine
+  it with a template like the auto-cut default and you get
+  `Music/2025/Album Title/03 - Song.mp3`.
+- **Change into it first (`cd …`)** — prefixes the command with
+  `cd 'folder' && …`. The folder must already exist, and this targets POSIX
+  shells (bash/zsh, macOS, Termux); on Windows `cmd`/PowerShell adjust the `cd`
+  to taste. Note that `~` is quoted (not expanded) — use a path like `Music` or
+  an absolute path instead.
+
+Leave the field blank for the old behavior (files land in the current folder).
+
+### Deleting urls.txt automatically
+
+In the **Sign in with Google** batch flow the command reads a temporary
+`urls.txt`. The **🧹 Delete urls.txt when done** toggle (shown once a list is
+loaded, on by default) appends `&& rm -f urls.txt` so that list cleans itself
+up after the download. It only affects the batch flow and only runs if yt-dlp
+exits successfully (`&&`). POSIX shells only — on Windows, delete the file
+yourself or swap in `del urls.txt`.
 
 ### Auto-cut multi-song videos
 
@@ -193,10 +225,12 @@ your browser). See the site
 | `#yt-scope` / `#yt-items` | Playlist scope and item range.              |
 | `#yt-auth` / `#yt-browser` / `#yt-cookiefile` | Cookie source.        |
 | `#yt-output`        | `-o` filename template.                           |
+| `#yt-folder` / `#yt-folder-mode` | Target folder + how to apply it (`-P` or `cd`). |
+| `#yt-cleanup`       | "Delete urls.txt" toggle (batch flow only).       |
 | `#yt-command`       | `<pre>` output; `dataset.command` holds raw text. |
 | `#yt-account` / `#yt-signin` / `#yt-playlist` / `#yt-load` | Optional account panel. |
 | `#yt-using` / `#yt-download-urls` | "Using N videos" note + `urls.txt` download. |
-| `[data-action]`     | `paste` / `clear` / `copy` / `yt-split-toggle` / `yt-signin` / `yt-signout` / `yt-load` / `yt-download-urls` / `yt-clear-list`. |
+| `[data-action]`     | `paste` / `clear` / `copy` / `yt-split-toggle` / `yt-cleanup-toggle` / `yt-signin` / `yt-signout` / `yt-load` / `yt-download-urls` / `yt-clear-list`. |
 
 ### Dependencies
 

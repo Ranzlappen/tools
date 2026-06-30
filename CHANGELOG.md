@@ -7,6 +7,14 @@ All notable changes to **tools** are recorded here. Format follows
 ## [Unreleased]
 
 ### Added
+- **YouTube MP3 Studio — target folder & urls.txt cleanup (`youtube-mp3/`).**
+  Two convenience additions to the command builder: (1) **Save into folder** —
+  an optional folder field applied either via yt-dlp's `-P` (which creates the
+  folder) or a `cd …` prefix, so downloads land where you want without manual
+  sorting; (2) a **Delete urls.txt when done** toggle (shown in the signed-in
+  batch flow, on by default) that appends `&& rm -f urls.txt` so the temporary
+  list cleans itself up after a successful download (POSIX shells). No new
+  deps, no backend.
 - **Video Studio — deep compression & format controls (`video/`).** A new
   **Compress** sub-section turns the tool into a real size-reducer: **rate
   control** toggle between *Quality · CRF* and *Target bitrate*; a **CRF
