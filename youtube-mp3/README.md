@@ -199,7 +199,7 @@ your browser). See the site
 
 ### File layout
 
-- `index.html` — form: URL input, options panel (selects + chip toggles),
+- `index.html` — form: URL input, options panel (selects + checkbox toggles),
   the live command panel, and platform install snippets. One scoped
   `<style>` block (prefix `ytm-`).
 - `tool.js` — `buildTokens()` assembles a typed token list, `shq()`
@@ -220,17 +220,17 @@ your browser). See the site
 | `#yt-presets`       | Preset chip group (`data-preset`).                |
 | `#yt-options`       | Options panel; delegates `input` / `change`.      |
 | `#yt-format` / `#yt-quality` | Audio format and MP3 quality selects.    |
-| `#yt-embed`         | Boolean chip toggles (`data-flag`, `aria-pressed`).|
-| `#yt-split` / `#yt-chapter` | Auto-cut toggle chip + per-song template.   |
+| `#yt-embed`         | Boolean checkbox toggles (`input[data-flag]`).    |
+| `#yt-split-input` / `#yt-chapter` | Auto-cut checkbox + per-song template. |
 | `#yt-scope` / `#yt-items` | Playlist scope and item range.              |
 | `#yt-auth` / `#yt-browser` / `#yt-cookiefile` | Cookie source.        |
 | `#yt-output`        | `-o` filename template.                           |
 | `#yt-folder` / `#yt-folder-mode` | Target folder + how to apply it (`-P` or `cd`). |
-| `#yt-cleanup`       | "Delete urls.txt" toggle (batch flow only).       |
+| `#yt-cleanup-input` | "Delete urls.txt" checkbox (batch flow only).     |
 | `#yt-command`       | `<pre>` output; `dataset.command` holds raw text. |
 | `#yt-account` / `#yt-signin` / `#yt-playlist` / `#yt-load` | Optional account panel. |
 | `#yt-using` / `#yt-download-urls` | "Using N videos" note + `urls.txt` download. |
-| `[data-action]`     | `paste` / `clear` / `copy` / `yt-split-toggle` / `yt-cleanup-toggle` / `yt-signin` / `yt-signout` / `yt-load` / `yt-download-urls` / `yt-clear-list`. |
+| `[data-action]`     | `paste` / `clear` / `copy` / `yt-signin` / `yt-signout` / `yt-load` / `yt-download-urls` / `yt-clear-list`. |
 
 ### Dependencies
 
@@ -261,13 +261,15 @@ just shows a setup hint.
 ### Extending
 
 - **Add a flag**: push a `{ t, s }` token inside `buildTokens()`; toggles
-  belong in the `#yt-embed` chip group with a `data-flag`.
+  belong in the `#yt-embed` group as a `<label class="ytm-check">` checkbox
+  with a `data-flag`.
 - **New preset**: add a function to the `PRESETS` map and a chip in
   `#yt-presets`.
 - **More formats / qualities**: extend the `<option>`s; the value is passed
   straight to `--audio-format` / `--audio-quality`.
 - **Split-chapters template**: the `chapter:`-prefixed `-o` is emitted in
-  `buildTokens()` only when the `#yt-split` chip is on; edit `#yt-chapter` (and
+  `buildTokens()` only when the `#yt-split-input` box is checked; edit
+  `#yt-chapter` (and
   the `split` preset / `setSplit()` helper) to change defaults.
 
 ### Limitations / gotchas

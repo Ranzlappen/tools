@@ -95,6 +95,29 @@
       margin-top: var(--space-sm);
     }
     .ytm-install dd { margin: 0.25rem 0 0; color: var(--c-text); overflow-wrap: anywhere; }
+    .ytm-checks {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+      gap: var(--space-xs) var(--space-md);
+      min-width: 0;
+      margin-top: var(--space-xs);
+    }
+    .ytm-check {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      min-width: 0;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--c-text);
+    }
+    .ytm-check input {
+      width: 1.1rem;
+      height: 1.1rem;
+      flex: none;
+      cursor: pointer;
+      accent-color: var(--c-accent);
+    }
     .ytm-hidden { display: none; }
     .ytm-optional {
       font-size: 0.6rem;
@@ -247,20 +270,20 @@
 
           <div>
             <span class="field-label">Embed into the file</span>
-            <div class="chips" id="yt-embed" role="group" aria-label="Embed options">
-              <button type="button" class="chip is-active" aria-pressed="true" data-flag="thumbnail">Thumbnail (cover art)</button>
-              <button type="button" class="chip is-active" aria-pressed="true" data-flag="metadata">Metadata (title/artist)</button>
-              <button type="button" class="chip" aria-pressed="false" data-flag="chapters">Chapters</button>
-              <button type="button" class="chip" aria-pressed="false" data-flag="sponsorblock">Remove SponsorBlock segments</button>
-              <button type="button" class="chip" aria-pressed="false" data-flag="restrict">ASCII-safe filenames</button>
-              <button type="button" class="chip" aria-pressed="false" data-flag="archive">Skip already-downloaded</button>
+            <div class="ytm-checks" id="yt-embed" role="group" aria-label="Embed options">
+              <label class="ytm-check"><input type="checkbox" data-flag="thumbnail" checked /><span>Thumbnail (cover art)</span></label>
+              <label class="ytm-check"><input type="checkbox" data-flag="metadata" checked /><span>Metadata (title/artist)</span></label>
+              <label class="ytm-check"><input type="checkbox" data-flag="chapters" /><span>Chapters</span></label>
+              <label class="ytm-check"><input type="checkbox" data-flag="sponsorblock" /><span>Remove SponsorBlock segments</span></label>
+              <label class="ytm-check"><input type="checkbox" data-flag="restrict" /><span>ASCII-safe filenames</span></label>
+              <label class="ytm-check"><input type="checkbox" data-flag="archive" /><span>Skip already-downloaded</span></label>
             </div>
           </div>
 
           <div>
             <span class="field-label">Multi-song video</span>
-            <div class="chips" id="yt-split" role="group" aria-label="Auto-cut">
-              <button type="button" class="chip" aria-pressed="false" data-action="yt-split-toggle">✂ Auto-cut into one file per chapter</button>
+            <div class="ytm-checks" id="yt-split" role="group" aria-label="Auto-cut">
+              <label class="ytm-check"><input type="checkbox" id="yt-split-input" /><span>✂ Auto-cut into one file per chapter</span></label>
             </div>
           </div>
 
@@ -307,8 +330,8 @@
 
           <div id="yt-cleanup-field" class="ytm-hidden">
             <span class="field-label">After a signed-in batch download</span>
-            <div class="chips" id="yt-cleanup" role="group" aria-label="Cleanup">
-              <button type="button" class="chip is-active" aria-pressed="true" data-action="yt-cleanup-toggle">🧹 Delete urls.txt when done</button>
+            <div class="ytm-checks" id="yt-cleanup" role="group" aria-label="Cleanup">
+              <label class="ytm-check"><input type="checkbox" id="yt-cleanup-input" checked /><span>🧹 Delete urls.txt when done</span></label>
             </div>
           </div>
 
