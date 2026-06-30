@@ -24,6 +24,10 @@ const els = {
   itemsField: $("yt-items-field"),
   items: $("yt-items"),
   output: $("yt-output"),
+  folder: $("yt-folder"),
+  folderMode: $("yt-folder-mode"),
+  cleanupField: $("yt-cleanup-field"),
+  cleanup: $("yt-cleanup"),
   auth: $("yt-auth"),
   browserField: $("yt-browser-field"),
   browser: $("yt-browser"),
@@ -93,10 +97,37 @@ function setSplit(on) {
   chip.classList.toggle("is-active", on);
 }
 
-// Build an array of { t, s } tokens: t is 'cmd' | 'flag' | 'val' | 'str'.
+// The "Delete urls.txt when done" toggle chip — only takes effect in the
+// signed-in batch flow (when the command reads `-a urls.txt`).
+function cleanupChip() {
+  return els.cleanup.querySelector("[data-action='yt-cleanup-toggle']");
+}
+
+function isCleanup() {
+  return cleanupChip().getAttribute("aria-pressed") === "true";
+}
+
+function setCleanup(on) {
+  const chip = cleanupChip();
+  chip.setAttribute("aria-pressed", String(on));
+  chip.classList.toggle("is-active", on);
+}
+
+// Build an array of { t, s } tokens: t is 'cmd' | 'flag' | 'val' | 'str' | 'op'
+// ('op' is a raw shell operator like && — never quoted).
 function buildTokens() {
   const t = [];
   const push = (type, s) => t.push({ t: type, s });
+
+  // Optional target folder. "cd" mode changes into it first; "paths" mode
+  // hands it to yt-dlp's -P (added below), which creates it if missing.
+  const folder = els.folder.value.trim();
+  const folderMode = els.folderMode.value;
+  if (folder && folderMode === "cd") {
+    push("cmd", "cd");
+    push("str", folder);
+    push("op", "&&");
+  }
 
   push("cmd", "yt-dlp");
 
@@ -142,6 +173,8 @@ function buildTokens() {
     push("str", els.cookieFile.value.trim() || "cookies.txt");
   }
 
+  if (folder && folderMode === "paths") { push("flag", "-P"); push("str", folder); }
+
   const out = els.output.value.trim();
   if (out) { push("flag", "-o"); push("str", out); }
 
@@ -160,6 +193,14 @@ function buildTokens() {
   } else {
     push("str", els.url.value.trim() || "<URL>");
   }
+
+  // Tidy up the temp batch list once the download finishes (POSIX shells).
+  if (usingList && isCleanup()) {
+    push("op", "&&");
+    push("cmd", "rm");
+    push("flag", "-f");
+    push("str", "urls.txt");
+  }
   return t;
 }
 
@@ -170,7 +211,8 @@ function urlsText() {
 }
 
 function tokenText(tok) {
-  return tok.t === "flag" || tok.t === "cmd" ? tok.s : shq(tok.s);
+  // 'op' tokens are shell operators (&&) and must never be quoted.
+  return tok.t === "flag" || tok.t === "cmd" || tok.t === "op" ? tok.s : shq(tok.s);
 }
 
 function render() {
@@ -197,6 +239,8 @@ function syncVisibility() {
   // The manual scope/items controls don't apply to a loaded list.
   els.itemsField.classList.toggle("ytm-hidden", usingList || els.scope.value !== "playlist");
   els.chapterField.classList.toggle("ytm-hidden", !isSplit());
+  // urls.txt cleanup only makes sense for the signed-in batch flow.
+  els.cleanupField.classList.toggle("ytm-hidden", !usingList);
   els.browserField.classList.toggle("ytm-hidden", els.auth.value !== "browser");
   els.cookieFileField.classList.toggle("ytm-hidden", els.auth.value !== "file");
   els.authNote.textContent = AUTH_NOTES[els.auth.value] || "";
@@ -381,6 +425,12 @@ els.embed.addEventListener("click", (ev) => {
 els.split.addEventListener("click", (ev) => {
   if (!ev.target.closest("[data-action='yt-split-toggle']")) return;
   setSplit(!isSplit());
+  render();
+});
+
+els.cleanup.addEventListener("click", (ev) => {
+  if (!ev.target.closest("[data-action='yt-cleanup-toggle']")) return;
+  setCleanup(!isCleanup());
   render();
 });
 

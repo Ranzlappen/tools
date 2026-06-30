@@ -292,6 +292,28 @@
 
           <div class="ytm-grid">
             <div class="ytm-field">
+              <label class="field-label" for="yt-folder">Save into folder (optional)</label>
+              <input id="yt-folder" class="input input--single input--mono" type="text" spellcheck="false"
+                     placeholder="e.g. Music  or  Albums/2025" />
+            </div>
+            <div class="ytm-field">
+              <label class="field-label" for="yt-folder-mode">Folder method</label>
+              <select id="yt-folder-mode" class="input input--single">
+                <option value="paths" selected>Let yt-dlp create it (-P)</option>
+                <option value="cd">Change into it first (cd …)</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="yt-cleanup-field" class="ytm-hidden">
+            <span class="field-label">After a signed-in batch download</span>
+            <div class="chips" id="yt-cleanup" role="group" aria-label="Cleanup">
+              <button type="button" class="chip is-active" aria-pressed="true" data-action="yt-cleanup-toggle">🧹 Delete urls.txt when done</button>
+            </div>
+          </div>
+
+          <div class="ytm-grid">
+            <div class="ytm-field">
               <label class="field-label" for="yt-auth">Private / sign-in cookies</label>
               <select id="yt-auth" class="input input--single">
                 <option value="none" selected>None (public videos)</option>
