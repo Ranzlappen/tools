@@ -75,6 +75,14 @@ sort them afterwards:
 
 Leave the field blank for the old behavior (files land in the current folder).
 
+**Android / Termux.** Termux's home (`/data/data/com.termux/files/home`) is
+private to other apps, so downloads there are invisible to your file browser and
+music player. On Android the field is **pre-filled with `/sdcard/Download`**
+(shared storage) for exactly this reason. Run `termux-setup-storage` once to
+grant Termux access to it, then everything lands somewhere every app can read.
+Use an absolute path like `/sdcard/Download` or `/sdcard/Music` — not
+`~/storage/...`, since the tool quotes `~` rather than expanding it.
+
 ### Deleting urls.txt automatically
 
 In the **Sign in with Google** batch flow the command reads a temporary
