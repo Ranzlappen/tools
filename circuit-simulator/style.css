@@ -1,0 +1,196 @@
+.circuit-layout {
+  display: flex;
+  gap: 1.5rem;
+  height: 70vh;
+  min-height: 600px;
+}
+
+.palette-panel {
+  width: 250px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.palette-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.palette-item {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  cursor: grab;
+  user-select: none;
+  transition: background-color 0.2s, border-color 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.palette-item:hover {
+  background: var(--surface-3);
+  border-color: var(--border-hover);
+}
+
+.palette-item svg {
+  width: 32px;
+  height: 32px;
+  pointer-events: none;
+}
+
+.editor-area {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.canvas-panel {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas-toolbar {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.canvas-container {
+  flex-grow: 1;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--surface-1);
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+#circuit-canvas {
+  cursor: crosshair;
+  outline: none;
+}
+
+/* SVG Styles */
+.wire {
+  stroke: var(--text-2);
+  stroke-width: 2;
+  fill: none;
+  transition: stroke 0.2s;
+}
+
+.wire:hover {
+  stroke: var(--accent);
+  stroke-width: 4;
+}
+
+.wire.selected {
+  stroke: var(--accent);
+}
+
+.component-group {
+  cursor: pointer;
+}
+
+.component-body {
+  stroke: var(--text-1);
+  stroke-width: 2;
+  fill: var(--surface-1);
+}
+
+.component-group.selected .component-body {
+  stroke: var(--accent);
+}
+
+.component-label {
+  fill: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  user-select: none;
+}
+
+.pin {
+  fill: var(--surface-2);
+  stroke: var(--text-2);
+  stroke-width: 1.5;
+  cursor: pointer;
+  transition: fill 0.2s, stroke 0.2s, r 0.2s;
+}
+
+.pin:hover {
+  fill: var(--accent);
+  stroke: var(--accent);
+  r: 5;
+}
+
+/* Properties Panel */
+.props-panel {
+  flex-shrink: 0;
+  max-height: 250px;
+}
+
+.props-content {
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.prop-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.prop-field label {
+  font-size: 0.875rem;
+  color: var(--text-2);
+}
+
+.prop-field input {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+}
+
+.prop-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.is-hidden {
+  display: none !important;
+}
+
+/* Simulation Feedback */
+.simulation-error {
+  color: #ef4444; /* red-500 */
+}
+
+.simulation-success {
+  color: #10b981; /* emerald-500 */
+}
+
+.node-voltage-label {
+  fill: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  user-select: none;
+  pointer-events: none;
+}
