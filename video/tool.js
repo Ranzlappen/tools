@@ -241,14 +241,15 @@ async function loadFFmpeg() {
   return ffmpeg;
 }
 
-// Object URLs are always `blob:<origin>/<uuid>`, never javascript:.
-// Parse via the URL constructor inside try/catch — this is the pattern
-// CodeQL's js/xss-through-dom query recognizes as a URL-scheme sanitizer
-// for .src / .href sinks.
-// Only ever hand a `blob:` URL to a DOM sink (img/video/audio `src`,
-// anchor `href`). The anchored scheme test is recognised by static
-// analysers (e.g. CodeQL js/xss-through-dom) as a sanitizing barrier,
-// so the returned value is treated as untainted.
+// Guard for DOM URL sinks (img/video/audio `src`, anchor `href`): only ever
+// hand back a `blob:<origin>/<uuid>` URL (or "" for anything else). Object URLs
+// are always this shape, never javascript:. The anchored character class also
+// forbids the HTML metacharacters < > " ', so the result cannot break out of
+// an attribute. Callers additionally wrap the result in `encodeURI()` — that
+// is the sanitiser CodeQL's js/xss-through-dom query actually recognises as a
+// barrier (and it is a no-op on a well-formed blob: URL), so the scheme guard
+// here and the encode at the sink together keep every .src/.href assignment
+// provably free of "DOM text reinterpreted as HTML".
 function safeBlobUrl(url) {
   return typeof url === "string" && /^blob:[^"'<>\\\s]*$/i.test(url) ? url : "";
 }
@@ -260,7 +261,7 @@ function probeFile(file) {
     const v = document.createElement("video");
     v.preload = "metadata";
     v.muted = true;
-    v.src = safeBlobUrl(url);
+    v.src = encodeURI(safeBlobUrl(url));
     const cleanup = () => URL.revokeObjectURL(url);
     v.onloadedmetadata = () => {
       const meta = {
@@ -1181,7 +1182,7 @@ function renderOutput(blob) {
   dl.className = "btn btn--primary";
   dl.id = "dl";
   dl.download = name;
-  dl.href = safeBlobUrl(state.outURL);
+  dl.href = encodeURI(safeBlobUrl(state.outURL));
   dl.textContent = `↓ download ${name}`;
 
   const another = document.createElement("button");
@@ -1234,7 +1235,7 @@ function renderOutput(blob) {
     el.loop = true;
     el.playsInline = true;
   }
-  el.src = safeBlobUrl(state.outURL);
+  el.src = encodeURI(safeBlobUrl(state.outURL));
   el.className = "preview";
   wrap.appendChild(el);
   outEl.appendChild(wrap);
@@ -1279,10 +1280,10 @@ function renderFrames(files) {
     cell.className = "opt";
 
     const a = document.createElement("a");
-    a.href = safeBlobUrl(f.url);
+    a.href = encodeURI(safeBlobUrl(f.url));
     a.download = frameName(base, f.n);
     const img = document.createElement("img");
-    img.src = safeBlobUrl(f.url);
+    img.src = encodeURI(safeBlobUrl(f.url));
     img.alt = `frame ${f.n}`;
     img.loading = "lazy";
     img.className = "preview";
@@ -1332,7 +1333,7 @@ async function downloadFramesZip(files, base, btn) {
   } catch (err) {
     log(`zip unavailable (${err?.message || err}); downloading individually`);
     setStatus("warn", "Zip library unavailable — downloading frames individually.");
-    files.forEach((f) => triggerDownload(safeBlobUrl(f.url), frameName(base, f.n)));
+    files.forEach((f) => triggerDownload(encodeURI(safeBlobUrl(f.url)), frameName(base, f.n)));
   } finally {
     btn.disabled = false;
     btn.textContent = prev;
