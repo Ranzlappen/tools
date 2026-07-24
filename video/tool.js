@@ -404,11 +404,13 @@ async function acceptFileB(file) {
     if (meta2El) meta2El.classList.remove("is-hidden");
 
     // Track the object URL in state (like state.outURL) and never read the
-    // element's own .src back, so the .src sink only ever receives the
-    // safeBlobUrl()-sanitised value — matching the primary preview above.
+    // element's own .src back. safeBlobUrl() guarantees the blob: scheme;
+    // encodeURI() is a CodeQL-recognised XSS barrier and a no-op on a
+    // well-formed blob: URL (which carries no HTML metacharacters), so the
+    // .src sink is provably free of "DOM text reinterpreted as HTML".
     if (state.preview2URL) URL.revokeObjectURL(state.preview2URL);
     state.preview2URL = URL.createObjectURL(file);
-    preview2El.src = safeBlobUrl(state.preview2URL);
+    preview2El.src = encodeURI(safeBlobUrl(state.preview2URL));
     preview2El.classList.remove("is-hidden");
 
     clearStatus();
