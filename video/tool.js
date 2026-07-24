@@ -106,6 +106,7 @@ const state = {
   meta: null,             // { duration, width, height }
   fileB: null,            // second clip (join mode)
   metaB: null,            // { duration, width, height } for the second clip
+  preview2URL: null,      // active object URL for the second-clip preview
   mode: "trim",           // trim | boomerang | reverse | palindrome | join
   transition: "none",     // join transition: none | xfade name (fade, wipeleft, …)
   transDur: 0.5,          // join transition duration in seconds
@@ -402,11 +403,13 @@ async function acceptFileB(file) {
     $("#m2-res").textContent = meta.width && meta.height ? `${meta.width} × ${meta.height}` : "unknown";
     if (meta2El) meta2El.classList.remove("is-hidden");
 
-    if (preview2El) {
-      if (preview2El.src) URL.revokeObjectURL(preview2El.src);
-      preview2El.src = safeBlobUrl(URL.createObjectURL(file));
-      preview2El.classList.remove("is-hidden");
-    }
+    // Track the object URL in state (like state.outURL) and never read the
+    // element's own .src back, so the .src sink only ever receives the
+    // safeBlobUrl()-sanitised value — matching the primary preview above.
+    if (state.preview2URL) URL.revokeObjectURL(state.preview2URL);
+    state.preview2URL = URL.createObjectURL(file);
+    preview2El.src = safeBlobUrl(state.preview2URL);
+    preview2El.classList.remove("is-hidden");
 
     clearStatus();
     updateRunEnabled();
