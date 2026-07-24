@@ -89,12 +89,26 @@ const crfEl = $("#crf");
 const crfHint = $("#crf-hint");
 const bitrateEl = $("#bitrate");
 const estSizeEl = $("#est-size");
+// join mode: second source + transition controls
+const secondSourceEl = $("#second-source");
+const drop2El = $("#drop2");
+const file2El = $("#file2");
+const meta2El = $("#meta2");
+const preview2El = $("#preview2");
+const transitionSel = $("#opt-transition");
+const transDurEl = $("#trans-dur");
+const transDurRow = $("#trans-dur-row");
+const transHint = $("#trans-hint");
 
 // ─── state ─────────────────────────────────────────────────────────────
 const state = {
   file: null,
   meta: null,             // { duration, width, height }
-  mode: "trim",           // trim | boomerang | reverse | palindrome
+  fileB: null,            // second clip (join mode)
+  metaB: null,            // { duration, width, height } for the second clip
+  mode: "trim",           // trim | boomerang | reverse | palindrome | join
+  transition: "none",     // join transition: none | xfade name (fade, wipeleft, …)
+  transDur: 0.5,          // join transition duration in seconds
   output: "video",        // video | gif | frame | frames | audio
   loops: 1,               // 1 | 2 | 3
   audio: "drop",          // drop | keep | reverse
@@ -363,11 +377,82 @@ async function acceptFile(file) {
     trimOutR.value = "100";
     updateFrameInfo();
 
-    btnRun.disabled = false;
+    updateRunEnabled();
     log(`selected ${file.name} · ${fmtBytes(file.size)} · ${fmtTime(meta.duration)} · ${meta.width}×${meta.height}`);
   } catch (err) {
     setStatus("error", err.message || String(err));
   }
+}
+
+// ─── second clip (join mode) ────────────────────────────────────────────
+async function acceptFileB(file) {
+  if (!file) return;
+  if (!file.type.startsWith("video/") && !/\.(mp4|webm|mov|mkv|gif|m4v)$/i.test(file.name)) {
+    setStatus("error", "Second clip isn't a recognized video file.");
+    return;
+  }
+  try {
+    const meta = await probeFile(file);
+    state.fileB = file;
+    state.metaB = meta;
+
+    $("#m2-name").textContent = file.name;
+    $("#m2-size").textContent = fmtBytes(file.size);
+    $("#m2-dur").textContent = fmtTime(meta.duration);
+    $("#m2-res").textContent = meta.width && meta.height ? `${meta.width} × ${meta.height}` : "unknown";
+    if (meta2El) meta2El.classList.remove("is-hidden");
+
+    if (preview2El) {
+      if (preview2El.src) URL.revokeObjectURL(preview2El.src);
+      preview2El.src = safeBlobUrl(URL.createObjectURL(file));
+      preview2El.classList.remove("is-hidden");
+    }
+
+    clearStatus();
+    updateRunEnabled();
+    updateTransitionUI();
+    updateEstimate();
+    log(`second clip ${file.name} · ${fmtBytes(file.size)} · ${fmtTime(meta.duration)} · ${meta.width}×${meta.height}`);
+  } catch (err) {
+    setStatus("error", err.message || String(err));
+  }
+}
+
+// Reflect an output choice both in state and on the (possibly hidden) chips.
+function setOutput(val) {
+  state.output = val;
+  document.querySelectorAll('[data-opt="output"]').forEach((c) => {
+    const active = c.dataset.value === val;
+    c.classList.toggle("is-active", active);
+    c.setAttribute("aria-checked", active ? "true" : "false");
+  });
+}
+
+function syncSecondSource() {
+  if (secondSourceEl) secondSourceEl.style.display = state.mode === "join" ? "" : "none";
+  updateRunEnabled();
+}
+
+function updateRunEnabled() {
+  btnRun.disabled =
+    state.running || !state.file || (state.mode === "join" && !state.fileB);
+}
+
+function updateTransitionUI() {
+  if (transDurRow) transDurRow.style.display = state.transition === "none" ? "none" : "";
+  updateTransHint();
+}
+function updateTransHint() {
+  if (!transHint) return;
+  if (state.transition === "none") {
+    transHint.textContent = "hard cut — clips joined end to end";
+    return;
+  }
+  const requested = Number(state.transDur) || 0.5;
+  const d = state.fileB ? joinTransDur() : requested;
+  const capped = state.fileB && Math.abs(d - requested) > 0.001;
+  transHint.textContent =
+    `${TRANSITIONS[state.transition] || state.transition} · ${d.toFixed(1)}s overlap${capped ? " (capped to clip length)" : ""}`;
 }
 
 function updateTrimWindow() {
@@ -561,32 +646,7 @@ function buildArgs(inputName, outputName, opts = {}) {
     return args;
   }
 
-  const fmt = FORMATS[state.format] || FORMATS.mp4;
-  const useBitrate = state.rateMode === "bitrate";
-  const vbr = `${clampBitrate(state.bitrate)}k`;
-  const crf = clampCrf(state.crf, fmt.vcodec);
-
-  if (fmt.vcodec === "libx264") {
-    args.push("-c:v", "libx264", "-preset", state.preset, "-pix_fmt", "yuv420p");
-    if (useBitrate) args.push("-b:v", vbr);
-    else args.push("-crf", String(crf));
-    if (fmt.faststart && !passOne) args.push("-movflags", "+faststart");
-    if (hasAudio) args.push("-c:a", "aac", "-b:a", state.audioBitrate);
-  } else {
-    // libvpx-vp9 / libvpx (vp8): -cpu-used stands in for -preset
-    args.push("-c:v", fmt.vcodec, "-row-mt", "1", "-deadline", "good",
-      "-cpu-used", String(VPX_CPU[state.preset] ?? 4));
-    if (useBitrate) {
-      args.push("-b:v", vbr);
-    } else if (fmt.vcodec === "libvpx-vp9") {
-      // VP9 constant quality: crf with no target bitrate
-      args.push("-b:v", "0", "-crf", String(crf));
-    } else {
-      // VP8 constrained quality needs a bitrate ceiling alongside crf
-      args.push("-crf", String(crf), "-b:v", vbr);
-    }
-    if (hasAudio) args.push("-c:a", "libopus", "-b:a", state.audioBitrate);
-  }
+  appendVideoCodec(args, { hasAudio, passOne });
 
   // two-pass: -pass + shared log file (bitrate mode only)
   if (opts.pass) args.push("-pass", String(opts.pass), "-passlogfile", opts.passlog || "ff2pass");
@@ -613,6 +673,40 @@ function clampBitrate(v) {
   return Math.max(50, Math.min(50000, Number.isFinite(n) ? n : 1000));
 }
 
+// Shared codec/rate-control tail for the video path. Emits the same
+// -c:v / -crf|-b:v / -c:a arguments the single-file and join builders both
+// need, driven by the FORMATS map and state.rateMode. passOne skips the
+// mp4 faststart flag (the null-muxed analysis pass writes no real file).
+function appendVideoCodec(args, { hasAudio, passOne = false } = {}) {
+  const fmt = FORMATS[state.format] || FORMATS.mp4;
+  const useBitrate = state.rateMode === "bitrate";
+  const vbr = `${clampBitrate(state.bitrate)}k`;
+  const crf = clampCrf(state.crf, fmt.vcodec);
+
+  if (fmt.vcodec === "libx264") {
+    args.push("-c:v", "libx264", "-preset", state.preset, "-pix_fmt", "yuv420p");
+    if (useBitrate) args.push("-b:v", vbr);
+    else args.push("-crf", String(crf));
+    if (fmt.faststart && !passOne) args.push("-movflags", "+faststart");
+    if (hasAudio) args.push("-c:a", "aac", "-b:a", state.audioBitrate);
+  } else {
+    // libvpx-vp9 / libvpx (vp8): -cpu-used stands in for -preset
+    args.push("-c:v", fmt.vcodec, "-row-mt", "1", "-deadline", "good",
+      "-cpu-used", String(VPX_CPU[state.preset] ?? 4));
+    if (useBitrate) {
+      args.push("-b:v", vbr);
+    } else if (fmt.vcodec === "libvpx-vp9") {
+      // VP9 constant quality: crf with no target bitrate
+      args.push("-b:v", "0", "-crf", String(crf));
+    } else {
+      // VP8 constrained quality needs a bitrate ceiling alongside crf
+      args.push("-crf", String(crf), "-b:v", vbr);
+    }
+    if (hasAudio) args.push("-c:a", "libopus", "-b:a", state.audioBitrate);
+  }
+  return fmt;
+}
+
 // ─── output-size estimate ───────────────────────────────────────────────
 // Rough bits-per-pixel-per-frame for a CRF, anchored at x264 CRF 23 and
 // halving every +6 CRF, nudged for codec efficiency. Deliberately
@@ -625,6 +719,7 @@ function bppForCrf(crf, vcodec) {
 }
 function estimateBytes() {
   if (!state.meta) return null;
+  if (state.mode === "join") return estimateJoinBytes();
   const o = state.output;
   if (o !== "video" && o !== "audio") return null; // gif/png are too unpredictable
   const dur = state.meta.duration || 0;
@@ -660,6 +755,23 @@ function estimateBytes() {
   const dropN = FRAME_DROP_N[state.framedrop];
   if (dropN) fps = fps / dropN;
 
+  let vKbps;
+  if (state.rateMode === "bitrate") {
+    vKbps = clampBitrate(state.bitrate);
+  } else {
+    const fmt = FORMATS[state.format] || FORMATS.mp4;
+    vKbps = (w * h * fps * bppForCrf(clampCrf(state.crf, fmt.vcodec), fmt.vcodec)) / 1000;
+  }
+  return ((vKbps + aKbps) * 1000 * outDur) / 8;
+}
+// Join estimate: the two clips share one encode over the combined (overlap-
+// adjusted) duration, on the common canvas at the target fps.
+function estimateJoinBytes() {
+  if (!state.fileB || !state.metaB) return null;
+  const outDur = joinOutputDuration();
+  if (!(outDur > 0)) return null;
+  const { w, h, fps } = joinCanvas();
+  const aKbps = state.audio !== "drop" ? parseInt(state.audioBitrate, 10) || 0 : 0;
   let vKbps;
   if (state.rateMode === "bitrate") {
     vKbps = clampBitrate(state.bitrate);
@@ -709,6 +821,121 @@ function buildAudioArgs(inputName, outputName, tIn, tOut, speed) {
   return args;
 }
 
+// ─── join / concatenate two clips ──────────────────────────────────────
+// Curated xfade transitions (plus "none" = hard cut). Values are ffmpeg
+// xfade `transition=` names; audio crossfades via `acrossfade` when a
+// transition is picked, otherwise both streams are `concat`-joined.
+const TRANSITIONS = {
+  none: "hard cut",
+  fade: "crossfade",
+  fadeblack: "fade through black",
+  fadewhite: "fade through white",
+  dissolve: "dissolve",
+  wipeleft: "wipe left",
+  wiperight: "wipe right",
+  wipeup: "wipe up",
+  wipedown: "wipe down",
+  slideleft: "slide left",
+  slideright: "slide right",
+  circleopen: "circle open",
+  circleclose: "circle close",
+  radial: "radial",
+  pixelize: "pixelize",
+  smoothleft: "smooth left",
+};
+
+// Target canvas both clips are normalised to before joining. Height follows
+// the Scale chip (or clip A's height); width tracks clip A's aspect. Both are
+// forced even for yuv420p.
+function joinCanvas() {
+  const w0 = state.meta?.width || 1280;
+  const h0 = state.meta?.height || 720;
+  const h = state.scale === "orig" ? h0 : parseInt(state.scale, 10);
+  const w = state.scale === "orig" ? w0 : Math.round((w0 * h) / h0);
+  const even = (n) => Math.max(2, Math.round(n / 2) * 2);
+  const fps = state.fps !== "orig" ? parseFloat(state.fps) : currentFps();
+  return { w: even(w), h: even(h), fps: Number.isFinite(fps) && fps > 0 ? fps : 30 };
+}
+
+// Clamp the transition duration so it never exceeds the shorter clip (xfade
+// and acrossfade both need the overlap to fit inside both inputs).
+function joinTransDur() {
+  const durA = state.meta?.duration || 0;
+  const durB = state.metaB?.duration || 0;
+  const cap = Math.max(0.1, Math.min(durA || Infinity, durB || Infinity) - 0.05);
+  const d = Number(state.transDur) || 0.5;
+  return Math.min(Math.max(0.1, d), Number.isFinite(cap) ? cap : d);
+}
+
+// Final duration of a join, used by the size estimate. Hard cut is durA+durB;
+// a transition overlaps the two clips by the transition duration.
+function joinOutputDuration() {
+  const durA = state.meta?.duration || 0;
+  const durB = state.metaB?.duration || 0;
+  const overlap = state.transition !== "none" ? joinTransDur() : 0;
+  return Math.max(0, durA + durB - overlap);
+}
+
+// Build the two-input filtergraph. Each clip runs through the shared
+// crop/rotate/flip/colour look, then is scaled+padded onto the common canvas
+// (setsar=1, fixed fps, yuv420p) so concat/xfade see identical frames. With a
+// transition, video uses xfade and kept audio uses acrossfade; a hard cut uses
+// concat for both.
+function buildJoinArgs(in0, in1, outputName) {
+  const { w, h, fps } = joinCanvas();
+  const useX = state.transition !== "none" && TRANSITIONS[state.transition];
+  const hasAudio = state.audio !== "drop";
+  const durA = state.meta?.duration || 0;
+
+  const look = [
+    cropFilter(state.crop),
+    rotateFilter(state.rotate),
+    flipFilter(state.flip),
+    colorFilter(state.color),
+  ].filter(Boolean);
+  const norm = (i) => {
+    const chain = [
+      "setpts=PTS-STARTPTS", // rebase each clip's timeline to 0 for clean xfade/concat
+      ...look,
+      `scale=${w}:${h}:force_original_aspect_ratio=decrease`,
+      `pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:color=black`,
+      "setsar=1",
+      `fps=${fps}`,
+      "format=yuv420p",
+    ];
+    return `[${i}:v]${chain.join(",")}[jv${i}]`;
+  };
+
+  let d = 0;
+  let v = `${norm(0)};${norm(1)};`;
+  if (useX) {
+    d = joinTransDur();
+    const offset = Math.max(0, durA - d);
+    v += `[jv0][jv1]xfade=transition=${state.transition}:duration=${d.toFixed(3)}:offset=${offset.toFixed(3)}[vout]`;
+  } else {
+    v += "[jv0][jv1]concat=n=2:v=1[vout]";
+  }
+
+  let a = "";
+  if (hasAudio) {
+    // Normalise both audio streams to a common format so concat/crossfade
+    // accept them regardless of the sources' sample rate or layout.
+    const af = "aresample=async=1:first_pts=0,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo";
+    a = `[0:a]${af}[ja0];[1:a]${af}[ja1];`;
+    a += useX
+      ? `[ja0][ja1]acrossfade=d=${d.toFixed(3)}[aout]`
+      : "[ja0][ja1]concat=n=2:v=0:a=1[aout]";
+  }
+
+  const filter = hasAudio ? `${v};${a}` : v;
+  const args = ["-i", in0, "-i", in1, "-filter_complex", filter, "-map", "[vout]"];
+  if (hasAudio) args.push("-map", "[aout]");
+  else args.push("-an");
+  appendVideoCodec(args, { hasAudio });
+  args.push(outputName);
+  return args;
+}
+
 function atempoChain(speed) {
   // atempo accepts 0.5..2.0; chain multiple filters for ratios outside.
   let s = speed;
@@ -721,6 +948,7 @@ function atempoChain(speed) {
 
 // ─── output naming ─────────────────────────────────────────────────────
 function outExt() {
+  if (state.mode === "join") return (FORMATS[state.format] || FORMATS.mp4).ext;
   switch (state.output) {
     case "gif": return "gif";
     case "frame": return "png";
@@ -737,6 +965,7 @@ function outputSuffix() {
     default:
       if (state.mode === "reverse") return "reversed";
       if (state.mode === "trim") return "clip";
+      if (state.mode === "join") return "joined";
       return state.mode;
   }
 }
@@ -744,6 +973,10 @@ function outputSuffix() {
 // ─── run pipeline ──────────────────────────────────────────────────────
 async function run() {
   if (!state.file || state.running) return;
+  if (state.mode === "join" && !state.fileB) {
+    setStatus("warn", "Add a second clip to join.");
+    return;
+  }
   state.running = true;
   btnRun.disabled = true;
   btnCancel.disabled = false;
@@ -763,8 +996,12 @@ async function run() {
     stageTimeEl.textContent = `${elapsed}s`;
   }, 200);
 
+  const isJoin = state.mode === "join";
   const inExt = (state.file.name.match(/\.[^.]+$/) || [".mp4"])[0].toLowerCase();
   const inName = `in${inExt}`;
+  const inNameB = isJoin
+    ? `inb${(state.fileB.name.match(/\.[^.]+$/) || [".mp4"])[0].toLowerCase()}`
+    : null;
   const isFrames = state.output === "frames";
   const ext = outExt();
   const outName = isFrames ? null : `out.${ext}`;
@@ -773,31 +1010,49 @@ async function run() {
     setStage("loading engine…", 0);
     const ff = await loadFFmpeg();
 
-    setStage("reading file…", 0);
-    await ff.writeFile(inName, await state.ffmpegUtil.fetchFile(state.file));
-
     const logArgv = (argv) =>
       log(`ffmpeg ${argv.map((a) => (/\s/.test(a) ? JSON.stringify(a) : a)).join(" ")}`);
-    const twoPass = state.output === "video" && state.rateMode === "bitrate" && state.twopass === "on";
+    const twoPass = !isJoin && state.output === "video" && state.rateMode === "bitrate" && state.twopass === "on";
 
-    if (twoPass) {
-      setStage("processing · pass 1/2…", 0);
-      const a1 = buildArgs(inName, outName, { pass: 1, passlog: "ff2pass" });
-      logArgv(a1);
-      const c1 = await ff.exec(a1);
-      if (c1 !== 0) throw new Error(`ffmpeg pass 1 exited with code ${c1}`);
+    if (isJoin) {
+      setStage("reading files…", 0);
+      await ff.writeFile(inName, await state.ffmpegUtil.fetchFile(state.file));
+      await ff.writeFile(inNameB, await state.ffmpegUtil.fetchFile(state.fileB));
 
-      setStage("processing · pass 2/2…", 0);
-      const a2 = buildArgs(inName, outName, { pass: 2, passlog: "ff2pass" });
-      logArgv(a2);
-      const c2 = await ff.exec(a2);
-      if (c2 !== 0) throw new Error(`ffmpeg pass 2 exited with code ${c2}`);
-    } else {
       setStage("processing…", 0);
-      const argv = buildArgs(inName, outName);
+      const argv = buildJoinArgs(inName, inNameB, outName);
       logArgv(argv);
       const code = await ff.exec(argv);
-      if (code !== 0) throw new Error(`ffmpeg exited with code ${code}`);
+      if (code !== 0) {
+        throw new Error(
+          state.audio !== "drop"
+            ? `ffmpeg exited with code ${code} — if a clip has no audio track, set Audio to Drop.`
+            : `ffmpeg exited with code ${code}`,
+        );
+      }
+    } else {
+      setStage("reading file…", 0);
+      await ff.writeFile(inName, await state.ffmpegUtil.fetchFile(state.file));
+
+      if (twoPass) {
+        setStage("processing · pass 1/2…", 0);
+        const a1 = buildArgs(inName, outName, { pass: 1, passlog: "ff2pass" });
+        logArgv(a1);
+        const c1 = await ff.exec(a1);
+        if (c1 !== 0) throw new Error(`ffmpeg pass 1 exited with code ${c1}`);
+
+        setStage("processing · pass 2/2…", 0);
+        const a2 = buildArgs(inName, outName, { pass: 2, passlog: "ff2pass" });
+        logArgv(a2);
+        const c2 = await ff.exec(a2);
+        if (c2 !== 0) throw new Error(`ffmpeg pass 2 exited with code ${c2}`);
+      } else {
+        setStage("processing…", 0);
+        const argv = buildArgs(inName, outName);
+        logArgv(argv);
+        const code = await ff.exec(argv);
+        if (code !== 0) throw new Error(`ffmpeg exited with code ${code}`);
+      }
     }
 
     setStage("finalizing…", 100);
@@ -826,6 +1081,7 @@ async function run() {
   } finally {
     clearInterval(tick);
     try { await state.ffmpeg?.deleteFile(inName); } catch (_) {}
+    if (inNameB) { try { await state.ffmpeg?.deleteFile(inNameB); } catch (_) {} }
     if (outName) { try { await state.ffmpeg?.deleteFile(outName); } catch (_) {} }
     // two-pass leaves its rate-control log behind in the virtual FS
     for (const f of ["ff2pass-0.log", "ff2pass-0.log.mbtree"]) {
@@ -1093,15 +1349,43 @@ const COMPRESS_BLOCKS = [
   "opt-preset-block", "opt-framedrop-block", "opt-abr-block",
 ];
 
+// All toggleable option blocks, shared by the output- and join-visibility paths.
+const ALL_OPT_BLOCKS = [
+  "opt-mode-block", "opt-output-block", "opt-join-block", "opt-loops-block",
+  "opt-speed-block", "opt-scale-block", "opt-crop-block", "opt-rotate-block",
+  "opt-flip-block", "opt-color-block", "opt-fps-block", "opt-frate-block",
+  "opt-fade-block", "opt-format-block", "opt-quality-block", "opt-audio-block",
+  "opt-fpssrc-block", "opt-trim-block", ...COMPRESS_BLOCKS,
+];
+
+// Join mode is a two-input encode, so the single-clip controls (output type,
+// trim, loops, speed, fade, per-clip modes, frame-drop, two-pass) don't apply.
+// It keeps the shared look + canvas + encode controls and adds the transition.
+const JOIN_BLOCKS = new Set([
+  "opt-mode-block", "opt-join-block", "opt-scale-block", "opt-crop-block",
+  "opt-rotate-block", "opt-flip-block", "opt-color-block", "opt-fps-block",
+  "opt-format-block", "opt-quality-block", "opt-audio-block", "opt-fpssrc-block",
+  "opt-rate-block", "opt-crf-block", "opt-bitrate-block", "opt-preset-block",
+  "opt-abr-block",
+]);
+
+function applyJoinVisibility() {
+  ALL_OPT_BLOCKS.forEach((id) => showBlock(id, JOIN_BLOCKS.has(id)));
+  // rate-control controls follow the CRF/bitrate chip; two-pass stays hidden.
+  showBlock("opt-crf-block", state.rateMode === "crf");
+  showBlock("opt-bitrate-block", state.rateMode === "bitrate");
+  showBlock("opt-twopass-block", false);
+}
+
 function applyOutputVisibility() {
+  // Join is selected via the Mode chips but reshapes the whole panel.
+  if (state.mode === "join") {
+    applyJoinVisibility();
+    return;
+  }
+  showBlock("opt-join-block", false);
   const o = state.output;
-  const all = [
-    "opt-mode-block", "opt-output-block", "opt-loops-block", "opt-speed-block",
-    "opt-scale-block", "opt-crop-block", "opt-rotate-block", "opt-flip-block",
-    "opt-color-block", "opt-fps-block", "opt-frate-block", "opt-fade-block",
-    "opt-format-block", "opt-quality-block", "opt-audio-block", "opt-fpssrc-block",
-    "opt-trim-block", ...COMPRESS_BLOCKS,
-  ];
+  const all = ALL_OPT_BLOCKS.filter((id) => id !== "opt-join-block");
 
   const hide = {
     // frame export rate is only meaningful for the frame sequence; compress
@@ -1163,6 +1447,53 @@ fileEl.addEventListener("change", (e) => {
   if (f) acceptFile(f);
 });
 
+// second drop zone (join mode) — mirrors the primary one
+if (drop2El && file2El) {
+  drop2El.addEventListener("click", () => file2El.click());
+  drop2El.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      file2El.click();
+    }
+  });
+  ["dragenter", "dragover"].forEach((ev) =>
+    drop2El.addEventListener(ev, (e) => {
+      e.preventDefault();
+      drop2El.classList.add("is-hover");
+    }),
+  );
+  ["dragleave", "drop"].forEach((ev) =>
+    drop2El.addEventListener(ev, (e) => {
+      e.preventDefault();
+      drop2El.classList.remove("is-hover");
+    }),
+  );
+  drop2El.addEventListener("drop", (e) => {
+    const f = e.dataTransfer?.files?.[0];
+    if (f) acceptFileB(f);
+  });
+  file2El.addEventListener("change", (e) => {
+    const f = e.target.files?.[0];
+    if (f) acceptFileB(f);
+  });
+}
+
+// transition select + duration (join mode)
+if (transitionSel) {
+  transitionSel.addEventListener("change", () => {
+    state.transition = transitionSel.value;
+    updateTransitionUI();
+    updateEstimate();
+  });
+}
+if (transDurEl) {
+  transDurEl.addEventListener("input", () => {
+    state.transDur = parseFloat(transDurEl.value) || 0.5;
+    updateTransHint();
+    updateEstimate();
+  });
+}
+
 document.addEventListener("click", (e) => {
   const chip = e.target.closest("[data-opt]");
   if (chip) {
@@ -1189,7 +1520,16 @@ document.addEventListener("click", (e) => {
       state.crf = QUALITY_CRF[val] ?? state.crf;
       syncCrfUI();
     }
-    if (opt === "rateMode") updateRateVisibility();
+    if (opt === "rateMode") {
+      if (state.mode === "join") applyJoinVisibility();
+      else updateRateVisibility();
+    }
+    if (opt === "mode") {
+      // Join produces a joined video regardless of the (hidden) output chip.
+      if (val === "join") setOutput("video");
+      syncSecondSource();
+      applyOutputVisibility();
+    }
     if (opt === "output") applyOutputVisibility();
     updateEstimate();
     return;
@@ -1351,6 +1691,8 @@ function resetOptions() {
   state.fadeIn = 0;
   state.fadeOut = 0;
   state.frate = "all";
+  state.transition = "none";
+  state.transDur = 0.5;
   document.querySelectorAll("[data-opt]").forEach((c) => {
     const opt = c.dataset.opt;
     if (opt === "fpsSrcPick") return; // source fps is not reset (it tracks the file)
@@ -1364,7 +1706,11 @@ function resetOptions() {
   syncCrfUI();
   if (fadeInEl) fadeInEl.value = "0";
   if (fadeOutEl) fadeOutEl.value = "0";
+  if (transitionSel) transitionSel.value = "none";
+  if (transDurEl) transDurEl.value = "0.5";
   updateFadeHint();
+  updateTransitionUI();
+  syncSecondSource();
   applyOutputVisibility();
   updateFrameInfo();
   setStatus("info", "Defaults restored.");
@@ -1387,6 +1733,8 @@ function resetForAnother() {
 // ─── boot ──────────────────────────────────────────────────────────────
 setStage("idle");
 applyOutputVisibility();
+syncSecondSource();
+updateTransitionUI();
 syncFpsPickChips();
 updateFadeHint();
 syncCrfUI();

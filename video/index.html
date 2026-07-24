@@ -7,14 +7,14 @@
   <meta name="google-site-verification" content="YajPB0wGuLIjxwUYMtU7dbEpVAuIjnOXrYR_2mRmUS0" />
   <meta name="msvalidate.01" content="F77DFE78F7CE09D0DBC60CFB2FA27E51" />
   <title>Video Studio · tools · ranzlappen</title>
-  <meta name="description" content="Compress, trim, reverse, resize, crop, rotate, colour-grade and re-encode video — CRF or bitrate, frame-dropping, MP4/MKV/MOV/WebM/GIF, PNG frames or audio, entirely in your browser." />
+  <meta name="description" content="Compress, trim, reverse, join two clips with transitions, resize, crop, rotate, colour-grade and re-encode video — CRF or bitrate, frame-dropping, MP4/MKV/MOV/WebM/GIF, PNG frames or audio, entirely in your browser." />
   <meta name="theme-color" content="#0b1210" />
   <meta name="color-scheme" content="dark light" />
 
   <link rel="canonical" href="https://tools.ranzlappen.com/video/" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Video Studio · tools · ranzlappen" />
-  <meta property="og:description" content="Compress, trim, reverse, resize, crop, rotate, colour-grade and re-encode video — CRF or bitrate, frame-dropping, MP4/MKV/MOV/WebM/GIF, PNG frames or audio, entirely in your browser." />
+  <meta property="og:description" content="Compress, trim, reverse, join two clips with transitions, resize, crop, rotate, colour-grade and re-encode video — CRF or bitrate, frame-dropping, MP4/MKV/MOV/WebM/GIF, PNG frames or audio, entirely in your browser." />
   <meta property="og:url" content="https://tools.ranzlappen.com/video/" />
   <meta property="og:site_name" content="ranzlappen tools" />
   <meta property="og:image" content="https://tools.ranzlappen.com/assets/og.png" />
@@ -24,7 +24,7 @@
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Video Studio · tools · ranzlappen" />
-  <meta name="twitter:description" content="Compress, trim, reverse, resize, crop, rotate, colour-grade and re-encode video — CRF or bitrate, frame-dropping, MP4/MKV/MOV/WebM/GIF, PNG frames or audio, entirely in your browser." />
+  <meta name="twitter:description" content="Compress, trim, reverse, join two clips with transitions, resize, crop, rotate, colour-grade and re-encode video — CRF or bitrate, frame-dropping, MP4/MKV/MOV/WebM/GIF, PNG frames or audio, entirely in your browser." />
   <meta name="twitter:image" content="https://tools.ranzlappen.com/assets/og.png" />
 
 
@@ -87,7 +87,7 @@
             </div>
             <div class="tool-title__text">
               <h1>Video Studio</h1>
-              <p>Compress, trim, reverse, resize, crop, rotate, colour-grade and re-encode — CRF/bitrate control, frame-dropping, MP4/MKV/MOV/WebM, GIF, PNG frames or audio, all in the browser, powered by ffmpeg.wasm.</p>
+              <p>Compress, trim, reverse, join two clips with transitions, resize, crop, rotate, colour-grade and re-encode — CRF/bitrate control, frame-dropping, MP4/MKV/MOV/WebM, GIF, PNG frames or audio, all in the browser, powered by ffmpeg.wasm.</p>
             </div>
             <button type="button" class="info-btn" data-info-button aria-label="About this tool" title="About this tool">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>
@@ -125,6 +125,27 @@
           </div>
 
           <video id="preview" class="preview is-hidden" controls muted playsinline></video>
+
+          <div id="second-source" class="stack-md" style="display:none">
+            <span class="panel__sub">Second clip · appended after the first</span>
+            <div id="drop2" class="drop-zone" tabindex="0" role="button" aria-label="Select or drop the second video file">
+              <input type="file" id="file2" accept="video/*" hidden />
+              <div class="drop-zone__inner">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><rect x="3" y="15" width="18" height="6" rx="2"/></svg>
+                <div class="drop-zone__title">Drop the second video here</div>
+                <div class="drop-zone__hint">or click to choose — it plays after the first clip</div>
+              </div>
+            </div>
+
+            <div id="meta2" class="meta-grid is-hidden">
+              <div class="kv-row"><span class="k">File</span><span class="v" id="m2-name">—</span></div>
+              <div class="kv-row"><span class="k">Size</span><span class="v" id="m2-size">—</span></div>
+              <div class="kv-row"><span class="k">Duration</span><span class="v" id="m2-dur">—</span></div>
+              <div class="kv-row"><span class="k">Resolution</span><span class="v" id="m2-res">—</span></div>
+            </div>
+
+            <video id="preview2" class="preview is-hidden" controls muted playsinline></video>
+          </div>
         </section>
 
         <section class="panel stack-md" id="options-panel">
@@ -142,6 +163,7 @@
                 <button type="button" class="chip" role="radio" aria-checked="false" data-opt="mode" data-value="boomerang">Boomerang</button>
                 <button type="button" class="chip" role="radio" aria-checked="false" data-opt="mode" data-value="reverse">Reverse only</button>
                 <button type="button" class="chip" role="radio" aria-checked="false" data-opt="mode" data-value="palindrome">Palindrome</button>
+                <button type="button" class="chip" role="radio" aria-checked="false" data-opt="mode" data-value="join">Join two clips</button>
               </div>
             </div>
 
@@ -178,6 +200,38 @@
                 <option value="3">3×</option>
                 <option value="4">4×</option>
               </select>
+            </div>
+          </div>
+
+          <div class="opt-grid" id="opt-join-block" style="display:none">
+            <div class="opt">
+              <span class="field-label">Transition</span>
+              <select class="input input--single input--mono" id="opt-transition" aria-label="Transition between clips">
+                <option value="none" selected>None · hard cut</option>
+                <option value="fade">Crossfade</option>
+                <option value="fadeblack">Fade through black</option>
+                <option value="fadewhite">Fade through white</option>
+                <option value="dissolve">Dissolve</option>
+                <option value="wipeleft">Wipe left</option>
+                <option value="wiperight">Wipe right</option>
+                <option value="wipeup">Wipe up</option>
+                <option value="wipedown">Wipe down</option>
+                <option value="slideleft">Slide left</option>
+                <option value="slideright">Slide right</option>
+                <option value="circleopen">Circle open</option>
+                <option value="circleclose">Circle close</option>
+                <option value="radial">Radial</option>
+                <option value="pixelize">Pixelize</option>
+                <option value="smoothleft">Smooth left</option>
+              </select>
+            </div>
+
+            <div class="opt opt--full" id="trans-dur-row" style="display:none">
+              <div class="trim__row">
+                <span class="field-label">Transition length (seconds)</span>
+                <span class="trim__hint" id="trans-hint">hard cut — clips joined end to end</span>
+              </div>
+              <input type="range" id="trans-dur" min="0.1" max="3" step="0.1" value="0.5" aria-label="Transition length in seconds" />
             </div>
           </div>
 

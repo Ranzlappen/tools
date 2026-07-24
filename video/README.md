@@ -7,9 +7,10 @@
 ## What it does
 
 Drop a video file in, pick what to make — a trimmed/converted clip, a
-boomerang, a GIF, a single PNG frame, a whole PNG frame-sequence, or just
-the audio — then layer on resize, crop, rotate/flip, a colour preset, a
-fade and frame-rate changes. A deep **Compress** section lets you change
+boomerang, a GIF, a single PNG frame, a whole PNG frame-sequence, just
+the audio, or **two clips joined** into one (with an optional transition) —
+then layer on resize, crop, rotate/flip, a colour preset, a fade and
+frame-rate changes. A deep **Compress** section lets you change
 container/codec, pick CRF or target-bitrate rate control, dial the encoder
 effort, cap the audio bitrate, and even **drop frames** (keep every 2nd,
 every 3rd, every 4th) as a brute-force size reduction. A live **estimated
@@ -26,7 +27,19 @@ untouched.
 ### Features
 
 - **Modes** — *trim & convert* (default, no reversing), *boomerang*
-  (forward + reverse), *reverse-only*, or *palindrome* (held endpoints).
+  (forward + reverse), *reverse-only*, *palindrome* (held endpoints), or
+  *join two clips* (append a second video, with an optional transition).
+- **Join two clips** — pick *Join two clips* as the mode, drop a **second
+  video** into the panel that appears, and the second clip is appended after
+  the first into one file. Choose a **transition** — hard cut (default), a
+  crossfade, fade through black/white, dissolve, wipe (4 directions), slide,
+  circle open/close, radial, pixelize or smooth — and its **length** (0.1–3 s,
+  auto-capped to the shorter clip). The two clips are normalised onto a shared
+  canvas (from the **Scale** chip, or clip A's size) so mismatched
+  resolutions, aspect ratios and frame rates join cleanly; the whole result is
+  re-encoded with the usual **format / quality / compress** controls. Set
+  **Audio** to *Keep* to carry both clips' sound (crossfaded when a transition
+  is used) — if a clip has no audio track, use *Drop*.
 - **Output type** — Video (MP4/WebM), **GIF**, a single **Frame · PNG**, a
   **PNG frame-sequence**, or **Audio · m4a**.
 - **Scale** — keep original or resize to 1080p / 720p / 480p / 360p / 240p
@@ -123,6 +136,10 @@ untouched.
   *tiny* → tiny file, choppier motion (the brute-force route).
 - **Hit a size target:** *Target bitrate* mode + e.g. *800* kbps → output
   tracks roughly that video bitrate regardless of content.
+- **Stitch two clips:** mode *Join two clips* → drop clip B → transition
+  *Crossfade* at *0.5 s* → one MP4 with a smooth blend between them.
+- **Simple append:** mode *Join two clips* → transition *None* → the two
+  clips play back to back, no blend.
 
 ### Privacy
 
@@ -135,11 +152,13 @@ static file requests, never your video.
 
 ### File layout
 
-- `index.html` — drop zone, metadata preview, the Options panel
-  (Transform / Frame / Look / Encode / Compress / Trim sub-sections),
+- `index.html` — drop zone, metadata preview, a second drop zone +
+  transition controls (shown only in *Join* mode), the Options panel
+  (Transform / Join / Frame / Look / Encode / Compress / Trim sub-sections),
   render log, export area.
-- `tool.js` — file pickup, frame-perfect helpers, `buildArgs()` and its
-  per-output builders, the ffmpeg worker lifecycle, frame-sequence
+- `tool.js` — file pickup (primary + second clip), frame-perfect helpers,
+  `buildArgs()` and its per-output builders, `buildJoinArgs()` for the
+  two-clip path, the ffmpeg worker lifecycle, frame-sequence
   collection/gallery, progress wiring, export.
 
 ### DOM hooks
@@ -201,7 +220,16 @@ The filter model is a **hybrid**:
 `buildArgs()` branches early per output type into `buildFrameArgs()`,
 `buildFramesArgs()` and `buildAudioArgs()`; GIF reuses the video graph but
 terminates into a single-pass `split,palettegen,paletteuse` palette
-pipeline. The codec block at the end is driven by the `FORMATS` map
+pipeline. **Join** is a separate two-input path (`buildJoinArgs()`): each clip
+runs the shared crop/rotate/flip/colour look, then
+`setpts=PTS-STARTPTS,scale,pad,setsar=1,fps,format=yuv420p` normalises both
+onto one canvas (`joinCanvas()`), and the two are combined with either
+`concat` (hard cut) or `xfade`/`acrossfade` (transition, offset =
+`durationA − length`, clamped by `joinTransDur()`). It reuses the shared
+`appendVideoCodec()` tail — the same codec/rate-control block `buildArgs()`
+emits — so the join output honours every format/quality/compress control.
+`run()` writes both inputs (`in…`/`inb…`) and dispatches to the join path when
+`state.mode === "join"`. The codec block at the end is driven by the `FORMATS` map
 (`{ ext, vcodec, acodec, faststart }`) — to add a container/codec, add an
 entry and a `format` chip; H.264 uses `-preset`, libvpx uses `-cpu-used`
 (via `VPX_CPU`). Rate control reads `state.rateMode` (`-crf` vs `-b:v`),
@@ -249,6 +277,13 @@ lazy-load budget. It is best-effort auto-corrected by parsing the
   Use one or the other.
 - **MKV/MOV may not preview in-page** — some browsers can't play the MKV
   container inline; the result still downloads correctly.
+- **Join re-encodes and normalises** — the two clips are always scaled/padded
+  onto a shared canvas and fully re-encoded, so joining is not a lossless
+  stream-copy; a portrait clip joined onto a landscape canvas is letterboxed
+  (and vice versa). Transition length is capped to the shorter clip, and
+  **Keep audio** needs both clips to have an audio track (otherwise use
+  *Drop*). Trim, speed, loops, fade and the per-clip reverse modes don't apply
+  in join mode.
 - **Size estimate is approximate** — the CRF estimate uses a generic
   bits-per-pixel model and ignores scene complexity, so it can be off by a
   fair margin on very flat or very busy footage. The *Target bitrate* figure
