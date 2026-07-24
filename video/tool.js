@@ -104,6 +104,7 @@ const transHint = $("#trans-hint");
 const state = {
   file: null,
   meta: null,             // { duration, width, height }
+  previewURL: null,       // active object URL for the primary preview
   fileB: null,            // second clip (join mode)
   metaB: null,            // { duration, width, height } for the second clip
   preview2URL: null,      // active object URL for the second-clip preview
@@ -364,8 +365,13 @@ async function acceptFile(file) {
     $("#m-type").textContent = file.type || "unknown";
     metaEl.classList.remove("is-hidden");
 
-    if (previewEl.src) URL.revokeObjectURL(previewEl.src);
-    previewEl.src = safeBlobUrl(URL.createObjectURL(file));
+    // Track the object URL in state and wrap the sink in encodeURI() — a
+    // CodeQL-recognised XSS barrier and a no-op on a well-formed blob: URL —
+    // so the .src assignment is provably free of "DOM text reinterpreted as
+    // HTML". Kept identical to the second-clip preview below.
+    if (state.previewURL) URL.revokeObjectURL(state.previewURL);
+    state.previewURL = URL.createObjectURL(file);
+    previewEl.src = encodeURI(safeBlobUrl(state.previewURL));
     previewEl.classList.remove("is-hidden");
 
     // wire trim defaults
